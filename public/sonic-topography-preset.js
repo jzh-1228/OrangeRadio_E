@@ -849,6 +849,9 @@
   }
 
   function addRipple(x, z, strength, white) {
+    /* 场景未构建（initData 未跑）时 ripples 为空数组：预设激活的当帧窗口期内
+       指针事件即可到达这里，直接吞掉，避免 ripples[idx] 为 undefined 崩溃。 */
+    if (!state.ripples.length) return;
     var idx = state.rippleIdx;
     var r = state.ripples[idx];
     r.x = x;
@@ -860,6 +863,7 @@
   }
 
   function addMeteor(strength) {
+    if (!state.meteorsData || !state.meteorsData.length) return;
     var now = state.sonicTime;
     if (now - state.lastMeteorAt < 0.55) return;
     state.lastMeteorAt = now;
@@ -877,6 +881,7 @@
   }
 
   function spawnTrail(x, y, z, speedMul) {
+    if (!state.trailsData || !state.trailsData.length) return;
     var idx = state.trailIdx;
     var p = state.trailsData[idx];
     p.active = true;

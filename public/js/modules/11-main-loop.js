@@ -171,9 +171,6 @@ function sampleRenderPerf(now, dt) {
 }
 var thumbCoverCachedEl = null;   // 每帧缩略图脉动的 DOM 引用缓存
 var mainFrameGates = {  audio: createFrameGate('main.audio', 60),
-  genreTrack: createFrameGate('main.genreTrack', 6),
-  genreHud: createFrameGate('main.genreHud', 12),
-  genreQuality: createFrameGate('main.genreQuality', 8),
   shelf: createFrameGate('main.shelf', 30),
   lyricsParticles: createFrameGate('main.lyricsParticles', 45),
   stageLyrics: createFrameGate('main.stageLyrics', 45),
@@ -311,113 +308,6 @@ function targetMainDesktopOverlayFps(now) {
   }
   return 6;
 }
-function targetMainGenreTrackFps() {
-  return 6;
-}
-function targetMainGenreHudFps() {
-  return 12;
-}
-function targetMainGenreQualityFps() {
-  return 8;
-}
-// GENRE_WORLD_FRAME_HELPERS_BEGIN
-function currentGenreWorldLyricsFrame() {
-  var result = { text: '', translation: '', seekId: -1 };
-  if (typeof lyricsLines === 'undefined' || !lyricsLines || !lyricsLines.length) return result;
-  var playbackTime = audio ? Number(audio.currentTime) || 0 : 0;
-  if (typeof getAdjustedLyricPlaybackTime === 'function') {
-    playbackTime = getAdjustedLyricPlaybackTime(playbackTime);
-  }
-  var lyricIndex = typeof findStageLyricIndexAtTime === 'function'
-    ? findStageLyricIndexAtTime(playbackTime)
-    : -1;
-  if (lyricIndex < 0 || lyricIndex >= lyricsLines.length) return result;
-  var line = lyricsLines[lyricIndex] || {};
-  return {
-    text: line.text || '',
-    translation: line.translation || '',
-    seekId: line.seekId != null ? line.seekId : lyricIndex
-  };
-}
-function buildGenreWorldFrame(now, dt) {
-  return {
-    time: now / 1000,
-    dt: dt,
-    bass: bass,
-    low: bass,
-    mid: mid,
-    high: treble,
-    energy: audioEnergy,
-    beat: beatPulse,
-    frequencyData: typeof frequencyData !== 'undefined' ? frequencyData : null,
-    timeDomainData: typeof timeDomainData !== 'undefined' ? timeDomainData : null,
-    lyrics: currentGenreWorldLyricsFrame()
-  };
-}
-function runGenreWorldMainLoopFrame(now, dt, framePerfStart, perfProbe) {
-  if (typeof genreMode === 'undefined' || !genreMode) return false;
-  var genreTrackStepDt = consumeFrameGate(
-    mainFrameGates.genreTrack, now, dt, targetMainGenreTrackFps(), false, 'genre-track'
-  );
-  if (genreTrackStepDt > 0 && typeof syncGenreModeTrack === 'function') {
-    syncGenreModeTrack(false);
-  }
-  if (typeof advanceGenreWorldTransition === 'function') {
-    advanceGenreWorldTransition(now);
-  }
-  /* genre 接管主循环后仍驱动 shelf（UI 系统）：打开歌单/播放列表时内容动画与自动收起不冻结 */
-  var genreShelfFps = typeof targetMainShelfFps === 'function' ? targetMainShelfFps(now) : 30;
-  var genreShelfStepDt = consumeFrameGate(
-    mainFrameGates.shelf, now, dt, genreShelfFps, false, 'shelf-manager'
-  );
-  if (genreShelfStepDt > 0 && typeof shelfManager !== 'undefined' && shelfManager &&
-    typeof shelfManager.update === 'function') {
-    try { shelfManager.update(genreShelfStepDt); } catch (err) {}
-  }
-  var genreHudStepDt = consumeFrameGate(
-    mainFrameGates.genreHud, now, dt, targetMainGenreHudFps(), false, 'genre-hud'
-  );
-  if (genreHudStepDt > 0) {
-    if (typeof syncGenreModeHud === 'function') syncGenreModeHud(false);
-    if (typeof updateGenreHudVisibility === 'function') updateGenreHudVisibility(now);
-  }
-  var genreQualityStepDt = consumeFrameGate(
-    mainFrameGates.genreQuality, now, dt, targetMainGenreQualityFps(), false, 'genre-quality'
-  );
-  if (genreQualityStepDt > 0 && typeof syncGenreWorldAdaptiveQuality === 'function') {
-    syncGenreWorldAdaptiveQuality(false);
-  }
-
-  var genreFrame = buildGenreWorldFrame(now, dt);
-  if (typeof tickGenreWorld === 'function') tickGenreWorld(genreFrame);
-  var genreRendererPerfStart = performance.now();
-  /* WebGL context lost / 场景异常时保护本帧，不影响下一帧调度 */
-  try {
-    renderer.render(scene, camera);
-  } catch (renderErr) {
-    if (typeof genreWorldWarnThrottled === 'function') {
-      genreWorldWarnThrottled('render', 'render failed: ' + (renderErr && renderErr.message || renderErr));
-    }
-    return false;
-  }
-  if (perfProbe && perfProbe.markSince) {
-    perfProbe.markSince('renderer.render.genre-world', genreRendererPerfStart);
-  }
-  var genreFrameCostMs = performance.now() - framePerfStart;
-  if (typeof sampleAdaptiveFrameCost === 'function') {
-    var genreFrameLoad = sampleAdaptiveFrameCost(
-      genreFrameCostMs,
-      renderPerfState.targetFps || renderPerfState.displayHz || 60
-    );
-    if (genreFrameLoad) {
-      renderPerfState.adaptiveFrameCostMs = genreFrameLoad.avgMs;
-      renderPerfState.adaptivePressure = genreFrameLoad.level;
-    }
-  }
-  if (perfProbe && perfProbe.mark) perfProbe.mark('frame.total', genreFrameCostMs);
-  return true;
-}
-// GENRE_WORLD_FRAME_HELPERS_END
 function animate() {
   mainLoopAnimationRequested = false;
   scheduleNextMainLoopFrame();
@@ -667,8 +557,6 @@ function animate() {
   bass = Math.min(0.90, smoothBass * 1.05 + beatPulse * 0.18) * fx.intensity;
   mid = Math.min(0.72, smoothMid * 1.12) * fx.intensity;
   treble = Math.min(0.62, smoothTreb * 1.20) * fx.intensity;
-
-  if (runGenreWorldMainLoopFrame(now, dt, framePerfStart, perfProbe)) return;
 
   uniforms.uTime.value += dt;
   pointerParallax.x += (pointerTarget.x - pointerParallax.x) * 0.040;

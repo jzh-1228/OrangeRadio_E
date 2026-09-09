@@ -32,6 +32,7 @@ test('splash is a looping video player overlay instead of the sunset shader', ()
   assert.match(html, /id="splash-video"/i);
   assert.match(html, /src="assets\/splash\/splash\.mp4"/i);
   assert.match(html, /poster="assets\/splash\/splash-poster\.jpg"/i);
+  assert.match(html, /preload="metadata"/i);
   assert.match(html, /id="splash-play-btn"/i);
   assert.match(html, /id="splash-album-art"/i);
   assert.match(html, /class="splash-album-disc"/i);
@@ -81,13 +82,8 @@ test('DIY console can replace the splash mp4 without touching wallpaper paths', 
   assert.doesNotMatch(splashJs, /openCustomBackgroundDb|CUSTOM_BG_|wallpaper-engine|\.pak/);
 });
 
-test('splash script captures the first frame and enters on play', () => {
-  assert.match(splashJs, /function captureSplashAlbumFrame/);
-  assert.match(splashJs, /function stopSplashVideo/);
-  assert.match(splashJs, /getElementById\('splash-play-btn'\)/);
-  assert.match(splashJs, /markSplashReadyToEnter\(\)/);
-  assert.doesNotMatch(splashJs, /initMineradioSplashWebgl/);
-  assert.doesNotMatch(splashJs, /playMineradioIntroSound/);
-  assert.doesNotMatch(splashJs, /setTimeout\(markSplashReadyToEnter,\s*1500\)/);
-  assert.doesNotMatch(splashJs, /audioTide/);
+test('splash script defers wallpaper prewarm until video metadata is ready', () => {
+  assert.doesNotMatch(splashJs, /loadeddata'[\s\S]{0,120}captureSplashAlbumFrame/);
+  assert.match(splashJs, /loadedmetadata', scheduleWallpaperPrewarm/);
+  assert.doesNotMatch(splashJs, /prewarmHomeWallpaperPreview\(\);\s*initSplashVideo\(\);/);
 });

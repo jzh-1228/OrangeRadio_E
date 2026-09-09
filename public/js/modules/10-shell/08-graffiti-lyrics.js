@@ -35,12 +35,9 @@ var graffitiLastColor = '';
 function applyGraffitiMode(on, opts) {
   opts = opts || {};
   graffitiMode = !!on;
-  /* 三方双向互斥：进入涂鸦墙时先退出胶片电台与风格电台（Genre Mode） */
+  /* 双向互斥：进入涂鸦墙时先退出胶片电台 */
   if (graffitiMode && typeof filmRadioMode !== 'undefined' && filmRadioMode && typeof applyFilmRadioMode === 'function') {
     applyFilmRadioMode(false, { save: true });
-  }
-  if (graffitiMode && typeof genreMode !== 'undefined' && genreMode && typeof applyGenreMode === 'function') {
-    applyGenreMode(false, { save: true });
   }
   document.body.classList.toggle('graffiti', graffitiMode);
   var overlay = document.getElementById('graffiti-overlay');

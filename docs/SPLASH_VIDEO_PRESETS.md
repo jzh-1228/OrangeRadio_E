@@ -34,7 +34,7 @@
   - `setSplashPreset(id)`：设置面板切换入口，写偏好并按场景即时生效或提示下次生效；
   - `applySplashVideoSource()`：启动时决定最终 src（自定义 > 内置）；
   - `initSplashVideo()` 的 `error` 监听：任何加载失败统一回退 `SPLASH_VIDEO_PRESETS[0]`。
-- `public/index.html`：`#splash-preset-seg` 五段切换按钮（随机/视频一~四）；`#splash-video` 标签的静态 `src="assets/splash/splash.mp4"` 是首屏占位，加载后被 JS 覆盖，**不可删除**（测试断言依赖）。
+- 启动页视频使用 `preload="metadata"`，先显示预生成 poster，再在最终视频源确定后播放；首帧不会在 `loadeddata` 阶段同步编码 Canvas，避免阻塞启动主线程。首页壁纸预热会延后到视频元数据就绪后的空闲时机。
 - `public/js/modules/07-fx/09-console-workspace.js`：控制台搜索目录项 `splash-preset-seg`。
 - `server/utils.js`：MIME 表含 `.mp4 → video/mp4`。
 

@@ -371,11 +371,21 @@ async function applySplashVideoSource() {
 function initSplashVideo() {
   var video = document.getElementById('splash-video');
   if (!video) return;
+  var wallpaperPrewarmStarted = false;
+  function scheduleWallpaperPrewarm() {
+    if (wallpaperPrewarmStarted) return;
+    wallpaperPrewarmStarted = true;
+    var run = function () { prewarmHomeWallpaperPreview(); };
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(run, { timeout: 1200 });
+    } else {
+      setTimeout(run, 120);
+    }
+  }
   video.addEventListener('loadeddata', function () {
-    captureSplashAlbumFrame();
     playSplashVideo();
   });
-  video.addEventListener('seeked', captureSplashAlbumFrame);
+  video.addEventListener('loadedmetadata', scheduleWallpaperPrewarm, { once: true });
   video.addEventListener('error', function () {
     var current = video.getAttribute('src') || '';
     if (!current || current === SPLASH_VIDEO_PRESETS[0].src) return;
@@ -483,7 +493,6 @@ function bindSplashEnterFlow() {
     dismissSplash({ instant: true });
     return;
   }
-  prewarmHomeWallpaperPreview();
   initSplashVideo();
   markSplashReadyToEnter();
   function requestSplashEnter(event) {

@@ -1,5 +1,11 @@
 # Changelog
 
+## 未发布
+
+- 修复点击画面偶发**渲染进程崩溃**（`Cannot set properties of undefined (setting 'x')` at addRipple）：音域回响预设的对象池（涟漪/陨石/拖尾）在场景构建完成前是空数组，而 `isActive` 门控只检查预设号——切到该预设后的首个动画帧窗口期内点击画布，`pointerRipple` 即对 `undefined` 槽位写属性抛 TypeError。池入口（`addRipple`/`addMeteor`/`spawnTrail`）补空守卫，未构建时静默忽略。
+- **移除「风格电台」模式**（按曲风自动切换的八世界视觉模式）：视觉表现不达预期，整体下线。删除全部相关模块——风格识别（`16-genre-resolve.js`）、世界注册表/引擎/转场/性能管理（`17-20-*.js`）、八个世界 kit（`02-visual/genre-worlds/`）、世界歌词渲染（`06-lyrics/08-genre-world-lyrics.js`）、模式生命周期与频道控制台（`10-shell/09-genre-mode.js`）、`css/genre-mode.css`、`index.html` 的 `#genre-overlay` 覆盖层、预设网格「风格电台」卡片，以及 7 个 genre 专项测试与 `docs/GENRE_MODE.md`；同步清理主循环 genre 帧门控、胶片电台/涂鸦墙的三方互斥分支（退化为双向互斥）、`preload-mode.js` 预加载类、渲染功耗管理的 genre 视口所有权分支。歌曲元数据中的曲风字段（搜索/本地库/详情页「风格」行）不受影响；遗留的 localStorage 键（`orangesea-genre-mode-v1`/`orangesea-genre-lock-v1`）无代码再读，无需迁移。
+- 启动页视频**加载防卡顿**：`#splash-video` 预加载策略由 `preload="auto"` 改为 `metadata`，避免页面解析期整段拉取默认视频（JS 随后可能切换到其他预设造成双份加载）；移除 `loadeddata` 里的同步 Canvas 截帧（`toDataURL` 阻塞启动主线程，唱片封面直接用预生成 poster）；首页壁纸预热推迟到视频元数据就绪后的空闲时机，避免与视频解码争用。
+
 ## v1.0.1 - 2026-08-18
 
 - 新增**任务栏缩略图控制按钮**：鼠标悬停任务栏图标时，预览缩略图下方显示「上一首 | 播放/暂停 | 下一首」三枚按钮（同网易云），中间按钮的图标与提示随播放状态自动切换。点击动作复用全局快捷键通道（`mineradio-global-hotkey`），播放执行路径与快捷键/迷你播放器完全一致；播放状态由渲染进程低频轮询、仅在翻转时上报（新增轻量 IPC `mineradio-playback-state`）。图标为 32x32 深棕图形（`desktop/assets/thumbar/`，纯 Node 脚本 `tools/gen-thumbar-icons.js` 生成，可重生成）；窗口重载与 explorer.exe 重启（TaskbarCreated 消息）后自动重设按钮。
