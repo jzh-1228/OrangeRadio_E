@@ -2,6 +2,8 @@
 
 ## 未发布
 
+- **歌词行层循环性能修复**（渲染帧的最大隐性开销）：播放中 `updateLyricRowLayers` 对整首歌驻留的全部歌词行（长歌可达 600 行）每帧无条件执行目标计算、位置插值与 uniform 写入——现在**不在渲染窗口且透明度已收敛为 0 的行直接跳过重活区**（微基准 4.92ms→2.43ms/帧，-50% 纯 JS，还不含原先 three r128 对全部不可见 mesh 的每帧矩阵重组），行进入渲染窗口的边沿帧一次性 snap 到目标位置消除从冻结位置追赶的偏移；冻结行同时关闭 `matrixAutoUpdate`，唤醒帧恢复——消除 60fps 下对 600~1800 个 Object3D 的每帧矩阵级联（真机推断收益与本项相当或更大）。
+
 - **内存优化五件套**：① 处理类 canvas 池（封面裁切等高频短命 canvas 按尺寸分桶复用，每桶 2 总 8 上限，此前每次切歌 3~4 个临时 canvas 靠 GC）；② 本地歌曲 blob URL 台账与定期清扫（不在队列且不在任何 audio 元素出声即 revoke——修复拖放导入的文件字节被浏览器进程持有到刷新）；③ THREE 资源分级释放（detach 常规切换零重建 / dispose 真释放，内存压力处理器注册制）；④ 主进程 RSS 水位驱动（渲染进程工作集超 2.5GB 触发压力事件，渲染侧 aggressive trim + THREE 重资源 dispose，5 分钟冷却——定时器驱动升级为定时+水位双驱动）；⑤ 内存探针脚本（`tests/manual/memory-probe.mjs`，OS 工作集按进程类型采样，"差值不过 run-to-run 摆幅不报告"判读纪律）。歌词缓存 LRU 的读时时间戳重盖核查确认已存在。
 - 新增**视觉模式平台**（注册表化）：覆盖层互斥从 6 处复制收敛为注册表单一 owner（`02-visual/90-visualizer-registry.js` 声明式清单 + window 延迟解析，与加载顺序无关）；主循环保温门控（`isMainSceneCoveredByOverlay`）与预设网格特殊卡片激活态改注册表查询——**新增覆盖层模式 = 清单一行**；背景注册表落地正交协议（背景只接主题/封面/音频信号，不拿歌词行与前景 tuning，测试钉死）；新增每帧信号对象（`00-state/12-motion-signals.js`，MotionValue 原生等价：主循环写 currentTime/audioPower/bands/spectrum，值变化才唤醒订阅者）。详见 `docs/VISUALIZER_PLATFORM.md`，测试基线 42 → 43。
 - 智能混音新增**神经网络推理层**（可选，模型按需下载）：`desktop/analysis/` 推理宿主（utilityProcess 进程隔离，主进程零阻塞）+ Beat This! 拍点 ONNX 模型（83MB，MIT）+ htdemucs 人声分离（109MB + 裁剪 Python 运行时，sidecar 进程用完即退）；多镜像下载（hf-mirror→hf→github）+ sha256 双校验；DIY 控制台新增「混音模型」管理面板（状态/下载/进度/取消）。模型缺失自动回退自研估计器（2a 链路），不装模型功能完整可用。详见 `docs/AUTOMIX.md`。

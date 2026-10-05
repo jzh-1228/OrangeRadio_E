@@ -1277,7 +1277,8 @@ function updateLyricRowLayers(data, opts) {
   var frameScale = isFinite(frameDelta) && frameDelta > 0 ? clampRange(frameDelta * 60, 0.25, 3) : 1;
   // Preserve the 60 Hz feel while keeping the same motion duration when a
   // low-spec machine briefly renders at 30/45 Hz.
-  var ease = 1 - Math.pow(1 - baseEase, frameScale);
+  var baseEase = 1 - Math.pow(1 - baseEase, frameScale);
+  var ease = baseEase; // 循环内按行覆盖（wake snap 帧取 1），早退行沿用上一行值无副作用
   var pendingPayload = data.trackPersistent && data.trackPendingPayload ? data.trackPendingPayload : null;
   var pendingTargetLineIndex = pendingPayload && pendingPayload.trackIndex != null && isFinite(Number(pendingPayload.trackIndex))
     ? Number(pendingPayload.trackIndex)
@@ -1450,6 +1451,8 @@ function updateLyricRowLayers(data, opts) {
     if (renderWindowActive && !row.renderWindowActive) {
       var revealLane = Math.min(5, Math.max(0, Math.round(visibilityAbs)));
       row.renderWindowActive = true;
+      // 冻结期跳过了位置 lerp：唤醒帧一次性 snap 到目标，消除从旧位置追赶的偏移
+      row.renderWakeSnap = true;
       row.renderRevealAt = nowMs + (motionAnchor || row.renderLineUploaded ? 0 : 10 + revealLane * 14) + (row.renderLineUploaded ? 0 : (row.isTranslation ? 8 : 0));
     } else if (!renderWindowActive && row.renderWindowActive) {
       row.renderWindowActive = false;
@@ -1517,6 +1520,30 @@ function updateLyricRowLayers(data, opts) {
       } else if (row.glow && !row.renderGlowUploaded) {
         renderRevealCandidates.push({ row: row, mesh: row.glow, flag: 'renderGlowUploaded', priority: 500 + trackPrewarmOrder * 0.01, transparentPrewarm: true });
       }
+    }
+    // 早退：行不在渲染窗口、不在任何预热/待定上传通道，且主透明度已收敛到 0——
+    // 目标计算/位置 lerp/uniform 写全部跳过（mesh.visible=false 期间位置无人观测；
+    // 不可见行的 opacity 目标本就为 ~0，收敛后冻结值与继续衰减不可区分）。
+    // 唤醒边沿（renderWindowActive false→true）由 renderWakeSnap 帧一步 snap 归位。
+    var rowOpacityNow = row.mat && row.mat.uniforms && row.mat.uniforms.uOpacity
+      ? Number(row.mat.uniforms.uOpacity.value) || 0
+      : (row.mat ? Number(row.mat.opacity) || 0 : 0);
+    if (!renderWindowActive && !lineUploadPrewarm && !pendingWindowAllowed && rowOpacityNow < 0.004) {
+      // 冻结行同时关掉矩阵自动更新：three r128 的 updateMatrixWorld 无 visible 短路，
+      // 不关则每帧仍对全部 ~600-1800 个 Object3D 做矩阵重组（渲染帧的隐性大头）。
+      if (row.mesh && row.mesh.matrixAutoUpdate) row.mesh.matrixAutoUpdate = false;
+      if (row.readability && row.readability.matrixAutoUpdate) row.readability.matrixAutoUpdate = false;
+      if (row.glow && row.glow.matrixAutoUpdate) row.glow.matrixAutoUpdate = false;
+      continue;
+    }
+    ease = baseEase;
+    if (row.renderWakeSnap) {
+      row.renderWakeSnap = false;
+      ease = 1;
+      // 恢复矩阵自动更新：本帧 ease=1 位置一步 snap，updateMatrixWorld 照常重组
+      if (row.mesh && !row.mesh.matrixAutoUpdate) row.mesh.matrixAutoUpdate = true;
+      if (row.readability && !row.readability.matrixAutoUpdate) row.readability.matrixAutoUpdate = true;
+      if (row.glow && !row.glow.matrixAutoUpdate) row.glow.matrixAutoUpdate = true;
     }
     var target = opacity * (isActive ? 1 : contextAlpha) * rowIntro * visibleFade;
     var depthFade = motionAnchor ? 1 : clampRange(1 - visibilityAbs * 0.055, 0.54, 1) * visibleFade;
