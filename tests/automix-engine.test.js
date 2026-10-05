@@ -20,8 +20,11 @@ const sandbox = {
   localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
   location: { href: 'http://localhost/' },
   document: {
+    readyState: 'complete',
     querySelectorAll: () => [],
+    getElementById: () => null,
     createElement: () => ({ style: {}, audio: null }),
+    addEventListener() {},
   },
   navigator: { hardwareConcurrency: 8 },
   fetch: async () => { throw new Error('no network in sandbox'); },

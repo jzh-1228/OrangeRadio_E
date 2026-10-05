@@ -13,6 +13,7 @@ function bindFxPanel() {
   var ids = [
     ['fx-intensity', 'intensity'], ['fx-depth', 'depth'], ['fx-coverres', 'coverResolution'], ['fx-cineshake', 'cinemaShake'], ['fx-lyricglow', 'lyricGlowStrength'], ['fx-lyricbgadapt', 'lyricBackgroundAdapt'],
     ['fx-rainintensity', 'rainIntensity'], ['fx-rainfog', 'rainFog'], ['fx-raincity', 'rainCity'], ['fx-rainspeed', 'rainSpeed'],
+    ['fx-automixcrossfadeSec', 'automixCrossfadeSec'],
     ['fx-sonicamp', 'sonicGroundAmplitude'], ['fx-sonicspeed', 'sonicGroundMotionSpeed'], ['fx-sonicdensity', 'sonicGroundDensity'],
     ['fx-sonicrange', 'sonicGroundRange'], ['fx-soniclower', 'sonicGroundLower'], ['fx-sonicdepth', 'sonicGroundDepth'], ['fx-sonicautorotate', 'sonicGroundAutoRotate'],
     ['fx-sonicaudiosensitivity', 'sonicAudioSensitivity'], ['fx-sonicaudiobandstart', 'sonicAudioBandStart'], ['fx-sonicaudiobandend', 'sonicAudioBandEnd'], ['fx-sonicaudiothreshold', 'sonicAudioThreshold'], ['fx-sonicaudiopulse', 'sonicAudioPulseStrength'],

@@ -145,6 +145,7 @@ server.js（73 行门面）
 | `03-beat/` | BPM worker 预取、离线频带分析、beatmap 运行时、音域频谱监控 |
 | `04-omni/` | **音源 Omni 抽象层**（11 模块）：歌曲身份键（`01-song-key.js` 三段键 `online:{provider}:{mediaId}`）→ provider 注册表（`02`）→ 六平台 provider（`03~08`：netease/qq/kugou/qishui/spotify/local，各带能力标志与 search/playback/lyrics URL 构建）→ `omni` 门面（`09`：URL 路由 + request generation 晚到响应防护）→ 资源缓存键（`10`）。UI 不得直接拼平台 URL 或做平台 if/else；详见 `docs/OMNI_PROVIDERS.md` |
 | `04-shelf/` | 3D 歌单架（canvas 卡片 + 虚拟滚动） |
+| `15-automix/` | **智能混音过渡引擎**（22 模块，四层：证据/决策/执行/宿主）：离线分析（02-track-profile）→ 乐理决策（四接法 + 乐句量化）→ 元素级双 deck 交叉（21-deck-manager 复用 albumGapless 收养通道）；与 Cuefield/专辑无缝让位共存；详见 `docs/AUTOMIX.md` |
 | `05-playback/` | 播放核心（`13-playback-start-audio.js` `playQueueAt()`）、搜索、首页仪表盘、EQ、cuefield 自动混音 |
 | `06-lyrics/` | 歌词解析、播放列表面板、进度条、拖放导入 |
 | `07-fx/` | 视觉控制台、预设网格（`04-preset-grid-uniforms.js`）、用户存档、**演唱会现场聚光灯层（`10-concert-live-stage.js`）** |

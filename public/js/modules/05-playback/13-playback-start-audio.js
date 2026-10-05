@@ -848,6 +848,8 @@ async function playQueueAt(idx, opts) {
   if (typeof ensurePlaylistQueueHydratedAhead === 'function') ensurePlaylistQueueHydratedAhead(idx);
   var albumGaplessHandoff = !!(opts.albumGaplessHandoff && opts.preloadedAudio && opts.preloadedData);
   var albumGaplessMixed = !!(albumGaplessHandoff && opts.albumGaplessMixed);
+  // Automix 智能过渡交接：走同一收养通道，但增益语义不同（B 元素 volume 已由过渡曲线设定）
+  var automixAdopted = !!(albumGaplessHandoff && opts.automixAdopted);
   var albumGaplessPreviousAudio = albumGaplessHandoff ? audio : null;
   var albumGaplessAdoptedGain = 0;
   var playbackMedia = null;
@@ -935,6 +937,7 @@ async function playQueueAt(idx, opts) {
     activeRadioContext = playbackContext || null;
     safeRenderQueuePanel('play-queue-at-switch', { scrollCurrent: miniQueueOpen });
     safePlaybackStep('shelf-preview-suppress', suppressShelfPreviewForPlaybackSwitch);
+    if (typeof automixOnTrackSwitched === 'function') automixOnTrackSwitched();
     if (!albumGaplessHandoff) pauseCurrentAudioForTrackSwitch();
     else {
       playToggleBusy = false;
@@ -1139,7 +1142,8 @@ async function playQueueAt(idx, opts) {
       // a stale, already-paused element reference.
       playbackMedia = audio;
       bindPlaybackProgressEvents(audio);
-      if (albumGaplessHandoff) setAudioOutputGainImmediate(albumGaplessMixed ? albumGaplessAdoptedGain : audioSilentFloor());
+      if (automixAdopted) applyVolumeToAudio(); // B 元素 volume 已由过渡曲线设定，不压静音
+      else if (albumGaplessHandoff) setAudioOutputGainImmediate(albumGaplessMixed ? albumGaplessAdoptedGain : audioSilentFloor());
       else applyVolumeToAudio();
       await applyAudioOutputDevice(playbackMedia);
       if (!playbackInvocationStillCurrent(playbackMedia)) {

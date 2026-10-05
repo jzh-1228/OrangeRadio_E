@@ -383,6 +383,7 @@ function animate() {
   if (audioStepDt > 0) {
   if (analyser && playing && audio && !audio.paused) {
     if (audioCtx && audioCtx.state === 'suspended') resumeAudioAnalysis();
+    if (typeof automixTick === 'function') { try { automixTick(now); } catch (e) { } }
     analyser.getByteFrequencyData(frequencyData);
     analyser.getByteTimeDomainData(timeDomainData);
     var len = frequencyData.length;

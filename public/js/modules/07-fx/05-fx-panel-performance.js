@@ -222,6 +222,8 @@ function updateFxInputs() {
   setRange('fx-rainfog', fx.rainFog);
   setRange('fx-raincity', fx.rainCity);
   setRange('fx-rainspeed', fx.rainSpeed);
+  setRange('fx-automixcrossfadeSec', fx.automixCrossfadeSec);
+  updateAutomixConsoleState();
   setRange('fx-intensity', fx.intensity);
   setRange('fx-cineshake', fx.cinemaShake);
   setRange('fx-depth', fx.depth);
