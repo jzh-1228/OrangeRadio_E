@@ -389,12 +389,11 @@ function beatBandRms(data, sampleRate, fftSize, hz0, hz1) {
   return count ? Math.sqrt(sum / count) : 0;
 }
 
-function processRealtimeBeatEngine(dt) {
+function processRealtimeBeatEngine(dt, sharedRms) {
   if (!beatAnalyser || !audioCtx || !audio || audio.paused) return null;
   dt = Math.max(0.001, Math.min(0.080, dt || 0.016));
   var dj = djMode.active;
   beatAnalyser.getByteFrequencyData(beatFrequencyData);
-  beatAnalyser.getByteTimeDomainData(beatTimeDomainData);
   var sr = audioCtx.sampleRate || 44100;
   var sub = beatBandRms(beatFrequencyData, sr, beatAnalyser.fftSize, 38, 74);
   var kick = beatBandRms(beatFrequencyData, sr, beatAnalyser.fftSize, 52, 165);
@@ -403,14 +402,21 @@ function processRealtimeBeatEngine(dt) {
   var snap = beatBandRms(beatFrequencyData, sr, beatAnalyser.fftSize, 1800, 9200);
   var low = Math.min(1, kick * 0.86 + sub * 0.42);
   var rms = 0;
-  var timeStride = (typeof runtimeAnalysisStride === 'function') ? runtimeAnalysisStride('time', beatTimeDomainData.length) : 1;
-  var rmsCount = 0;
-  for (var i = 0; i < beatTimeDomainData.length; i += timeStride) {
-    var tv = (beatTimeDomainData[i] - 128) / 128;
-    rms += tv * tv;
-    rmsCount++;
+  if (sharedRms === +sharedRms && sharedRms >= 0) {
+    // 主循环已对同源 analyser（fftSize 同 2048）算好时域 RMS：smoothingTimeConstant
+    // 只平滑频域，两路 getByteTimeDomainData 输出一致，直接复用免掉 2048 点重复循环。
+    rms = sharedRms;
+  } else {
+    beatAnalyser.getByteTimeDomainData(beatTimeDomainData);
+    var timeStride = (typeof runtimeAnalysisStride === 'function') ? runtimeAnalysisStride('time', beatTimeDomainData.length) : 1;
+    var rmsCount = 0;
+    for (var i = 0; i < beatTimeDomainData.length; i += timeStride) {
+      var tv = (beatTimeDomainData[i] - 128) / 128;
+      rms += tv * tv;
+      rmsCount++;
+    }
+    rms = Math.sqrt(rms / Math.max(1, rmsCount));
   }
-  rms = Math.sqrt(rms / Math.max(1, rmsCount));
 
   function follow(cur, next, upTau, downTau) {
     var tau = next > cur ? upTau : downTau;

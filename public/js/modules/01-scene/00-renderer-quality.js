@@ -25,6 +25,11 @@ var renderRefreshState = {
   stableHz: 60,
   samples: []
 };
+// 样本照收（丢样会失真），但中位数+低通每 16 帧重算一次（~270ms@60fps）：
+// stableHz 本就是慢低通量（0.90/0.10），降频重算收敛粒度足够，省掉每帧
+// 36 元素 samples.slice() 分配 + sort。
+var RENDER_REFRESH_MEDIAN_EVERY = 16;
+var renderRefreshMedianCountdown = 0;
 var adaptiveFrameLoadState = {
   avgMs: 0,
   lastCostMs: 0,
@@ -45,6 +50,11 @@ function sampleDisplayRefreshHz(now) {
   if (gap < 4 || gap > 40) return renderRefreshState.stableHz || renderRefreshState.hz || 60;
   renderRefreshState.samples.push(gap);
   if (renderRefreshState.samples.length > 36) renderRefreshState.samples.shift();
+  if (renderRefreshMedianCountdown > 0) {
+    renderRefreshMedianCountdown -= 1;
+    return renderRefreshState.stableHz;
+  }
+  renderRefreshMedianCountdown = RENDER_REFRESH_MEDIAN_EVERY;
   var sorted = renderRefreshState.samples.slice().sort(function (a, b) { return a - b; });
   var median = sorted[Math.floor(sorted.length / 2)] || gap;
   var hz = Math.max(48, Math.min(240, 1000 / Math.max(1, median)));

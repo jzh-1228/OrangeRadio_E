@@ -107,8 +107,16 @@ async function analyzeAudioBeats(audioUrl, durationSec, token, options) {
     var vocalEnergy = frameBands[2];
     var snapEnergy = frameBands[3];
     var nFrames = Math.min(energy.length, bodyEnergy.length, vocalEnergy.length, snapEnergy.length);
+    // 同一数组多次取分位点（如 L645-658 对 7 个 tempo 数组各取 0.25/0.90 两档）时
+    // 复用同一份有序拷贝，免掉重复的 slice 全量拷贝 + O(n log n) 排序。
+    var percentileSortCache = { src: null, sorted: null };
     function percentile(arr, p) {
-      var copy = Array.prototype.slice.call(arr).sort(function (a, b) { return a - b; });
+      var copy = percentileSortCache.src === arr ? percentileSortCache.sorted : null;
+      if (!copy) {
+        copy = Array.prototype.slice.call(arr).sort(function (a, b) { return a - b; });
+        percentileSortCache.src = arr;
+        percentileSortCache.sorted = copy;
+      }
       return copy.length ? copy[Math.floor(copy.length * p)] : 0.001;
     }
     function bandAt(arr, f) {
@@ -431,9 +439,22 @@ async function analyzeAudioBeats(audioUrl, durationSec, token, options) {
     var candidates = [];
     var lastKickFrame = -winN;
     var minIntervalFrames = 12;  // 120ms, 粒子可响应较密集的低频瞬态.
+    // 滑动窗口增量化：相邻帧窗口 [f-winN, f) 只差首尾各 1 个元素，
+    // 进 1 出 1 增量更新 sum/sqSum（O(1)/帧），替代每帧 50 次内层迭代的 O(winN×nFrames) 重算
+    // （4 分钟歌约 120 万次内层迭代 → 24000 次）。每 4096 帧全量重算一次消除浮点累积漂移。
+    var sum = 0, sqSum = 0;
+    for (var k = 0; k < winN; k++) { sum += onset[k]; sqSum += onset[k] * onset[k]; }
     for (var f = winN; f < nFrames - 5; f++) {
-      var sum = 0, sqSum = 0;
-      for (var k = f - winN; k < f; k++) { sum += onset[k]; sqSum += onset[k] * onset[k]; }
+      if (f > winN) {
+        var addV = onset[f - 1];
+        var subV = onset[f - winN - 1];
+        sum += addV - subV;
+        sqSum += addV * addV - subV * subV;
+        if ((f - winN) % 4096 === 0) {
+          sum = 0; sqSum = 0;
+          for (var rk = f - winN; rk < f; rk++) { var rv = onset[rk]; sum += rv; sqSum += rv * rv; }
+        }
+      }
       var mean = sum / winN;
       var std = Math.sqrt(Math.max(0, sqSum / winN - mean * mean));
       var thresh = mean + std * 2.35 + 0.0045;

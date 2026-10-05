@@ -112,11 +112,34 @@ function getAdaptiveRenderFps(now) {
   if (tier >= 1) return RENDER_LARGE_FPS;
   return RENDER_ACTIVE_FPS;
 }
+// RENDER_VISIBLE_VSYNC=true（硬编码）时 cadence 恒 null（resolve 内部短路）、fps 是
+// (deepBackground, fpsMode) 的纯函数（vsync/adaptive→0、fixed 档位→档位值、deep→1），
+// 输入不变时直接用缓存决策，免掉每帧 3 次 normalizeForegroundFpsMode（含 String 链+
+// 正则 test）+ 3 次 isDeepBackgroundMode + resolve/getAdaptiveRenderFps 空转调用。
+// rawMode/deep 初始 null 保证首帧必 miss；模式或后台态翻转自动失效重算；
+// RENDER_VISIBLE_VSYNC=false 时永不缓存，每帧完整决策。
+var renderCadenceFastPath = { rawMode: null, deep: null, fps: 0, mode: 'vsync' };
 function shouldSkipAdaptiveRenderFrame(now) {
   if (typeof sampleDisplayRefreshHz === 'function') sampleDisplayRefreshHz(now);
-  var mode = (typeof normalizeForegroundFpsMode === 'function') ? normalizeForegroundFpsMode(fx && fx.foregroundFpsMode) : 'adaptive';
-  var cadence = resolveAdaptiveRenderCadence(now, mode);
-  var fps = cadence ? cadence.fps : getAdaptiveRenderFps(now);
+  var rawMode = fx && fx.foregroundFpsMode;
+  var deep = (typeof isDeepBackgroundMode === 'function') && isDeepBackgroundMode();
+  var fast = renderCadenceFastPath;
+  var mode, cadence, fps;
+  if (RENDER_VISIBLE_VSYNC && fast.rawMode === rawMode && fast.deep === deep) {
+    mode = fast.mode;
+    fps = fast.fps;
+    cadence = null;
+  } else {
+    mode = (typeof normalizeForegroundFpsMode === 'function') ? normalizeForegroundFpsMode(rawMode) : 'adaptive';
+    cadence = resolveAdaptiveRenderCadence(now, mode);
+    fps = cadence ? cadence.fps : getAdaptiveRenderFps(now);
+    if (RENDER_VISIBLE_VSYNC) {
+      fast.rawMode = rawMode;
+      fast.deep = deep;
+      fast.mode = mode;
+      fast.fps = cadence ? cadence.fps : fps;
+    }
+  }
   var displayHz = (typeof estimatedDisplayRefreshHz === 'function') ? estimatedDisplayRefreshHz() : 60;
   renderPerfState.displayHz = Math.round(displayHz * 10) / 10;
   renderPerfState.mode = cadence
@@ -374,8 +397,12 @@ function animate() {
   var audioPerfStart = performance.now();
   beatOnsetFlag = false;
   var audioStepDt = consumeFrameGate(mainFrameGates.audio, now, dt, targetMainAudioFps(now), false, 'audio-analysis');
-  var sonicAudioFrame = fx && fx.sonicAudioMonitorEnabled !== false && typeof getSonicAudioMonitorSnapshot === 'function'
-    ? getSonicAudioMonitorSnapshot().frame
+  // 直接引用 state.frame 单例（当帧消费，step 返回值覆盖同对象），免掉每帧
+  // getSnapshot 的 Object.assign({},frame) 30+ 字段浅拷贝 + 9 字段外壳——播放帧
+  // 该快照随即被 stepSonicAudioMonitor 返回值覆盖，约 90% 的帧纯浪费。
+  // getSnapshot 保留给 UI 面板等低频调用方。
+  var sonicAudioFrame = fx && fx.sonicAudioMonitorEnabled !== false && typeof sonicAudioMonitorState !== 'undefined' && sonicAudioMonitorState
+    ? (sonicAudioMonitorState.frame || { })
     : null;
   if (audioStepDt > 0) {
   if (analyser && playing && audio && !audio.paused) {
@@ -433,7 +460,9 @@ function animate() {
     var energyOnset = Math.max(0, re - prevEnergy);
     prevEnergy = prevEnergy * 0.88 + re * 0.12;
 
-    var realtimeBeat = processRealtimeBeatEngine(audioStepDt);
+    // rms 已在上方对同源 analyser 算好（同 fftSize 2048、同 stride、时域不受 smoothing 影响），
+    // beat 引擎复用之，免掉重复的 getByteTimeDomainData + 2048 点 RMS 循环；fftSize 不一致时回退自查。
+    var realtimeBeat = processRealtimeBeatEngine(audioStepDt, (beatAnalyser && analysisFftSize === beatAnalyser.fftSize) ? rms : undefined);
     if (realtimeBeat && realtimeBeat.hit) {
       var dj = djMode.active;
       var djMapCoversCurrentTime = !dj || !currentDjBeatMap || !currentDjBeatMap.partialUntilSec || !audio || (audio.currentTime || 0) <= currentDjBeatMap.partialUntilSec - 1.25;

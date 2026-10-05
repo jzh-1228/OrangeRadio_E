@@ -58,6 +58,41 @@ var SONIC_AUDIO_BEAT_WINDOWS = [
   { name: 'Body', startHz: 86, endHz: 190, bias: 0.86 },
   { name: 'Wide', startHz: 38, endHz: 155, bias: 0.78 }
 ];
+// 帧构建链的固定键集合（values/beatData/triggerData 的键每帧全量重写，集合恒定），
+// 配合模块级 scratch 单例消除每音频帧 15-20 个短命对象/数组分配。
+var SONIC_AUDIO_VALUE_KEYS = [
+  'subBass', 'bass', 'lowMid', 'mid', 'highMid', 'presence', 'brilliance', 'air',
+  'kickSub', 'kickCore', 'kickPunch', 'kickWide', 'body', 'vocal', 'snap',
+  'lowDrive', 'lowDominance', 'energy'
+];
+var SONIC_AUDIO_BEAT_DATA_KEYS = [
+  'kickLevel', 'kickFlux', 'kickThreshold', 'kickOnset', 'kickEnvelope',
+  'kickConfidence', 'kickLowDominance', 'kickWindowName', 'kickWindowStart',
+  'kickWindowEnd', 'kickHzStart', 'kickHzEnd'
+];
+var SONIC_AUDIO_TRIGGER_DATA_KEYS = [
+  'triggerBandStart', 'triggerBandEnd', 'triggerHzStart', 'triggerHzEnd',
+  'triggerEnergy', 'triggerThreshold', 'triggerPulse', 'triggerOnset'
+];
+var sonicAudioValuesScratch = {
+  subBass: 0, bass: 0, lowMid: 0, mid: 0, highMid: 0, presence: 0, brilliance: 0, air: 0,
+  kickSub: 0, kickCore: 0, kickPunch: 0, kickWide: 0, body: 0, vocal: 0, snap: 0,
+  lowDrive: 0, lowDominance: 0, energy: 0
+};
+var sonicAudioBeatDataScratch = {
+  kickLevel: 0, kickFlux: 0, kickThreshold: 0, kickOnset: 0, kickEnvelope: 0,
+  kickConfidence: 0, kickLowDominance: 0, kickWindowName: '', kickWindowStart: 0,
+  kickWindowEnd: 0, kickHzStart: 0, kickHzEnd: 0
+};
+var sonicAudioTriggerDataScratch = {
+  triggerBandStart: 0, triggerBandEnd: 0, triggerHzStart: 0, triggerHzEnd: 0,
+  triggerEnergy: 0, triggerThreshold: 0, triggerPulse: 0, triggerOnset: 0
+};
+// frame 复用与 decay 路径（sonicAudioDecayFrame 原地改写）语义一致；全部消费者
+// （主循环当帧读 / readMineradioAudio / readSonicRealtimeCameraSample / 面板 / snapshot 浅拷贝）
+// 均只当帧读标量字段。
+var sonicAudioFrameScratch = {};
+var sonicAudioBeatParamsCache = { sensitivity: -1, thresholdStdDevGain: 0, thresholdFloor: 0, minTriggerFlux: 0 };
 
 function sonicAudioClamp(value, min, max) {
   value = Number(value);
@@ -154,16 +189,45 @@ function sonicAudioRangeAverage(data, baseStart, baseEnd, weighted) {
   return total > 0 ? sum / total : 0;
 }
 
-function sonicAudioHzRangeAverage(data, meta, hzStart, hzEnd, weighted) {
-  if (!data || !data.length) return 0;
-  meta = meta || sonicAudioResolveAnalysisMeta(data, null);
-  var start = sonicAudioHzToBin(meta, Math.min(hzStart, hzEnd), 'floor');
-  var end = sonicAudioHzToBin(meta, Math.max(hzStart, hzEnd), 'ceil');
-  if (end < start) {
-    var tmp = start;
-    start = end;
-    end = tmp;
+// 预编译频段 bin 边界表：BAND_EDGES/固定 kick 组合/BEAT_WINDOWS 的 hz 全是常量，
+// bin 边界只取决于 meta(len/sampleRate/fftSize)——会话内恒定，音频图重建才变。
+// 命中时调用点直接数组索引取 {start,end}，省掉每帧约 50+ 次 hz→bin 的
+// 除法/round/ceil/clamp 重算（每次频段平均 2 次）。通用字符串 key 缓存实测更慢
+// （拼接+哈希查找贵过数值换算），必须预编译到调用点局部数组。
+var sonicAudioPrecomputedBins = null;
+
+function sonicAudioPrecomputeBins(meta) {
+  var cache = sonicAudioPrecomputedBins;
+  if (cache && cache.len === meta.len && cache.sampleRate === meta.sampleRate && cache.fftSize === meta.fftSize) return cache;
+  var b, i;
+  var bands = new Array(SONIC_AUDIO_BAND_EDGES.length);
+  for (b = 0; b < SONIC_AUDIO_BAND_EDGES.length; b++) {
+    bands[b] = {
+      start: sonicAudioHzToBin(meta, SONIC_AUDIO_BAND_EDGES[b][1], 'floor'),
+      end: sonicAudioHzToBin(meta, SONIC_AUDIO_BAND_EDGES[b][2], 'ceil')
+    };
   }
+  var kickHzPairs = [[38, 78], [52, 165], [72, 190], [38, 220], [165, 420], [420, 2600], [1800, 9200]];
+  var kicks = new Array(kickHzPairs.length);
+  for (i = 0; i < kickHzPairs.length; i++) {
+    kicks[i] = {
+      start: sonicAudioHzToBin(meta, kickHzPairs[i][0], 'floor'),
+      end: sonicAudioHzToBin(meta, kickHzPairs[i][1], 'ceil')
+    };
+  }
+  var windows = new Array(SONIC_AUDIO_BEAT_WINDOWS.length);
+  for (i = 0; i < SONIC_AUDIO_BEAT_WINDOWS.length; i++) {
+    windows[i] = {
+      start: sonicAudioHzToBin(meta, SONIC_AUDIO_BEAT_WINDOWS[i].startHz, 'floor'),
+      end: sonicAudioHzToBin(meta, SONIC_AUDIO_BEAT_WINDOWS[i].endHz, 'ceil')
+    };
+  }
+  cache = { len: meta.len, sampleRate: meta.sampleRate, fftSize: meta.fftSize, bands: bands, kicks: kicks, windows: windows };
+  sonicAudioPrecomputedBins = cache;
+  return cache;
+}
+
+function sonicAudioBinRangeAverage(data, start, end, weighted) {
   var sum = 0;
   var total = 0;
   var center = (start + end) / 2;
@@ -181,6 +245,14 @@ function sonicAudioHzRangeAverage(data, meta, hzStart, hzEnd, weighted) {
   return total > 0 ? Math.sqrt(sum / total) : 0;
 }
 
+function sonicAudioHzRangeAverage(data, meta, hzStart, hzEnd, weighted) {
+  if (!data || !data.length) return 0;
+  meta = meta || sonicAudioResolveAnalysisMeta(data, null);
+  var start = sonicAudioHzToBin(meta, Math.min(hzStart, hzEnd), 'floor');
+  var end = sonicAudioHzToBin(meta, Math.max(hzStart, hzEnd), 'ceil');
+  return sonicAudioBinRangeAverage(data, start, end, weighted);
+}
+
 function sonicAudioFollowValue(previous, next, attackRate, releaseRate, dt) {
   previous = Number(previous) || 0;
   next = sonicAudioClamp01(next);
@@ -189,21 +261,25 @@ function sonicAudioFollowValue(previous, next, attackRate, releaseRate, dt) {
 }
 
 function sonicAudioComputeHzBands(data, meta) {
-  var values = {};
+  var bins = sonicAudioPrecomputeBins(meta);
+  // values 单例：18 键每帧全量重写；下游（smooth 更新/stepBeatDetector/trackAutoPulse/
+  // 帧构建）均只当帧读标量，autoTrack 历史帧在 push 时已拷贝标量值。
+  var values = sonicAudioValuesScratch;
   var energySum = 0;
   for (var b = 0; b < SONIC_AUDIO_BAND_EDGES.length; b++) {
-    var band = SONIC_AUDIO_BAND_EDGES[b];
-    var value = sonicAudioHzRangeAverage(data, meta, band[1], band[2], false);
-    values[band[0]] = value;
+    var band = bins.bands[b];
+    var value = sonicAudioBinRangeAverage(data, band.start, band.end, false);
+    values[SONIC_AUDIO_BAND_EDGES[b][0]] = value;
     energySum += value;
   }
-  values.kickSub = sonicAudioHzRangeAverage(data, meta, 38, 78, true);
-  values.kickCore = sonicAudioHzRangeAverage(data, meta, 52, 165, true);
-  values.kickPunch = sonicAudioHzRangeAverage(data, meta, 72, 190, true);
-  values.kickWide = sonicAudioHzRangeAverage(data, meta, 38, 220, true);
-  values.body = sonicAudioHzRangeAverage(data, meta, 165, 420, true);
-  values.vocal = sonicAudioHzRangeAverage(data, meta, 420, 2600, false);
-  values.snap = sonicAudioHzRangeAverage(data, meta, 1800, 9200, false);
+  var kicks = bins.kicks;
+  values.kickSub = sonicAudioBinRangeAverage(data, kicks[0].start, kicks[0].end, true);
+  values.kickCore = sonicAudioBinRangeAverage(data, kicks[1].start, kicks[1].end, true);
+  values.kickPunch = sonicAudioBinRangeAverage(data, kicks[2].start, kicks[2].end, true);
+  values.kickWide = sonicAudioBinRangeAverage(data, kicks[3].start, kicks[3].end, true);
+  values.body = sonicAudioBinRangeAverage(data, kicks[4].start, kicks[4].end, true);
+  values.vocal = sonicAudioBinRangeAverage(data, kicks[5].start, kicks[5].end, false);
+  values.snap = sonicAudioBinRangeAverage(data, kicks[6].start, kicks[6].end, false);
   values.lowDrive = sonicAudioClamp01(values.kickCore * 0.86 + values.kickSub * 0.42 + values.body * 0.10);
   values.lowDominance = values.lowDrive / Math.max(0.001, values.vocal * 0.72 + values.body * 0.34 + values.snap * 0.12);
   values.energy = sonicAudioClamp01((energySum / SONIC_AUDIO_BAND_EDGES.length) * 0.82 + values.lowDrive * 0.18);
@@ -277,6 +353,8 @@ function sonicAudioNormalizeFx(sourceFx) {
 
 function sonicAudioBeatParams(sensitivity) {
   sensitivity = sonicAudioClamp(sensitivity, 0, 100);
+  // sensitivity 会话内基本恒定（用户设置），命中缓存免掉每次调用的 5 个中间对象。
+  if (sonicAudioBeatParamsCache.sensitivity === sensitivity) return sonicAudioBeatParamsCache;
   var lower = sensitivity <= 50 ? sensitivity / 50 : 1;
   var upper = sensitivity > 50 ? (sensitivity - 50) / 50 : 0;
   var strict = { thresholdStdDevGain: 2.6, thresholdFloor: 0.05, minTriggerFlux: 0.07 };
@@ -287,11 +365,11 @@ function sonicAudioBeatParams(sensitivity) {
     thresholdFloor: strict.thresholdFloor + (normal.thresholdFloor - strict.thresholdFloor) * lower,
     minTriggerFlux: strict.minTriggerFlux + (normal.minTriggerFlux - strict.minTriggerFlux) * lower
   };
-  return {
-    thresholdStdDevGain: mid.thresholdStdDevGain + (sensitive.thresholdStdDevGain - mid.thresholdStdDevGain) * upper,
-    thresholdFloor: mid.thresholdFloor + (sensitive.thresholdFloor - mid.thresholdFloor) * upper,
-    minTriggerFlux: mid.minTriggerFlux + (sensitive.minTriggerFlux - mid.minTriggerFlux) * upper
-  };
+  sonicAudioBeatParamsCache.sensitivity = sensitivity;
+  sonicAudioBeatParamsCache.thresholdStdDevGain = mid.thresholdStdDevGain + (sensitive.thresholdStdDevGain - mid.thresholdStdDevGain) * upper;
+  sonicAudioBeatParamsCache.thresholdFloor = mid.thresholdFloor + (sensitive.thresholdFloor - mid.thresholdFloor) * upper;
+  sonicAudioBeatParamsCache.minTriggerFlux = mid.minTriggerFlux + (sensitive.minTriggerFlux - mid.minTriggerFlux) * upper;
+  return sonicAudioBeatParamsCache;
 }
 
 function createSonicBeatState() {
@@ -329,28 +407,38 @@ function sonicAudioStepKickEnvelope(rawKickLevel, onset, dt) {
   var targetEnvelope = Math.max(breathTarget, onsetTarget);
   var envelopeRate = targetEnvelope > k.kickEnvelope ? 42 : 11.5;
   var kickEnvelope = Math.max(breathTarget, k.kickEnvelope + (targetEnvelope - k.kickEnvelope) * sonicAudioBlendForRate(envelopeRate, dt));
-  sonicAudioMonitorState.kick = {
-    noiseFloor: noiseFloor,
-    kickLevel: kickLevel,
-    kickOnset: onset ? 1 : 0,
-    kickEnvelope: sonicAudioClamp01(kickEnvelope)
-  };
-  return sonicAudioMonitorState.kick;
+  k.noiseFloor = noiseFloor;
+  k.kickLevel = kickLevel;
+  k.kickOnset = onset ? 1 : 0;
+  k.kickEnvelope = sonicAudioClamp01(kickEnvelope);
+  return k;
 }
 
 function sonicAudioStepBeatDetector(data, dt, settings, meta, bands) {
   if (!sonicAudioMonitorState.beat) sonicAudioMonitorState.beat = createSonicBeatState();
   var s = sonicAudioMonitorState.beat;
   var params = sonicAudioBeatParams(settings.sensitivity);
-  var windowLevels = SONIC_AUDIO_BEAT_WINDOWS.map(function (win) {
-    return sonicAudioHzRangeAverage(data, meta, win.startHz, win.endHz, true);
-  });
-  var nextScores = s.windowScores.map(function (score, index) {
-    var fluxValue = Math.max(0, windowLevels[index] - (s.previousWindowLevels[index] || 0));
-    var win = SONIC_AUDIO_BEAT_WINDOWS[index];
+  var windowBins = sonicAudioPrecomputeBins(meta).windows;
+  // windowLevels 乒乓缓冲：s.previousWindowLevels 持有上一帧数组，本帧写另一个，
+  // 交换引用，替代每帧 map 新数组（旧数组下帧复用）。
+  if (!s.windowLevelsOther || s.windowLevelsOther.length !== SONIC_AUDIO_BEAT_WINDOWS.length) {
+    s.windowLevelsOther = new Array(SONIC_AUDIO_BEAT_WINDOWS.length);
+  }
+  var windowLevels = s.windowLevelsOther;
+  for (var wl = 0; wl < SONIC_AUDIO_BEAT_WINDOWS.length; wl++) {
+    var wlRange = windowBins[wl];
+    windowLevels[wl] = sonicAudioBinRangeAverage(data, wlRange.start, wlRange.end, true);
+  }
+  if (!s.windowScoresOther || s.windowScoresOther.length !== s.windowScores.length) {
+    s.windowScoresOther = new Array(s.windowScores.length);
+  }
+  var nextScores = s.windowScoresOther;
+  for (var ns = 0; ns < nextScores.length; ns++) {
+    var fluxValue = Math.max(0, windowLevels[ns] - (s.previousWindowLevels[ns] || 0));
+    var win = SONIC_AUDIO_BEAT_WINDOWS[ns];
     var dominanceBoost = sonicAudioClamp((bands && bands.lowDominance) || 0, 0.65, 2.25) / 2.25;
-    return score * 0.945 + fluxValue * (win.bias || 1) * (0.70 + dominanceBoost * 0.70);
-  });
+    nextScores[ns] = s.windowScores[ns] * 0.945 + fluxValue * (win.bias || 1) * (0.70 + dominanceBoost * 0.70);
+  }
   var activeWindowIndex = settings.autoTrack && sonicAudioMonitorState.autoTrack.windowIndex != null
     ? sonicAudioMonitorState.autoTrack.windowIndex
     : (s.activeWindowIndex || 0);
@@ -370,41 +458,43 @@ function sonicAudioStepBeatDetector(data, dt, settings, meta, bands) {
   var peakConfirm = s.previousSmoothedFlux > threshold && s.previousSmoothedFlux >= smoothedFlux && s.previousSmoothedFlux >= params.minTriggerFlux * 0.86;
   var onset = cooldownRemaining <= 0 && drumGate && (instantRise || peakConfirm);
   var displayedFlux = instantRise ? rawFlux : (onset ? Math.max(s.previousSmoothedFlux, smoothedFlux) : smoothedFlux);
-  var nextHistory = s.fluxHistory.slice();
-  nextHistory[s.fluxHistoryIndex] = smoothedFlux;
-  var nextHistoryIndex = (s.fluxHistoryIndex + 1) % nextHistory.length;
+  // fluxHistory 环形原地写：消费方 sonicAudioFluxStats 只做顺序无关的全量统计。
+  s.fluxHistory[s.fluxHistoryIndex] = smoothedFlux;
+  s.fluxHistoryIndex = (s.fluxHistoryIndex + 1) % s.fluxHistory.length;
   var kickLevel = Math.max(windowLevels[activeWindowIndex], (bands && bands.lowDrive) || 0);
   var kick = sonicAudioStepKickEnvelope(kickLevel, onset, dt || 1 / 60);
   s.activeWindowIndex = activeWindowIndex;
+  s.windowScoresOther = s.windowScores;
   s.windowScores = nextScores;
+  s.windowLevelsOther = s.previousWindowLevels;
   s.previousWindowLevels = windowLevels;
-  s.fluxHistory = nextHistory;
-  s.fluxHistoryIndex = nextHistoryIndex;
   s.smoothedFlux = smoothedFlux;
   s.previousSmoothedFlux = smoothedFlux;
   s.cooldownRemaining = onset ? 0.12 : cooldownRemaining;
   if (onset) sonicAudioMonitorState.lastOnsetAt = performance.now();
   var activeWindow = SONIC_AUDIO_BEAT_WINDOWS[activeWindowIndex];
-  return {
-    kickLevel: kick.kickLevel,
-    kickFlux: displayedFlux,
-    kickThreshold: threshold,
-    kickOnset: onset ? 1 : 0,
-    kickEnvelope: kick.kickEnvelope,
-    kickConfidence: sonicAudioClamp(displayedFlux / Math.max(0.001, threshold * 1.85), 0, 1),
-    kickLowDominance: sonicAudioClamp(lowDominance / 1.8, 0, 1),
-    kickWindowName: activeWindow.name,
-    kickWindowStart: sonicAudioHzToBase(meta, activeWindow.startHz),
-    kickWindowEnd: sonicAudioHzToBase(meta, activeWindow.endHz),
-    kickHzStart: activeWindow.startHz,
-    kickHzEnd: activeWindow.endHz
-  };
+  var beatData = sonicAudioBeatDataScratch;
+  beatData.kickLevel = kick.kickLevel;
+  beatData.kickFlux = displayedFlux;
+  beatData.kickThreshold = threshold;
+  beatData.kickOnset = onset ? 1 : 0;
+  beatData.kickEnvelope = kick.kickEnvelope;
+  beatData.kickConfidence = sonicAudioClamp(displayedFlux / Math.max(0.001, threshold * 1.85), 0, 1);
+  beatData.kickLowDominance = sonicAudioClamp(lowDominance / 1.8, 0, 1);
+  beatData.kickWindowName = activeWindow.name;
+  beatData.kickWindowStart = sonicAudioHzToBase(meta, activeWindow.startHz);
+  beatData.kickWindowEnd = sonicAudioHzToBase(meta, activeWindow.endHz);
+  beatData.kickHzStart = activeWindow.startHz;
+  beatData.kickHzEnd = activeWindow.endHz;
+  return beatData;
 }
 
 function sonicAudioTrackAutoPulse(data, now, meta, bands) {
   var tracker = sonicAudioMonitorState.autoTrack;
-  var levels = SONIC_AUDIO_BEAT_WINDOWS.map(function (win) {
-    return sonicAudioHzRangeAverage(data, meta, win.startHz, win.endHz, true);
+  var windowBins = sonicAudioPrecomputeBins(meta).windows;
+  var levels = SONIC_AUDIO_BEAT_WINDOWS.map(function (win, index) {
+    var range = windowBins[index];
+    return sonicAudioBinRangeAverage(data, range.start, range.end, true);
   });
   tracker.frames.push({
     time: now,
@@ -508,16 +598,16 @@ function sonicAudioEvaluateSelectedTrigger(data, settings, dt, meta, beatData) {
     trigger.lastThreshold = threshold;
   }
   trigger.pulse = Math.max(trigger.pulse * Math.pow(0.10, Math.max(0.001, dt || 1 / 60)), triggered ? strength : 0);
-  return {
-    triggerBandStart: start,
-    triggerBandEnd: end,
-    triggerHzStart: hzStart,
-    triggerHzEnd: hzEnd,
-    triggerEnergy: trigger.lastEnergy,
-    triggerThreshold: trigger.lastThreshold,
-    triggerPulse: trigger.pulse,
-    triggerOnset: triggered ? 1 : 0
-  };
+  var triggerData = sonicAudioTriggerDataScratch;
+  triggerData.triggerBandStart = start;
+  triggerData.triggerBandEnd = end;
+  triggerData.triggerHzStart = hzStart;
+  triggerData.triggerHzEnd = hzEnd;
+  triggerData.triggerEnergy = trigger.lastEnergy;
+  triggerData.triggerThreshold = trigger.lastThreshold;
+  triggerData.triggerPulse = trigger.pulse;
+  triggerData.triggerOnset = triggered ? 1 : 0;
+  return triggerData;
 }
 
 function sonicAudioCopyRawAndPrevious(data) {
@@ -578,9 +668,10 @@ function stepSonicAudioMonitor(rawData, dt, opts) {
   var warmth = lowSum / totalTone;
   var brightness = highSum / totalTone;
   var smooth = sonicAudioMonitorState.smooth;
-  Object.keys(values).forEach(function (key) {
-    smooth[key] = sonicAudioFollowValue(smooth[key], values[key], 34, 10, dt || 1 / 60);
-  });
+  for (var vk = 0; vk < SONIC_AUDIO_VALUE_KEYS.length; vk++) {
+    var valueKey = SONIC_AUDIO_VALUE_KEYS[vk];
+    smooth[valueKey] = sonicAudioFollowValue(smooth[valueKey], values[valueKey], 34, 10, dt || 1 / 60);
+  }
   smooth.bass = (smooth.bass || 0);
   smooth.treble = sonicAudioFollowValue(smooth.treble, legacyTreble, 30, 9, dt || 1 / 60);
   smooth.energy = sonicAudioFollowValue(smooth.energy, energy, 28, 8, dt || 1 / 60);
@@ -588,20 +679,31 @@ function stepSonicAudioMonitor(rawData, dt, opts) {
   var triggerData = sonicAudioEvaluateSelectedTrigger(data, settings, dt || 1 / 60, meta, beatData);
   sonicAudioCommitPrevious(data);
   var kickEnvelope = sonicAudioClamp01(Math.max(beatData.kickEnvelope, triggerData.triggerPulse, Number(opts.beat) || 0));
-  var frame = Object.assign({
-    sonicDetailed: true,
-    sonicHzDetailed: true,
-    bass: smooth.bass || values.bass,
-    mid: smooth.mid || values.mid,
-    treble: smooth.treble || legacyTreble,
-    energy: smooth.energy || energy,
-    beat: kickEnvelope,
-    warmth: warmth,
-    brightness: brightness,
-    sharpness: sonicAudioClamp01(brightness * 0.42 + values.snap * 0.14 + beatData.kickOnset * 0.28),
-    smoothness: sonicAudioClamp01(1 - legacyTreble * 0.32 + legacyMid * 0.12),
-    density: sonicAudioClamp01(0.40 + legacyTreble * 0.24 + values.vocal * 0.12 + kickEnvelope * 0.16)
-  }, smooth, beatData, triggerData);
+  // frame 单例 + 显式逐字段拷贝，替代三源 Object.assign：等价复刻覆盖序
+  // （字面量 → smooth 覆盖 bass/mid/treble/energy → beatData → triggerData → 后置 kickEnvelope）。
+  // smooth 的 bass/mid/energy 在 VALUE_KEYS 内、treble 由上方显式行每帧写入，循环拷贝即终值。
+  var frame = sonicAudioFrameScratch;
+  frame.sonicDetailed = true;
+  frame.sonicHzDetailed = true;
+  frame.beat = kickEnvelope;
+  frame.warmth = warmth;
+  frame.brightness = brightness;
+  frame.sharpness = sonicAudioClamp01(brightness * 0.42 + values.snap * 0.14 + beatData.kickOnset * 0.28);
+  frame.smoothness = sonicAudioClamp01(1 - legacyTreble * 0.32 + legacyMid * 0.12);
+  frame.density = sonicAudioClamp01(0.40 + legacyTreble * 0.24 + values.vocal * 0.12 + kickEnvelope * 0.16);
+  for (var fk2 = 0; fk2 < SONIC_AUDIO_VALUE_KEYS.length; fk2++) {
+    var fk = SONIC_AUDIO_VALUE_KEYS[fk2];
+    frame[fk] = smooth[fk];
+  }
+  frame.treble = smooth.treble;
+  for (var bk = 0; bk < SONIC_AUDIO_BEAT_DATA_KEYS.length; bk++) {
+    var beatKey = SONIC_AUDIO_BEAT_DATA_KEYS[bk];
+    frame[beatKey] = beatData[beatKey];
+  }
+  for (var tg = 0; tg < SONIC_AUDIO_TRIGGER_DATA_KEYS.length; tg++) {
+    var trigKey = SONIC_AUDIO_TRIGGER_DATA_KEYS[tg];
+    frame[trigKey] = triggerData[trigKey];
+  }
   frame.kickEnvelope = kickEnvelope;
   sonicAudioMonitorState.frame = frame;
   return frame;
