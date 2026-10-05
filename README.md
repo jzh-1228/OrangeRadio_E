@@ -4,7 +4,7 @@
 
 OrangeSea 是一款 Windows 桌面沉浸式音乐播放器，把搜索播放、歌词舞台、粒子视觉、3D 歌单架和完整桌面模式组合成一个更接近现场感的私人音乐空间。日落渐变暗色视觉，融合桌面模式、歌词舞台、粒子舞台与 3D 歌单架。
 
-> 本项目是基于 [Mineradio](https://github.com/XxHuberrr/Mineradio)（GPL-3.0）的二次创作，遵循 GPL-3.0 开源。原作者 XxHuberrr，归属与致谢详见 [NOTICE.md](./NOTICE.md)。
+> 本项目是基于 [Mineradio](https://github.com/XxHuberrr/Mineradio)（GPL-3.0）的二次创作，并吸收了 [Folia](https://github.com/chthollyphile/folia-major)（AGPL-3.0）的智能混音引擎、音源抽象层与视觉平台协议，整体遵循 **AGPL-3.0** 开源（依 GPLv3 §14 合并条款）。原作者归属与移植清单详见 [NOTICE.md](./NOTICE.md)。
 
 ## 当前版本
 
@@ -97,6 +97,6 @@ OrangeSea 是基于 [Mineradio](https://github.com/XxHuberrr/Mineradio) 的二�
 
 ## 版权与授权
 
-Copyright (C) 2026 XxHuberrr. 本项目基于 Mineradio 二次创作，遵循 GPL-3.0 授权。详见 [LICENSE](./LICENSE)。
+Copyright (C) 2026 XxHuberrr. 本项目基于 Mineradio（GPL-3.0）二次创作，并包含来自 Folia（AGPL-3.0，Copyright (c) 2025 chthollyphile and Folia contributors）的适配代码，整体按 **AGPL-3.0** 授权（依 GPLv3 §14 合并条款）。详见 [LICENSE](./LICENSE) 与 [NOTICE.md](./NOTICE.md)。
 
 MR Logo、Mineradio 名称与界面视觉设计归原作者所有；OrangeSea 名称、日落主题视觉与二次创作部分归本项目作者所有；第三方依赖和第三方服务分别遵循其各自授权与服务条款。
