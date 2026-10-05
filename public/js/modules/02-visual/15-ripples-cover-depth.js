@@ -560,6 +560,7 @@ function applyCoverCanvas(cv, thumbSrc, opts) {
   opts = opts || {};
   if (!cv || !coverApplyStillCurrent(opts)) return;
   var token = ++coverProcessToken;
+  var retiredCoverCanvas = coverTex.image; // 被替换下岗的纹理源 canvas，换装完毕后归还池
   if (opts.coverSource && opts.coverSourceKind) {
     currentCoverSource = { kind: opts.coverSourceKind, src: opts.coverSource };
   }
@@ -582,6 +583,12 @@ function applyCoverCanvas(cv, thumbSrc, opts) {
   coverTex.image = cv; coverTex.needsUpdate = true;
   coverPickerCanvas = cv;
   uniforms.uHasCover.value = 1;
+  // 旧纹理源归还处理类 canvas 池（13-canvas-pool.js）。上方 crossfade 已把旧图内容
+  // 拷贝进 prevCoverTex 的独立画布，此处引用已全部换装到 cv——归还（clearRect+入桶）
+  // 不再影响任何在役读数。此前 acquire 后无任何 release 配对，池化从未生效。
+  if (retiredCoverCanvas && retiredCoverCanvas !== cv && typeof releaseProcessingCanvas === 'function') {
+    try { releaseProcessingCanvas(retiredCoverCanvas); } catch (e) { }
+  }
   if (cachedDepth && cachedDepth.canvas) {
     coverEdgeTex.image = cachedDepth.canvas;
     coverEdgeTex.needsUpdate = true;

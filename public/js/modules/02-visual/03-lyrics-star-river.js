@@ -212,3 +212,9 @@ function disposeLyricMesh(mesh) {
   });
   if (!lyricDisposeTimer) lyricDisposeTimer = setTimeout(flushLyricDisposeQueue, 0);
 }
+
+// THREE 分级释放接线（02-visual/93-three-resource-tiers.js）：压力时真释放星河粒子，
+// updateLyricStarRiver 每帧 ensureLyricStarRiver 幂等重建，歌词视觉不受影响。
+registerThreeMemoryPressureHandler(function disposeStarRiverUnderPressure() {
+  disposeLyricStarRiver();
+});

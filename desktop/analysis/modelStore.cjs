@@ -1,3 +1,5 @@
+// Portions Copyright (c) 2025 chthollyphile and Folia contributors
+// Adapted from folia-major (AGPL-3.0): electron/analysis/modelStore.cjs 的移植适配（本项目位于 desktop/analysis/）。
 const { createHash } = require('crypto');
 const fs = require('fs');
 const fsp = require('fs/promises');

@@ -1094,7 +1094,13 @@ async function fetchMusicSearchResults(q, mode, previousPages) {
     var previous = previousPages && previousPages[provider];
     var offset = previous ? Math.max(0, Number(previous.nextOffset) || 0) : 0;
     var limit = pageLimitByProvider[provider] || 12;
-    return apiJson(searchProviderUrl(provider, q, limit, offset)).then(function (value) {
+    // 经 Omni 门面的 searchProviderSongs（request generation 防护）：切换平台事务后
+    // 晚到的旧响应以 AbortError 形态 reject，由下方 allSettled 的失败分支统一消化；
+    // 响应形状与后端端点一致（{songs, nextOffset, hasMore, ...}）。门面缺失时回落裸 apiJson。
+    var request = (typeof omni !== 'undefined' && omni && typeof omni.searchProviderSongs === 'function')
+      ? omni.searchProviderSongs(provider, q, { limit: limit, offset: offset })
+      : apiJson(searchProviderUrl(provider, q, limit, offset));
+    return Promise.resolve(request).then(function (value) {
       return { provider: provider, offset: offset, requestedLimit: limit, value: value || {} };
     });
   }));

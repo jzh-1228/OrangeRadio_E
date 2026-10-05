@@ -1,3 +1,5 @@
+// Portions Copyright (c) 2025 chthollyphile and Folia contributors
+// Adapted from folia-major (AGPL-3.0): electron/analysis/sidecar.cjs 的移植适配（本项目位于 desktop/analysis/）。
 const { spawn } = require('child_process');
 const fsp = require('fs/promises');
 const os = require('os');
@@ -41,7 +43,10 @@ const TIMEOUT_MS = 120_000;
  * has to say what it cost - logging only failures is what let a 4GB spike run unmeasured for a day.
  */
 const runRunner = (pythonExe, args) => new Promise((resolve, reject) => {
-    const child = spawn(pythonExe, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    // windowsHide: python.exe 是控制台程序（PE subsystem=CONSOLE），打包后的 GUI 主进程/
+    // utilityProcess 无控制台——不隐藏则每次人声分离都会在 Windows 桌面新开一个约 17s 的
+    // 控制台窗口（默认终端为传统 conhost 的机器）。与本项目其余全部 spawn 的惯例一致。
+    const child = spawn(pythonExe, args, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
     let output = '';
     child.stderr.on('data', (chunk) => { output += String(chunk); });
     child.stdout.on('data', (chunk) => { output += String(chunk); });

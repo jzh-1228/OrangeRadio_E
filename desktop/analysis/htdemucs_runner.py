@@ -1,3 +1,5 @@
+# Portions Copyright (c) 2025 chthollyphile and Folia contributors
+# Adapted from folia-major (AGPL-3.0): electron/analysis/htdemucs_runner.py 的移植适配（本项目位于 desktop/analysis/）。
 """htdemucs separation, in a Python process because of one flag.
 
 worker.cjs runs every other model itself over onnxruntime-node. htdemucs is here,

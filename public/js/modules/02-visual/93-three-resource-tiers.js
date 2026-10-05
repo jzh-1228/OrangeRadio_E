@@ -48,15 +48,24 @@ function disposeThreeSubtree(root) {
 
 // 内存压力钩子：各预设模块注册自己的重资源释放回调
 // （骷髅点云/演唱会灯海/星河粒子在压力时 dispose，常规切换仍走 detach）。
-var threeMemoryPressureHandlers = [];
+// 数组惰性初始化：本文件按目录序在部分注册方（02-visual/01、03）之后才拼入
+// 单一 script——注册函数声明可提升，但 `= null` 字面量赋值在本文件文本执行时
+// 会覆盖此前已惰性创建并 push 过的数组（且更早的顶层注册若 push 未初始化 var
+// 会 TypeError 中断整个应用脚本）。故此处只声明不赋值，首次访问时惰性建数组。
+var threeMemoryPressureHandlers;
+
+function threeMemoryPressureHandlersList() {
+  if (!threeMemoryPressureHandlers) threeMemoryPressureHandlers = [];
+  return threeMemoryPressureHandlers;
+}
 
 function registerThreeMemoryPressureHandler(fn) {
-  if (typeof fn === 'function') threeMemoryPressureHandlers.push(fn);
+  if (typeof fn === 'function') threeMemoryPressureHandlersList().push(fn);
 }
 
 function runThreeMemoryPressureHandlers(reason) {
   var fired = 0;
-  threeMemoryPressureHandlers.forEach(function (fn) {
+  threeMemoryPressureHandlersList().forEach(function (fn) {
     try { fn(reason); fired++; } catch (e) { }
   });
   if (fired) console.log('[ThreeTiers] memory pressure handlers fired: ' + fired + ' (' + (reason || '') + ')');

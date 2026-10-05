@@ -824,3 +824,17 @@ function resetFloatColorsToIdle() {
 
 // ============================================================
 //  舞台歌词系统 v9 — Three.js 文字平面, 跟随专辑粒子 3D 运动
+
+// THREE 分级释放接线（02-visual/93-three-resource-tiers.js）：骷髅点云是预设中最重的
+// 几何资源（asset 点云数万点），非 skull 预设期仅 visible=false 常驻显存。内存压力
+// （RSS 水位/深后台）时真释放；skull 预设激活期由 updateSkullParticleLayer 每帧
+// ensure（createSkullParticleLayer 幂等）无损重建，非激活期保持释放直到用户切回。
+registerThreeMemoryPressureHandler(function disposeSkullParticlesUnderPressure() {
+  if (!skullParticleGroup) return;
+  try {
+    if (skullParticleGroup.parent) skullParticleGroup.parent.remove(skullParticleGroup);
+    if (skullParticleGroup.geometry) skullParticleGroup.geometry.dispose();
+    if (skullParticleGroup.material && skullParticleGroup.material.dispose) skullParticleGroup.material.dispose();
+    skullParticleGroup = null;
+  } catch (e) { }
+});

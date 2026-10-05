@@ -43,11 +43,14 @@ function omniRequireProviderForSong(song) {
 // 拒绝切换事务开始后才返回的旧响应。不取消底层网络请求——只在响应
 // 抵达时比对 generation，把过期结果变成 AbortError。
 // 调用方不得自造第二套取消 / 晚到防护。
+// 注意：不比对 providerId 是否等于当前活跃平台——聚合搜索（fetchMusicSearchResults）
+// 会并行请求多个平台，其中多数不是活跃平台；"过期"由 generation 单独表达，
+// 再叠加 providerId 比对会把无关平台的在飞响应误杀成 AbortError。
 async function omniWithActiveProvider(run) {
   var providerId = omniActiveProviderId;
   var generation = omniActiveRequestGeneration;
   var result = await run(requireOmniProvider(providerId));
-  if (generation !== omniActiveRequestGeneration || providerId !== omniActiveProviderId) {
+  if (generation !== omniActiveRequestGeneration) {
     throw new DOMException('Active online provider changed', 'AbortError');
   }
   return result;
@@ -64,8 +67,11 @@ var omni = {
     return omniActiveProviderId;
   },
   setActiveProvider: function (providerId) {
+    var prev = omniActiveProviderId;
     var next = omniSetActiveProvider(providerId);
-    this.invalidateActiveRequests();
+    // 只有真实切换才 bump generation：相同 id 重复设置不应作废在飞请求
+    // （否则按当前聚合搜索并行接入时，重复点击同一平台也会误杀全部在飞响应）。
+    if (next !== prev) this.invalidateActiveRequests();
     return next;
   },
 
@@ -128,12 +134,14 @@ var omni = {
 
   // ---------- 数据方法（active-provider 族，带 generation 防护） ----------
 
+  // 返回形状与后端搜索端点一致：{ songs, offset, limit, nextOffset, hasMore }。
+  // 此前无 URL 分支返回 { items: [] } 与成功路径两种形状，消费者按 songs 读取时空分支得 undefined。
   searchProviderSongs: function (providerId, query, opts) {
     opts = opts || {};
     var limit = Number(opts.limit) || 30;
     var offset = Math.max(0, Number(opts.offset) || 0);
     var url = this.searchUrlFor(providerId, query, limit, offset);
-    if (!url) return Promise.resolve({ items: [], hasMore: false, nextOffset: offset });
+    if (!url) return Promise.resolve({ songs: [], offset: offset, limit: limit, hasMore: false, nextOffset: offset });
     var timeoutMs = providerId === 'netease' ? 14000 : 9000;
     return omniWithActiveProvider(function () {
       return apiJson(url, { timeoutMs: timeoutMs });

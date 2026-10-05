@@ -5,7 +5,9 @@
 // ============================================================
 const TRACK_PROFILE_VERSION = 9;
 const PROFILE_SAMPLE_RATE = 22050;
-const FFT_SIZE = 2048;
+// 命名带 PROFILE_ 前缀：index-loader 把全部模块拼进单个 script 共享全局作用域，
+// 此处顶层 const 若与 00-state/00-core-stores.js 的同名顶层 var 撞名 → SyntaxError 全应用启动崩溃。
+const PROFILE_FFT_SIZE = 2048;
 const HOP = 512;
 const FLUX_CEILING_HZ = 5e3;
 const CHROMA_MIN_HZ = 65;
@@ -236,20 +238,20 @@ const analyseTrack = async (mono, sampleRate, options = {}) => {
   const duration = mono.length / sampleRate;
   if (!(duration > 1) || !(sampleRate > 0)) return null;
   const hopSec = HOP / sampleRate;
-  const bins = FFT_SIZE / 2;
-  const binHz = sampleRate / FFT_SIZE;
+  const bins = PROFILE_FFT_SIZE / 2;
+  const binHz = sampleRate / PROFILE_FFT_SIZE;
   const fluxBins = Math.max(8, Math.round(FLUX_CEILING_HZ / binHz));
   const lowFluxBins = Math.max(4, Math.round(DOWNBEAT_CEILING_HZ / binHz));
   const toneEdgeBins = TONE_EDGE_HZ.map((hz) => Math.min(bins, Math.round(hz / binHz)));
   const weighted = kWeight(mono, sampleRate);
-  const real = new Float64Array(FFT_SIZE);
-  const imag = new Float64Array(FFT_SIZE);
+  const real = new Float64Array(PROFILE_FFT_SIZE);
+  const imag = new Float64Array(PROFILE_FFT_SIZE);
   const spectrum = new Float32Array(bins);
   const previous = new Float32Array(bins);
-  const frame = new Float32Array(FFT_SIZE);
-  const window = new Float64Array(FFT_SIZE);
-  for (let index = 0; index < FFT_SIZE; index += 1) {
-    window[index] = 0.5 - 0.5 * Math.cos(2 * Math.PI * index / (FFT_SIZE - 1));
+  const frame = new Float32Array(PROFILE_FFT_SIZE);
+  const window = new Float64Array(PROFILE_FFT_SIZE);
+  for (let index = 0; index < PROFILE_FFT_SIZE; index += 1) {
+    window[index] = 0.5 - 0.5 * Math.cos(2 * Math.PI * index / (PROFILE_FFT_SIZE - 1));
   }
   const binPitchClass = new Int8Array(bins);
   for (let index = 0; index < bins; index += 1) {
@@ -262,8 +264,8 @@ const analyseTrack = async (mono, sampleRate, options = {}) => {
   const side = options.side && options.side.length >= mono.length ? options.side : null;
   const vocalLowBin = Math.max(1, Math.floor(VOCAL_LOW_HZ / binHz));
   const vocalHighBin = Math.min(bins - 1, Math.ceil(VOCAL_HIGH_HZ / binHz));
-  const sideReal = new Float64Array(side ? FFT_SIZE : 0);
-  const sideImag = new Float64Array(side ? FFT_SIZE : 0);
+  const sideReal = new Float64Array(side ? PROFILE_FFT_SIZE : 0);
+  const sideImag = new Float64Array(side ? PROFILE_FFT_SIZE : 0);
   const levels = [];
   const envelope = [];
   const lowEnvelope = [];
@@ -277,10 +279,10 @@ const analyseTrack = async (mono, sampleRate, options = {}) => {
   const chromaEnvelope = [];
   let frames = 0;
   let yieldBy = performance.now() + YIELD_BUDGET_MS;
-  for (let start = 0; start + FFT_SIZE <= mono.length; start += HOP) {
-    frame.set(mono.subarray(start, start + FFT_SIZE));
-    levels.push(rmsDb(weighted.subarray(start, start + FFT_SIZE)));
-    for (let index = 0; index < FFT_SIZE; index += 1) {
+  for (let start = 0; start + PROFILE_FFT_SIZE <= mono.length; start += HOP) {
+    frame.set(mono.subarray(start, start + PROFILE_FFT_SIZE));
+    levels.push(rmsDb(weighted.subarray(start, start + PROFILE_FFT_SIZE)));
+    for (let index = 0; index < PROFILE_FFT_SIZE; index += 1) {
       real[index] = frame[index] * window[index];
       imag[index] = 0;
     }
@@ -332,7 +334,7 @@ const analyseTrack = async (mono, sampleRate, options = {}) => {
       previousChroma.set(frameChroma);
     }
     if (side) {
-      for (let index = 0; index < FFT_SIZE; index += 1) {
+      for (let index = 0; index < PROFILE_FFT_SIZE; index += 1) {
         sideReal[index] = side[start + index] * window[index];
         sideImag[index] = 0;
       }
@@ -356,15 +358,15 @@ const analyseTrack = async (mono, sampleRate, options = {}) => {
       yieldBy = performance.now() + YIELD_BUDGET_MS;
     }
   }
-  const edges = measureEdges(levels, hopSec, FFT_SIZE / sampleRate);
+  const edges = measureEdges(levels, hopSec, PROFILE_FFT_SIZE / sampleRate);
   if (!edges) return null;
   const measured = options.grid ? gridFromBeats(options.grid, { partial: options.partial }) : null;
   const tempo = estimateTempo(envelope, hopSec);
-  const lastBeatSec = tempo ? (envelope.length - 1 - tempo.beatOffsetHops) * hopSec + FFT_SIZE / (2 * sampleRate) : 0;
+  const lastBeatSec = tempo ? (envelope.length - 1 - tempo.beatOffsetHops) * hopSec + PROFILE_FFT_SIZE / (2 * sampleRate) : 0;
   const beatOffset = tempo && tempo.periodSec > 0 ? (lastBeatSec % tempo.periodSec + tempo.periodSec) % tempo.periodSec : 0;
   const key = keyFromChroma(chroma);
   const partial = options.partial === true;
-  const envelopeStartSec = FFT_SIZE / (2 * sampleRate);
+  const envelopeStartSec = PROFILE_FFT_SIZE / (2 * sampleRate);
   const barSec = tempo && tempo.periodSec > 0 ? tempo.periodSec * BEATS_PER_BAR : 0;
   const downbeat = !measured && tempo && barSec > 0 ? estimateDownbeat(
     lowEnvelope,

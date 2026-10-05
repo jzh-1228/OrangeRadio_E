@@ -1,3 +1,5 @@
+// Portions Copyright (c) 2025 chthollyphile and Folia contributors
+// Adapted from folia-major (AGPL-3.0): electron/analysis/modelPaths.cjs 的移植适配（本项目位于 desktop/analysis/）。
 const path = require('path');
 const fs = require('fs');
 

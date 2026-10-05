@@ -431,9 +431,14 @@ function sweepLocalBlobUrls() {
 
 /* 主进程 RSS 水位事件：定时器之外的强触发（THREE 重资源 dispose + aggressive trim） */
 (function listenRendererMemoryPressure() {
-  if (typeof window === 'undefined' || !window.desktopWindow) return;
-  var bridge = window.desktopWindow;
-  if (typeof bridge.onMemoryPressure !== 'function') return;
+  if (typeof window === 'undefined') return;
+  // onMemoryPressure 实际暴露在 window.electron（desktop/preload.js 的 automix 桥）；
+  // desktopWindow 桥上没有该成员——此前从 desktopWindow 取导致守卫恒提前 return，监听永不注册。
+  // 兼容两处查找：优先 electron，desktopWindow 留作向后兼容。
+  var bridge = null;
+  if (window.electron && typeof window.electron.onMemoryPressure === 'function') bridge = window.electron;
+  else if (window.desktopWindow && typeof window.desktopWindow.onMemoryPressure === 'function') bridge = window.desktopWindow;
+  if (!bridge) return;
   bridge.onMemoryPressure(function () {
     try {
       trimRuntimeCaches('rss-pressure', true);

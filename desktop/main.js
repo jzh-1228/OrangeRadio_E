@@ -5497,7 +5497,9 @@ setInterval(() => {
   try {
     const metrics = app.getAppMetrics();
     for (const m of metrics) {
-      if (m.type !== 'GPU' && !String(m.type || '').includes('renderer')) continue;
+      // Electron 的 getAppMetrics() 中渲染进程 type 为 'Tab'（枚举里没有任何含 'renderer'
+      // 的取值）——此前按 includes('renderer') 过滤会把渲染进程全部跳过，水位事件端到端不发生。
+      if (m.type !== 'Tab') continue; // 渲染进程的 type 是 'Tab'；GPU 进程混入会以 renderer 名义误报
       const rss = Number(m.memory && m.memory.workingSetSize) || 0;
       if (rss * 1024 < RENDERER_RSS_PRESSURE_BYTES) continue;
       const now = Date.now();

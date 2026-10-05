@@ -148,8 +148,12 @@ const g = new Proxy({}, { get: (_, name) => sandbox.__sym(String(name)) });
 
 /* ---------- buildCrossfadeCurves：together 平台段功率守恒 ---------- */
 {
-  const curves = g.buildCrossfadeCurves(6, 0.5, 0.3);
-  assert.equal(curves.out.length, curves.in.length);
+  // 正确语义调用：签名是 (crossover 0~1 交叉点进度, together 0~0.8 平台段, points 采样点数)。
+  // 此前把秒数传给 crossover、权重传给 points，Float32Array(0.3) 长度为 0，断言空转通过
+  // （与 21-deck-manager.js 调用处的同款错位互相掩盖，已一并修复）。
+  const curves = g.buildCrossfadeCurves(0.5, 0.3, 64);
+  assert.equal(curves.out.length, 64, 'out curve has 64 points');
+  assert.equal(curves.in.length, curves.out.length);
   for (let i = 0; i < curves.out.length; i++) {
     const power = curves.out[i] * curves.out[i] + curves.in[i] * curves.in[i];
     assert.ok(power < 1.05, `equal-power at ${i}: ${power.toFixed(3)}`);

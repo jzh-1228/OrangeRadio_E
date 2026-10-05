@@ -152,3 +152,18 @@ function updateConcertStage(dt) {
     posAttr.needsUpdate = true;
   }
 }
+
+// THREE 分级释放接线（02-visual/93-three-resource-tiers.js）：压力时真释放灯海，
+// updateConcertStage 每帧 ensureConcertStageGroup 幂等重建。
+registerThreeMemoryPressureHandler(function disposeConcertStageUnderPressure() {
+  if (!concertStageGroup) return;
+  try {
+    if (concertStageGroup.parent) concertStageGroup.parent.remove(concertStageGroup);
+    if (concertSticks && concertSticks.geometry) concertSticks.geometry.dispose();
+    // 材质的 map 是共享单例贴图 _stickTex（buildStickTexture 缓存），不随材质释放。
+    if (concertSticks && concertSticks.material && concertSticks.material.dispose) concertSticks.material.dispose();
+    concertStageGroup = null;
+    concertSticks = null;
+    concertMasterOpacity = 0;
+  } catch (e) { }
+});

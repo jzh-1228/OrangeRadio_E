@@ -1,3 +1,5 @@
+// Portions Copyright (c) 2025 chthollyphile and Folia contributors
+// Adapted from folia-major (AGPL-3.0): electron/analysis/host.cjs 的移植适配（本项目位于 desktop/analysis/）。
 const { modelsPresent } = require('./modelPaths.cjs');
 // MineRadio 适配：Folia 的 debugHost 运行时日志行不可用，内联等价实现（双参形态）。
 const runtimeLine = (channel, text) => {

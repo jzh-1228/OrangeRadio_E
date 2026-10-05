@@ -79,3 +79,5 @@ scripts/concert-screenshot.png
 
 .v2c/
 .video_agent/
+
+__pycache__/
