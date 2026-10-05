@@ -5489,6 +5489,29 @@ ipcMain.handle('mineradio-desktop-lyrics-set-hot-bounds', async (_event, bounds)
 
 registerAutomixAnalysisIpc();
 
+// RSS 水位驱动：定时采样渲染进程工作集，超阈值发压力事件——渲染侧从纯定时
+// trim 升级为定时 + 水位双驱动（THREE 重资源 dispose 只在压力时走）。
+const RENDERER_RSS_PRESSURE_BYTES = 2.5 * 1024 * 1024 * 1024;
+let lastRendererPressureSentAt = 0;
+setInterval(() => {
+  try {
+    const metrics = app.getAppMetrics();
+    for (const m of metrics) {
+      if (m.type !== 'GPU' && !String(m.type || '').includes('renderer')) continue;
+      const rss = Number(m.memory && m.memory.workingSetSize) || 0;
+      if (rss * 1024 < RENDERER_RSS_PRESSURE_BYTES) continue;
+      const now = Date.now();
+      if (now - lastRendererPressureSentAt < 5 * 60 * 1000) return; // 5 分钟冷却
+      lastRendererPressureSentAt = now;
+      console.log(`[memory-pressure] renderer rss ${(rss / 1024 / 1024).toFixed(0)}MB exceeds threshold`);
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('mineradio-memory-pressure', { rssBytes: rss * 1024 });
+      }
+      return;
+    }
+  } catch (e) { }
+}, 45000);
+
 ipcMain.handle('mineradio-desktop-lyrics-set-lock-state', async (_event, locked) => {
   try {
     desktopLyricsState = { ...desktopLyricsState, clickThrough: !!locked };

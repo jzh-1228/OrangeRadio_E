@@ -43,7 +43,7 @@ function loadCoverFromUrl(directUrl, opts) {
   img.onload = function () {
     if (!coverApplyStillCurrent(opts)) return;
     var size = coverTextureSizeForResolution(fx.coverResolution);
-    var cv = document.createElement('canvas'); cv.width = cv.height = size;
+    var cv = acquireProcessingCanvas(size);
     var cx = cv.getContext('2d');
     var iw = img.naturalWidth, ih = img.naturalHeight, s = Math.min(iw, ih);
     cx.drawImage(img, (iw - s) / 2, (ih - s) / 2, s, s, 0, 0, size, size);
@@ -55,7 +55,7 @@ function loadCoverFromUrl(directUrl, opts) {
     img2.onload = function () {
       if (!coverApplyStillCurrent(opts)) return;
       var size = coverTextureSizeForResolution(fx.coverResolution);
-      var cv = document.createElement('canvas'); cv.width = cv.height = size;
+      var cv = acquireProcessingCanvas(size);
       cv.getContext('2d').drawImage(img2, 0, 0, size, size);
       setAlbumBackground(directUrl);
       applyCoverCanvas(cv, directUrl, Object.assign({}, opts, { coverKey: directUrl || '', coverSourceKind: 'url', coverSource: directUrl }));

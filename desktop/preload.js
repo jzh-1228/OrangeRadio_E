@@ -11,6 +11,12 @@ contextBridge.exposeInMainWorld('electron', {
   downloadAutomixModel: (name) => ipcRenderer.invoke('automix-model-download', name),
   cancelAutomixModelDownload: (name) => ipcRenderer.invoke('automix-model-cancel', name),
   installAutomixModel: (name, source) => ipcRenderer.invoke('automix-model-install', name, source),
+  onMemoryPressure: (callback) => {
+    if (typeof callback !== 'function') return () => {};
+    const listener = (_event, payload) => callback(payload || {});
+    ipcRenderer.on('mineradio-memory-pressure', listener);
+    return () => ipcRenderer.removeListener('mineradio-memory-pressure', listener);
+  },
   onAutomixModelProgress: (callback) => {
     if (typeof callback !== 'function') return () => {};
     const listener = (_event, payload) => callback(payload || {});

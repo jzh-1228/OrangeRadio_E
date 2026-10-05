@@ -393,6 +393,56 @@ function scheduleBackgroundCacheTrim() {
     trimVisualCachesForBackground();
   }, 900);
 }
+/* 本地歌曲 blob URL 清扫：不在队列且不在任何 audio 元素上出声的 localUrl 释放。
+   （此前 05-upload-dragdrop 创建后从不 revoke，浏览器进程持有文件字节直到刷新。） */
+function sweepLocalBlobUrls() {
+  try {
+    var keep = {};
+    if (Array.isArray(playQueue)) {
+      for (var i = 0; i < playQueue.length; i++) {
+        var s = playQueue[i];
+        if (s && typeof s.localUrl === 'string' && s.localUrl.indexOf('blob:') === 0) keep[s.localUrl] = true;
+      }
+    }
+    if (typeof pendingLocalSongs !== 'undefined' && Array.isArray(pendingLocalSongs)) {
+      for (var j = 0; j < pendingLocalSongs.length; j++) {
+        var ps = pendingLocalSongs[j];
+        if (ps && typeof ps.localUrl === 'string') keep[ps.localUrl] = true;
+      }
+    }
+    if (typeof document !== 'undefined') {
+      document.querySelectorAll('audio, video').forEach(function (el) {
+        if (el.src && el.src.indexOf('blob:') === 0) keep[el.src] = true;
+        if (el.currentSrc && el.currentSrc.indexOf('blob:') === 0) keep[el.currentSrc] = true;
+      });
+    }
+    if (typeof localBlobUrlRegistry !== 'undefined' && Array.isArray(localBlobUrlRegistry)) {
+      var next = [];
+      for (var k = 0; k < localBlobUrlRegistry.length; k++) {
+        var url = localBlobUrlRegistry[k];
+        if (keep[url]) { next.push(url); continue; }
+        try { URL.revokeObjectURL(url); } catch (e) { }
+      }
+      localBlobUrlRegistry.length = 0;
+      for (var m = 0; m < next.length; m++) localBlobUrlRegistry.push(next[m]);
+    }
+  } catch (e) { }
+}
+
+/* 主进程 RSS 水位事件：定时器之外的强触发（THREE 重资源 dispose + aggressive trim） */
+(function listenRendererMemoryPressure() {
+  if (typeof window === 'undefined' || !window.desktopWindow) return;
+  var bridge = window.desktopWindow;
+  if (typeof bridge.onMemoryPressure !== 'function') return;
+  bridge.onMemoryPressure(function () {
+    try {
+      trimRuntimeCaches('rss-pressure', true);
+      sweepLocalBlobUrls();
+      if (typeof runThreeMemoryPressureHandlers === 'function') runThreeMemoryPressureHandlers('rss-pressure');
+    } catch (e) { }
+  });
+})();
+
 function maybeTrimRuntimeCaches(now) {
   now = now || performance.now();
   var deep = isDeepBackgroundMode();
@@ -400,6 +450,10 @@ function maybeTrimRuntimeCaches(now) {
   if (!deep && now < 30000) return;
   if (now - runtimePerfState.lastCacheTrimAt < gap) return;
   trimRuntimeCaches(deep ? (isBackgroundReleaseMode() ? 'release-frame' : 'deep-frame') : 'active-frame', deep);
+  sweepLocalBlobUrls();
+  if (deep && typeof runThreeMemoryPressureHandlers === 'function') {
+    runThreeMemoryPressureHandlers('deep-background');
+  }
 }
 function applyRendererPowerMode() {
   if (typeof renderer === 'undefined' || !renderer) return;

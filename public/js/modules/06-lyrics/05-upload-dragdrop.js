@@ -36,7 +36,7 @@ function localSongFromAudioFile(file) {
     artist: '本地文件',
     album: rel && rel !== filename ? rel.split(/[\\/]/).slice(0, -1).join(' / ') : '',
     localKey: [rel || filename, file.size || 0, file.lastModified || 0].join(':'),
-    localUrl: URL.createObjectURL(file),
+    localUrl: registerLocalBlobUrl(URL.createObjectURL(file)),
     localPath: rel,
     duration: 0
   });
