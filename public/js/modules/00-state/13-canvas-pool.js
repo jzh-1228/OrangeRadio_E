@@ -19,6 +19,9 @@ var processingCanvasPool = (function () {
       var bucket = buckets[size];
       if (bucket && bucket.length) {
         var cv = bucket.pop();
+        // total 语义是"当前在池数"：出池必须回减，否则累计入池数单调递增，
+        // 撞到 MAX_TOTAL 后池永久失效（release 恒拒、acquire 再无复用）。
+        total -= 1;
         cv.width = cv.height = size; // 重设尺寸同时清空内容
         return cv;
       }

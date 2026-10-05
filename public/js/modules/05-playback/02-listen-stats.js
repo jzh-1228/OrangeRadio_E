@@ -1,5 +1,30 @@
 var HOME_LISTEN_ROLLUP_V2_KEY = 'orangesea-listen-rollup-v2';
 var listenSessionSerial = 0;
+// songs/artists/daily 采集上限（参照 server/context.js LISTEN_SYNC_JOURNAL_LIMIT 的
+// 有界日志思路）：此前三张表只增不删，内存与 localStorage 同步无界增长，配额满后
+// 写入静默失败且挤掉同 origin 其它存档。超限按 lastPlayedAt 淘汰最旧（最久未听）。
+var LISTEN_STATS_SONGS_MAX = 2000;
+var LISTEN_STATS_ARTISTS_MAX = 500;
+var LISTEN_ROLLUP_DAILY_KEEP_DAYS = 730;
+
+function pruneListenStatsCollection(map, maxEntries) {
+  if (!map || typeof map !== 'object') return;
+  var keys = Object.keys(map);
+  if (keys.length <= maxEntries) return;
+  keys.sort(function (a, b) {
+    return (Number(map[a] && map[a].lastPlayedAt) || 0) - (Number(map[b] && map[b].lastPlayedAt) || 0);
+  });
+  for (var i = 0; i < keys.length - maxEntries; i++) delete map[keys[i]];
+}
+
+function pruneListenRollupDaily(daily) {
+  if (!daily || typeof daily !== 'object') return daily;
+  var dayKeys = Object.keys(daily);
+  if (dayKeys.length <= LISTEN_ROLLUP_DAILY_KEEP_DAYS) return daily;
+  dayKeys.sort(); // 'YYYY-MM-DD' 字典序即时间序
+  for (var i = 0; i < dayKeys.length - LISTEN_ROLLUP_DAILY_KEEP_DAYS; i++) delete daily[dayKeys[i]];
+  return daily;
+}
 
 function emptyListenRollupV2() {
   return { version: 2, totalListenMs: 0, sessions: 0, daily: {}, updatedAt: 0 };
@@ -13,7 +38,7 @@ function loadListenRollupV2() {
       version: 2,
       totalListenMs: Math.max(0, Number(data.totalListenMs) || 0),
       sessions: Math.max(0, Number(data.sessions) || 0),
-      daily: data.daily && typeof data.daily === 'object' ? data.daily : {},
+      daily: pruneListenRollupDaily(data.daily && typeof data.daily === 'object' ? data.daily : {}),
       updatedAt: Number(data.updatedAt) || 0,
     };
   } catch (e) {
@@ -41,6 +66,7 @@ function recordListenRollupV2(record) {
     day.sessions = Math.max(0, Number(day.sessions) || 0) + 1;
     day.completed = Math.max(0, Number(day.completed) || 0) + (record && record.completed ? 1 : 0);
     state.daily[dayKey] = day;
+    pruneListenRollupDaily(state.daily);
     state.updatedAt = Date.now();
     localStorage.setItem(HOME_LISTEN_ROLLUP_V2_KEY, JSON.stringify(state));
   } catch (e) { }
@@ -142,10 +168,14 @@ function loadListenStatsState() {
     var raw = localStorage.getItem(HOME_LISTEN_STATS_KEY);
     if (!raw) return { history: [], songs: {}, artists: {}, updatedAt: 0 };
     var data = JSON.parse(raw);
+    var songs = data.songs && typeof data.songs === 'object' ? data.songs : {};
+    var artists = data.artists && typeof data.artists === 'object' ? data.artists : {};
+    pruneListenStatsCollection(songs, LISTEN_STATS_SONGS_MAX);
+    pruneListenStatsCollection(artists, LISTEN_STATS_ARTISTS_MAX);
     return {
       history: Array.isArray(data.history) ? data.history.slice(0, 180) : [],
-      songs: data.songs && typeof data.songs === 'object' ? data.songs : {},
-      artists: data.artists && typeof data.artists === 'object' ? data.artists : {},
+      songs: songs,
+      artists: artists,
       updatedAt: Number(data.updatedAt) || 0,
     };
   } catch (e) {
@@ -279,6 +309,8 @@ function finalizeListenSession(completed) {
     listenStatsState.artists[name] = artistStat;
   });
   recordListenRollupV2(record);
+  pruneListenStatsCollection(listenStatsState.songs, LISTEN_STATS_SONGS_MAX);
+  pruneListenStatsCollection(listenStatsState.artists, LISTEN_STATS_ARTISTS_MAX);
   saveListenStatsState();
   reportListenSession(record, session, actualDurationMs);
   if (emptyHomeActive) renderHomeDiscover();

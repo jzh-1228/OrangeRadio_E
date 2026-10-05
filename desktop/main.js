@@ -5493,8 +5493,30 @@ registerAutomixAnalysisIpc();
 // trim 升级为定时 + 水位双驱动（THREE 重资源 dispose 只在压力时走）。
 const RENDERER_RSS_PRESSURE_BYTES = 2.5 * 1024 * 1024 * 1024;
 let lastRendererPressureSentAt = 0;
+// 主进程自身也纳入水位：本地 server（含汽水 200MB 级整段下载+解密与 96MB
+// 解密缓存）常驻主进程，此前只采样 type==='Tab' 的渲染进程，主进程峰值与
+// 常驻不在任何水位约束内。超阈值先整表释放可重建的汽水解密缓存（性能优化
+// 型资源，清空后同歌重新解密即可），不改任何播放语义。
+const MAIN_RSS_PRESSURE_BYTES = 1.5 * 1024 * 1024 * 1024;
+let lastMainPressureHandledAt = 0;
 setInterval(() => {
   try {
+    const mainRss = Number(process.memoryUsage().rss) || 0;
+    if (mainRss > MAIN_RSS_PRESSURE_BYTES) {
+      const mainNow = Date.now();
+      if (mainNow - lastMainPressureHandledAt >= 5 * 60 * 1000) {
+        lastMainPressureHandledAt = mainNow;
+        let cleared = false;
+        try {
+          const serverContext = require('../server/context');
+          if (serverContext && typeof serverContext.clearQishuiDecryptedAudioCache === 'function') {
+            serverContext.clearQishuiDecryptedAudioCache();
+            cleared = true;
+          }
+        } catch (e) { }
+        console.log(`[memory-pressure] main rss ${(mainRss / 1024 / 1024).toFixed(0)}MB exceeds threshold${cleared ? ' (qishui decrypt cache cleared)' : ''}`);
+      }
+    }
     const metrics = app.getAppMetrics();
     for (const m of metrics) {
       // Electron 的 getAppMetrics() 中渲染进程 type 为 'Tab'（枚举里没有任何含 'renderer'

@@ -20,7 +20,10 @@ async function analyzeAudioBeats(audioUrl, durationSec, token, options) {
     var DecodeCtx = window.AudioContext || window.webkitAudioContext;
     var dc = new DecodeCtx();
     var buffer = await new Promise(function (resolve, reject) {
-      dc.decodeAudioData(ab.slice(0), resolve, reject);
+      // 直接传 ab（decodeAudioData 按规范 detach 接管输入 buffer）：
+      // 此前 slice(0) 全量复制一份只为保住 ab 这个此后再无人用的死引用，
+      // 解码期间压缩字节+副本+解码 PCM 三份并存。
+      dc.decodeAudioData(ab, resolve, reject);
     }).catch(function (e) { console.warn('decode failed:', e); return null; });
     dc.close && dc.close();
     if (!buffer) { hideBeatChip(); return null; }
@@ -94,13 +97,20 @@ async function analyzeAudioBeats(audioUrl, durationSec, token, options) {
       return out;
     }
     var frameBands = [];
-    frameBands.push(await makeFrameEnergy(lowPcm));
+    // 分频段 PCM（每段 ≈ 整曲单声道 Float32）帧化完成即释放：全部算完后到函数
+    // 返回之间的 onset/grid/music-tempo 阶段只消费 frameBands 派生的小数组，
+    // 此前 4 段原始 PCM 以局部引用空占到 780 行函数返回。
+    frameBands.push(await makeFrameEnergy(bands[0]));
+    bands[0] = lowPcm = null;
     await yieldToIdle(beatAnalysisYieldMs(options, 90, 520));
-    frameBands.push(await makeFrameEnergy(bodyPcm));
+    frameBands.push(await makeFrameEnergy(bands[1]));
+    bands[1] = bodyPcm = null;
     await yieldToIdle(beatAnalysisYieldMs(options, 90, 520));
-    frameBands.push(await makeFrameEnergy(vocalPcm));
+    frameBands.push(await makeFrameEnergy(bands[2]));
+    bands[2] = vocalPcm = null;
     await yieldToIdle(beatAnalysisYieldMs(options, 90, 520));
-    frameBands.push(await makeFrameEnergy(snapPcm));
+    frameBands.push(await makeFrameEnergy(bands[3]));
+    bands[3] = snapPcm = null;
     if (token !== beatMapToken || !frameBands[0] || !frameBands[1] || !frameBands[2] || !frameBands[3]) { hideBeatChip(); return null; }
     var energy = frameBands[0];
     var bodyEnergy = frameBands[1];

@@ -167,6 +167,12 @@ const qishuiAudioDecryptCache = new Map();
 const QISHUI_AUDIO_DECRYPT_CACHE_MAX_BYTES = 96 * 1024 * 1024;
 // 对象包装以保持引用稳定（导出后仍可原地修改 .value）
 const qishuiAudioDecryptCacheBytes = { value: 0 };
+// 水位/压力时整表释放：缓存是性能优化型资源，清空后同歌重新解密即可，
+// 用于主进程 RSS 超限时优先归还这块最大的可重建常驻。
+function clearQishuiDecryptedAudioCache() {
+  qishuiAudioDecryptCache.clear();
+  qishuiAudioDecryptCacheBytes.value = 0;
+}
 
 /* ---------- 更新任务表 ---------- */
 const updateDownloadJobs = new Map();
@@ -381,6 +387,10 @@ const neteaseLoginInfoCache = { cookie: '', at: 0, value: null, promise: null };
    全链（该链单次可能数百 ms ~ 数秒）。登录态变化时随 clearNeteaseLoginInfoCache 清空。 */
 const neteasePlaybackUrlCache = new Map();
 const NETEASE_PLAYBACK_URL_CACHE_TTL_MS = 30 * 60 * 1000;
+// 条目上限（仿 kugou-api.js createKugouTtlCache 的 maxEntries）：TTL 惰性删除
+// 只发生在「同 key 再次读取」，未复听的条目即使过期也永久残留；登录态不变时
+// 唯一清空点 clearNeteaseLoginInfoCache 永不触发，Map 随听歌量无界增长常驻主进程。
+const NETEASE_PLAYBACK_URL_CACHE_MAX = 512;
 
 function neteasePlaybackUrlCacheKey(id, qualityPreference, credentialFingerprint, hints) {
   const hintFingerprint = String(hints && (hints.name || hints.title) || '') + '|' + String(hints && hints.artist || '');
@@ -398,6 +408,15 @@ function readNeteasePlaybackUrlCache(key) {
 function writeNeteasePlaybackUrlCache(key, value) {
   if (!key || !value) return;
   neteasePlaybackUrlCache.set(key, { at: Date.now(), value });
+  if (neteasePlaybackUrlCache.size > NETEASE_PLAYBACK_URL_CACHE_MAX) {
+    // 按 at 淘汰最旧（不能按 Map 插入序：同 key 重写保留原位置但刷新 at）
+    let oldestKey = null;
+    let oldestAt = Infinity;
+    for (const [k, entry] of neteasePlaybackUrlCache) {
+      if (entry && entry.at < oldestAt) { oldestAt = entry.at; oldestKey = k; }
+    }
+    if (oldestKey != null) neteasePlaybackUrlCache.delete(oldestKey);
+  }
 }
 
 function clearQQLikedPlaylistCoverCache() {
@@ -492,6 +511,7 @@ module.exports = {
   qishuiAudioDecryptCache,
   QISHUI_AUDIO_DECRYPT_CACHE_MAX_BYTES,
   qishuiAudioDecryptCacheBytes,
+  clearQishuiDecryptedAudioCache,
   // 应用信息 / 更新配置
   APP_PACKAGE,
   APP_VERSION,

@@ -99,7 +99,9 @@
     dummyScale: null,
     dummyMat4: null,
     dummyEuler: null,
-    dummyObj: null
+    dummyObj: null,
+    pendingRebuildKey: null,
+    pendingRebuildAt: 0
   };
 
   function clamp(v, a, b) {
@@ -694,9 +696,31 @@
     state.autoYaw += dt * speed;
   }
 
+  var REBUILD_DEBOUNCE_MS = 200;
+
+  function nowMs() {
+    return (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+  }
+
   function ensureLayer(scene, fx) {
     var settings = deriveTerrainGridSettings(fx);
-    if (state.initialized && state.gridSize === settings.gridSize && state.floatingCount === settings.floatingCount) return;
+    if (state.initialized && state.gridSize === settings.gridSize && state.floatingCount === settings.floatingCount) {
+      state.pendingRebuildKey = null;
+      return;
+    }
+    if (state.initialized) {
+      // 滑杆高频重建防抖：设置未稳定满 REBUILD_DEBOUNCE_MS 前沿用旧 layer 渲染，
+      // 避免拖动 density/floatingCount 时每帧 clearLayer+rebuild 遗漏 GPU 资源。
+      var key = settings.gridSize + ':' + settings.floatingCount;
+      var now = nowMs();
+      if (state.pendingRebuildKey !== key) {
+        state.pendingRebuildKey = key;
+        state.pendingRebuildAt = now;
+        return;
+      }
+      if (now - state.pendingRebuildAt < REBUILD_DEBOUNCE_MS) return;
+      state.pendingRebuildKey = null;
+    }
     clearLayer();
     state.scene = scene;
     state.gridSize = settings.gridSize;
@@ -1001,24 +1025,23 @@
     state.trails.instanceMatrix.needsUpdate = true;
   }
 
+  // InstancedMesh 除 geometry/material 外，还持有 instanceMatrix 的独立 GPU buffer：
+  // three r128 中该 buffer 仅在 mesh 自身 dispose 事件（WebGLAttributes.remove）里 deleteBuffer，
+  // geometry.dispose() 不覆盖它，必须补 mesh.dispose()（r128 InstancedMesh 自带，派发 dispose 事件）。
+  function disposeInstancedMesh(mesh) {
+    if (!mesh) return;
+    mesh.geometry.dispose();
+    mesh.material.dispose();
+    if (typeof mesh.dispose === 'function') mesh.dispose();
+  }
+
   function clearLayer() {
     if (state.root && state.scene) state.scene.remove(state.root);
-    if (state.terrain) {
-      state.terrain.geometry.dispose();
-      state.terrain.material.dispose();
-    }
-    if (state.floatingBlocks) {
-      state.floatingBlocks.geometry.dispose();
-      state.floatingBlocks.material.dispose();
-    }
-    if (state.meteors) {
-      state.meteors.geometry.dispose();
-      state.meteors.material.dispose();
-    }
-    if (state.trails) {
-      state.trails.geometry.dispose();
-      state.trails.material.dispose();
-    }
+    disposeInstancedMesh(state.terrain);
+    disposeInstancedMesh(state.floatingBlocks);
+    disposeInstancedMesh(state.meteors);
+    disposeInstancedMesh(state.trails);
+    state.pendingRebuildKey = null;
     state.root = null;
     state.terrain = null;
     state.terrainMat = null;

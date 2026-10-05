@@ -14,14 +14,46 @@ const getPlaybackRepresentation = () => null;
 const getCachedSongAudioBlob = async () => null;
 const saveAudioBlob = async () => { };
 const PROFILE_STORE_PREFIX = 'orangesea-automix-profile-v1';
+// 持久层与内存 LRU（MAX_PROFILES）对齐设上限：键空间此前只增不减，跨会话
+// 永久累积最终顶满 localStorage 配额，新歌档案静默失败且挤掉同 origin 的
+// fx 存档/听歌统计等其它写入。
+const PROFILE_PERSIST_MAX = 200;
 const getFromCache = async (key) => {
   try {
     const raw = localStorage.getItem(PROFILE_STORE_PREFIX + ':' + key);
     return raw ? JSON.parse(raw) : null;
   } catch (e) { return null; }
 };
+const prunePersistedProfiles = () => {
+  try {
+    const prefix = PROFILE_STORE_PREFIX + ':automix_profile_';
+    const entries = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || k.indexOf(prefix) !== 0) continue;
+      let savedAt = 0;
+      try { savedAt = Number(JSON.parse(localStorage.getItem(k) || '').savedAt) || 0; } catch (e) { savedAt = 0; }
+      entries.push({ key: k, savedAt });
+    }
+    if (entries.length <= PROFILE_PERSIST_MAX) return;
+    entries.sort((a, b) => a.savedAt - b.savedAt); // 无时间戳的旧档案（=0）最旧优先
+    for (let i = 0; i < entries.length - PROFILE_PERSIST_MAX; i++) {
+      try { localStorage.removeItem(entries[i].key); } catch (e) { }
+    }
+  } catch (e) { /* 清扫失败不影响写入路径 */ }
+};
 const saveToCache = async (key, value) => {
-  try { localStorage.setItem(PROFILE_STORE_PREFIX + ':' + key, JSON.stringify(value)); } catch (e) { /* 配额满静默丢持久化，内存 LRU 仍有效 */ }
+  const storeKey = PROFILE_STORE_PREFIX + ':' + key;
+  const payload = JSON.stringify({ ...value, savedAt: Date.now() });
+  try {
+    localStorage.setItem(storeKey, payload);
+  } catch (e) {
+    /* 配额满：先按 savedAt 淘汰超预算旧档案再重试一次；仍失败则静默（内存 LRU 仍有效） */
+    prunePersistedProfiles();
+    try { localStorage.setItem(storeKey, payload); } catch (e2) { }
+    return;
+  }
+  prunePersistedProfiles();
 };
 // ------------------------------------------------------------
 const profiles = /* @__PURE__ */ new Map();

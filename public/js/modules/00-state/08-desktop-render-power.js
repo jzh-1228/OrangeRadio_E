@@ -410,6 +410,21 @@ function sweepLocalBlobUrls() {
         if (el.currentSrc && el.currentSrc.indexOf('blob:') === 0) keep[el.currentSrc] = true;
       });
     }
+    // 主 audio 是 new Audio() 的 detached 元素，从不 appendChild，上面的 DOM 扫描
+    // 永远看不到它——正在出声元素的唯一保活不能只依赖「歌在 playQueue」
+    // （clearQueue / removeFromQueue 命中当前曲目后不清 audio.src）。并入全局
+    // audio 与 gapless 预载 media 的 src/currentSrc，防止清扫误伤活对象。
+    var liveMedia = [];
+    if (typeof audio !== 'undefined' && audio) liveMedia.push(audio);
+    if (typeof albumGaplessState !== 'undefined' && albumGaplessState && albumGaplessState.preload && albumGaplessState.preload.media) {
+      liveMedia.push(albumGaplessState.preload.media);
+    }
+    liveMedia.forEach(function (el) {
+      try {
+        if (el.src && String(el.src).indexOf('blob:') === 0) keep[el.src] = true;
+        if (el.currentSrc && String(el.currentSrc).indexOf('blob:') === 0) keep[el.currentSrc] = true;
+      } catch (e) { }
+    });
     if (typeof localBlobUrlRegistry !== 'undefined' && Array.isArray(localBlobUrlRegistry)) {
       var next = [];
       for (var k = 0; k < localBlobUrlRegistry.length; k++) {

@@ -731,6 +731,9 @@ var rainyGL = null;                    /* WebGL2 context（null = 不支持，�
 var rainyGLProg = null;
 var rainyGLTex = null;
 var rainyGLVao = null;
+var rainyGLVbo = null;                 /* 顶点缓冲必须持有引用：destroy 时 deleteBuffer */
+var rainyGLVs = null;
+var rainyGLFs = null;
 var rainyGLUniforms = null;
 var rainyGLSimTime = 0;
 var rainyGLAvail = null;               /* null=未探测 true/false=探测结果 */
@@ -746,18 +749,32 @@ function rainyCompileShader(gl, type, src) {
   return s;
 }
 
+/* 半成品/成品 GL 对象统一删除（同一 context 常驻 DOM canvas，漏删即永久滞留） */
+function rainyDeleteGLObjects(gl, prog, vs, fs, tex, vao, vbo) {
+  if (!gl) return;
+  try {
+    if (vbo) gl.deleteBuffer(vbo);
+    if (vao) gl.deleteVertexArray(vao);
+    if (tex) gl.deleteTexture(tex);
+    if (prog) gl.deleteProgram(prog);
+    if (vs) gl.deleteShader(vs);
+    if (fs) gl.deleteShader(fs);
+  } catch (e) { }
+}
+
 /* 初始化 WebGL2（幂等）；失败返回 false（调用方降级为无雨滴） */
 function initRainyGL() {
   if (rainyGLAvail !== null) return rainyGLAvail;
+  var gl = null, vs = null, fs = null, prog = null, vao = null, vbo = null, tex = null;
   try {
     var canvas = document.getElementById('rainy-glass-canvas');
     if (!canvas) { rainyGLAvail = false; return false; }
-    var gl = canvas.getContext('webgl2', { antialias: false, alpha: true });
-    if (!gl) { rainyGLAvail = false; return false; }
-    var vs = rainyCompileShader(gl, gl.VERTEX_SHADER, RAINY_GLSL_VERT);
-    var fs = rainyCompileShader(gl, gl.FRAGMENT_SHADER, RAINY_GLSL_MAIN);
+    gl = canvas.getContext('webgl2', { antialias: false, alpha: true });
+    if (!gl) { gl = null; rainyGLAvail = false; return false; }
+    vs = rainyCompileShader(gl, gl.VERTEX_SHADER, RAINY_GLSL_VERT);
+    fs = rainyCompileShader(gl, gl.FRAGMENT_SHADER, RAINY_GLSL_MAIN);
     if (!vs || !fs) { rainyGLAvail = false; return false; }
-    var prog = gl.createProgram();
+    prog = gl.createProgram();
     gl.attachShader(prog, vs);
     gl.attachShader(prog, fs);
     gl.linkProgram(prog);
@@ -766,14 +783,14 @@ function initRainyGL() {
       rainyGLAvail = false;
       return false;
     }
-    var vao = gl.createVertexArray();
+    vao = gl.createVertexArray();
     gl.bindVertexArray(vao);
-    var vbo = gl.createBuffer();
+    vbo = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(0);
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-    var tex = gl.createTexture();
+    tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -789,12 +806,18 @@ function initRainyGL() {
     rainyGLProg = prog;
     rainyGLTex = tex;
     rainyGLVao = vao;
+    rainyGLVbo = vbo;
+    rainyGLVs = vs;
+    rainyGLFs = fs;
     rainyGLAvail = true;
     return true;
   } catch (e) {
     if (typeof console !== 'undefined') console.warn('[rainy] WebGL2 init failed:', e);
     rainyGLAvail = false;
     return false;
+  } finally {
+    /* 失败路径：半成品对象当场删除，不留滞留物在常驻 context 上 */
+    if (!rainyGLAvail) rainyDeleteGLObjects(gl, prog, vs, fs, tex, vao, vbo);
   }
 }
 
@@ -844,16 +867,16 @@ function renderRainyGlass(dtSec) {
 
 function destroyRainyGL() {
   if (!rainyGL) return;
-  try {
-    var gl = rainyGL;
-    if (rainyGLTex) gl.deleteTexture(rainyGLTex);
-    if (rainyGLProg) gl.deleteProgram(rainyGLProg);
-    if (rainyGLVao) gl.deleteVertexArray(rainyGLVao);
-  } catch (e) { }
+  /* deleteProgram 只 detach 不删除 shader 对象，VBO 无引用则永远删不掉——
+     每次进出雨夜模式在同一常驻 context 上净滞留 1 VBO + 2 shader。 */
+  rainyDeleteGLObjects(rainyGL, rainyGLProg, rainyGLVs, rainyGLFs, rainyGLTex, rainyGLVao, rainyGLVbo);
   rainyGL = null;
   rainyGLProg = null;
   rainyGLTex = null;
   rainyGLVao = null;
+  rainyGLVbo = null;
+  rainyGLVs = null;
+  rainyGLFs = null;
   rainyGLUniforms = null;
 }
 

@@ -1451,6 +1451,9 @@ function updateLyricRowLayers(data, opts) {
     if (renderWindowActive && !row.renderWindowActive) {
       var revealLane = Math.min(5, Math.max(0, Math.round(visibilityAbs)));
       row.renderWindowActive = true;
+      // 远端 GPU 释放的行回到渲染窗口：允许下一次远端化再次释放 GL 纹理
+      // （本帧 mesh.visible=true 时 three 已用保留的 canvas 重新上传）。
+      row.renderLineGpuReleased = false;
       // 冻结期跳过了位置 lerp：唤醒帧一次性 snap 到目标，消除从旧位置追赶的偏移
       row.renderWakeSnap = true;
       row.renderRevealAt = nowMs + (motionAnchor || row.renderLineUploaded ? 0 : 10 + revealLane * 14) + (row.renderLineUploaded ? 0 : (row.isTranslation ? 8 : 0));
@@ -1478,6 +1481,13 @@ function updateLyricRowLayers(data, opts) {
     var contextRevealPriority = 20 + Math.min(8, visibilityAbs) * 6 + (row.isTranslation ? 1 : 0);
     if (row.mesh) {
       row.mesh.visible = lineLayerVisible && !!row.renderLineUploaded;
+      // 回到渲染窗口的行将被 three 以同一 canvas 重传 GL 纹理——复位 GPU 释放标志，
+      // 使远端化 trim（trimStageLyricPersistentTrackRows）对此行可再次释放。
+      // 缺此复位时重传过的行 renderLineGpuReleased 恒 true，二次 trim/换歌 dispose/
+      // 压力逐出对该行都跳过释放（终审发现的缺口，一行闭合）。
+      if (lineLayerVisible && row.renderLineUploaded && row.renderLineGpuReleased) {
+        row.renderLineGpuReleased = false;
+      }
       if ((lineLayerVisible || lineUploadPrewarm) && !row.renderLineUploaded) {
         var lineRevealPriority = lineUploadPrewarm
           ? 80 + Math.abs(rowLineOffset) + (row.isTranslation ? 1 : 0)

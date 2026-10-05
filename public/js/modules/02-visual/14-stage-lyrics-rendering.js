@@ -1288,7 +1288,8 @@ function ensureStageLyricPersistentTrackRows(mesh, targetIndex, options) {
     // track in the background until the whole song is resident.  This restores
     // the private build's one-piece scroll without paying for off-screen glow
     // and readability layers.
-    if (!interactivePreview && !data.trackPendingPayload) {
+    if (!interactivePreview && !data.trackPendingPayload &&
+        !(isFinite(Number(data.trackTextRunwaySuspendUntil)) && stageLyricNowMs() < Number(data.trackTextRunwaySuspendUntil))) {
       var activeRunwayJob = stageLyricResidentBuild.job;
       if (activeRunwayJob && activeRunwayJob.mesh === mesh) return true;
       var runwayRange = stageLyricPersistentNextTextRunwayRange(data, targetIndex, residentRowMap);
@@ -1387,10 +1388,72 @@ function trimStageLyricPersistentTrackRows(mesh, targetIndex, options) {
       row.renderGlowUploaded = false;
       releasedEffects += 1;
     }
+    // GPU 侧预算：远端已上传 text 行的 GL 纹理释放（canvas 保留，行不删除）。
+    // r128 deallocateTexture 后再渲染会以同一 canvas 重新上传，视觉无变化；
+    // 未上传行不动（canvas 是其唯一数据源）。renderLineUploaded 保持 true，
+    // 行回到渲染窗口当帧由 three 同步重传，不经过 reveal 延迟。
+    if (row.mesh && row.renderLineUploaded && !row.renderLineGpuReleased && row.baseLineTexture) {
+      if (typeof disposeOwnedLyricTexture === 'function') disposeOwnedLyricTexture(row.baseLineTexture);
+      row.renderLineGpuReleased = true;
+      releasedEffects += 1;
+    }
   }
   updateStageLyricPersistentResidentBounds(data);
   return releasedEffects > 0;
 }
+
+// 内存压力接线（93-three-resource-tiers）：压力时把远端 persistent text 行整行逐出
+// （保护窗口与 trim 同语义，覆盖当前目标与滚动前带），释放 CPU canvas 与 GPU 纹理；
+// 被删行由既有 firstMissing/runway 机制在重新接近或 seek 时按需重建，当前视觉不受
+// 影响（远端行本就 mesh.visible=false）。同时暂停后台全曲 runway 一段时间，
+// 避免压力事件下"刚删完又被分帧建回"的震荡。
+var LYRIC_RUNWAY_PRESSURE_SUSPEND_MS = 300000;
+
+function releaseDistantPersistentLyricRowsUnderPressure() {
+  var mesh = stageLyrics.current;
+  var data = mesh && mesh.userData && mesh.userData.lyric;
+  if (!data || !data.trackPersistent || !Array.isArray(data.rowLayers) || !data.rowLayers.length || !lyricsLines || !lyricsLines.length) return 0;
+  var targetIndex = isFinite(Number(data.trackTargetLineIndex))
+    ? Math.max(0, Math.min(lyricsLines.length - 1, Math.round(Number(data.trackTargetLineIndex))))
+    : 0;
+  var offsets = lyricDisplayOffsetsForMode(data.displayMode || (fx && fx.lyricDisplayMode));
+  var minOffset = 0;
+  var maxOffset = 0;
+  for (var oi = 0; oi < offsets.length; oi++) {
+    minOffset = Math.min(minOffset, Math.round(Number(offsets[oi]) || 0));
+    maxOffset = Math.max(maxOffset, Math.round(Number(offsets[oi]) || 0));
+  }
+  var keepStart = Math.max(0, targetIndex + minOffset - 6);
+  var keepEnd = Math.min(lyricsLines.length - 1, targetIndex + maxOffset + 24);
+  var kept = [];
+  var released = 0;
+  for (var i = 0; i < data.rowLayers.length; i++) {
+    var row = data.rowLayers[i];
+    if (!row) continue;
+    var lineIndex = row.isTranslation
+      ? (row.parentIndex != null ? Number(row.parentIndex) : Number(row.lineIndex))
+      : Number(row.lineIndex);
+    var roundedLineIndex = isFinite(lineIndex) ? Math.round(lineIndex) : null;
+    var keep = roundedLineIndex == null || (roundedLineIndex >= keepStart && roundedLineIndex <= keepEnd);
+    if (keep) { kept.push(row); continue; }
+    disposeStageLyricResidentRow(row);
+    released += 1;
+  }
+  if (released > 0) {
+    data.rowLayers = kept;
+    var nowMs = stageLyricNowMs();
+    data.trackTextRunwayComplete = true;
+    data.trackTextRunwayReadyAt = nowMs;
+    var suspendUntil = nowMs + LYRIC_RUNWAY_PRESSURE_SUSPEND_MS;
+    if (!(isFinite(Number(data.trackTextRunwaySuspendUntil)) && Number(data.trackTextRunwaySuspendUntil) > suspendUntil)) {
+      data.trackTextRunwaySuspendUntil = suspendUntil;
+    }
+    updateStageLyricPersistentResidentBounds(data);
+  }
+  return released;
+}
+
+registerThreeMemoryPressureHandler(releaseDistantPersistentLyricRowsUnderPressure);
 
 function initializeStageLyricPersistentTrack(mesh, payload) {
   var data = mesh && mesh.userData && mesh.userData.lyric;

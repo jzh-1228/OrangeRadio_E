@@ -256,6 +256,9 @@ function qishuiAudioCacheKey(cleanUrl, auth) {
 }
 function rememberQishuiDecryptedAudio(key, payload) {
   if (!payload || !Buffer.isBuffer(payload.buffer)) return;
+  // 超过缓存总预算的单曲不进缓存：LRU 的 size>1 守卫会让它永不被驱逐，
+  // 一首 >96MB 的无损明文将长期常驻超限（本条用完即交 GC，重播重新解密）。
+  if (payload.buffer.length > QISHUI_AUDIO_DECRYPT_CACHE_MAX_BYTES) return;
   qishuiAudioDecryptCache.set(key, Object.assign({ at: Date.now() }, payload));
   qishuiAudioDecryptCacheBytes.value += payload.buffer.length;
   while (qishuiAudioDecryptCacheBytes.value > QISHUI_AUDIO_DECRYPT_CACHE_MAX_BYTES && qishuiAudioDecryptCache.size > 1) {

@@ -68,6 +68,17 @@ var handCanvas = null, handCanvasCtx = null;
 // 平滑系数 (越小越平滑, 但反应越慢)
 var HAND_SMOOTH_ALPHA = 0.35;
 
+// MediaPipe Hands 显式 close：释放内部 WASM graph / wasm Memory / 后台线程，
+// 仅丢 JS 引用不触发官方清理路径，off↔gesture 反复切换会累积数 MB 级运行时。
+function closeGestureHands(hands) {
+  try {
+    if (hands && typeof hands.close === 'function') {
+      var closed = hands.close();
+      if (closed && typeof closed.catch === 'function') closed.catch(function () { });
+    }
+  } catch (e) { }
+}
+
 async function startGestureControl() {
   if (gestureActive) return;
   showToast('正在加载手势识别…');
@@ -99,6 +110,14 @@ async function startGestureControl() {
     showGestureHUD('待命', 0, '把手放进视野');
   } catch (e) {
     console.warn('Gesture failed:', e);
+    // 半初始化清理：new Hands 成功但 camera.start 失败（如拒绝摄像头权限）时，
+    // 此刻 gestureActive 仍为 false，stopGestureControl 的守卫挡住清不掉；
+    // 下一次 start 直接覆盖三个引用，旧实例不 close 即泄漏。
+    try { if (gestureCamera && gestureCamera.stop) gestureCamera.stop(); } catch (e2) { }
+    try { if (gestureVideo && gestureVideo.srcObject) gestureVideo.srcObject.getTracks().forEach(function (t) { t.stop(); }); } catch (e2) { }
+    try { if (gestureVideo) gestureVideo.remove(); } catch (e2) { }
+    closeGestureHands(gestureHands);
+    gestureVideo = null; gestureHands = null; gestureCamera = null;
     showToast('手势启动失败 (需要摄像头权限)');
     fx.cam = 'off';
     document.querySelectorAll('#cam-seg button').forEach(function (b) { b.classList.toggle('active', b.dataset.cam === 'off'); });
@@ -110,6 +129,7 @@ function stopGestureControl() {
   try { if (gestureCamera && gestureCamera.stop) gestureCamera.stop(); } catch (e) { }
   try { if (gestureVideo && gestureVideo.srcObject) gestureVideo.srcObject.getTracks().forEach(function (t) { t.stop(); }); } catch (e) { }
   try { if (gestureVideo) gestureVideo.remove(); } catch (e) { }
+  closeGestureHands(gestureHands);
   gestureVideo = null; gestureHands = null; gestureCamera = null;
   gestureActive = false;
   pinchState.active = false;
@@ -122,11 +142,16 @@ function stopGestureControl() {
   document.getElementById('gesture-hud').classList.remove('show');
   if (handCanvas) {
     handCanvas.classList.remove('show');
-    if (handCanvasCtx) handCanvasCtx.clearRect(0, 0, handCanvas.width, handCanvas.height);
+    // 归还 backing store（全屏×dpr 可达 33MB）：复位到 1×1，重开时
+    // startGestureControl -> resizeHandCanvas 重建（库内 canvas 释放惯例）。
+    handCanvas.width = 1;
+    handCanvas.height = 1;
   }
+  handCanvasCtx = null;
 }
 
 function resizeHandCanvas() {
+  if (!gestureActive) return; // 手势关闭后窗口 resize 不重建 backing store
   if (!handCanvas) return;
   var dpr = Math.min(devicePixelRatio || 1, 2);
   handCanvas.width = innerWidth * dpr;
