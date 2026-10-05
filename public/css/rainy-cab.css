@@ -1,0 +1,202 @@
+/* =========================================================================
+   OrangeSea · 雨夜车窗（Rainy Cab · 深夜行车）
+   body.rainy 命名空间，与 index.css / film-radio.css / graffiti-lyrics.css /
+   aurora-flow.css 完全隔离。交互范式一致：DIY 控制台卡片切换，
+   保留底部控制栏，选择其他预设自动退出。
+
+   设计概念：深夜行车后排视角 —— 玻璃上雨滴滑行，窗外封面同色霓虹
+   bokeh 缓缓横移，歌词写在雾玻璃上，旧句留成水痕字被缓缓冲淡。
+     · 光斑是散景圆（bokeh）而非建模城市 —— 抽象化防廉价；
+     · 车身微颤只抖窗外光斑（玻璃/雨滴/歌词相对不动，符合物理直觉）；
+     · 背景不透明 —— Electron 下 backdrop-filter 不可靠。
+   ========================================================================= */
+
+#rainy-overlay {
+  --rc-neon1: #3d5a8f;           /* 取色霓虹色（JS 同步覆盖） */
+  --rc-neon2: #8f5a7d;
+  --rc-neon3: #22314f;
+  --rc-sung: #aebfd8;            /* 歌词字色（JS 按封面亮色同步） */
+  --rc-font: "LXGW WenKai", "STKaiti", "KaiTi", "PingFang SC", serif;
+
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 5;
+  display: none;
+  overflow: hidden;
+  background: #05070c;           /* 不透明夜色基底（canvas 未绘制前） */
+  pointer-events: none;
+}
+
+body.rainy #rainy-overlay {
+  display: block;
+  animation: rainyOverlayIn 0.8s ease;
+}
+
+@keyframes rainyOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ---------- L0 · 窗外光斑 canvas（低分辨率 + blur 奶油化） ---------- */
+.rainy-far {
+  position: absolute;
+  left: -3%;
+  top: -3%;
+  width: 106%;
+  height: 106%;
+  filter: blur(var(--rc-far-blur, 9px));   /* 雾气设置联动：雾越浓窗外越糊 */
+  z-index: 0;
+}
+
+/* ---------- L1 · 玻璃雾气与污渍（纯 CSS 静态层） ---------- */
+.rainy-glass-tint {
+  position: absolute;
+  inset: 0;
+  opacity: var(--rc-fog-o, 1);   /* 雾气设置联动（渐变本体不变，整体浓度调制） */
+  background:
+    /* 边角雾气 */
+    radial-gradient(ellipse 62% 48% at 12% 6%, rgba(148, 164, 188, 0.10), rgba(148, 164, 188, 0) 70%),
+    radial-gradient(ellipse 50% 42% at 92% 12%, rgba(148, 164, 188, 0.08), rgba(148, 164, 188, 0) 70%),
+    radial-gradient(ellipse 70% 40% at 30% 98%, rgba(140, 156, 182, 0.07), rgba(140, 156, 182, 0) 70%),
+    /* 中央轻微通亮（视线聚焦区） */
+    radial-gradient(ellipse 44% 30% at 50% 42%, rgba(180, 196, 220, 0.05), rgba(180, 196, 220, 0) 72%),
+    /* 暗角 */
+    radial-gradient(ellipse at 50% 46%, rgba(3, 5, 9, 0) 44%, rgba(3, 5, 9, 0.58) 100%);
+  z-index: 1;
+}
+
+/* ---------- L2 · 雨滴 canvas（全分辨率对象池） ---------- */
+.rainy-glass {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+/* ---------- L3 · 歌词舞台（雾玻璃逐字 + 水痕旧句） ---------- */
+.rainy-stage {
+  position: absolute;
+  left: 10vw;
+  right: 10vw;
+  top: 38%;
+  transform: translateY(-50%);
+  z-index: 3;
+}
+.rainy-ghost-layer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 2vh);   /* 水痕旧句悬浮在当前行上方，不与其重叠 */
+  pointer-events: none;
+}
+.rainy-ghost-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;                  /* 行底对齐 ghost 层底（紧贴当前行上方） */
+  text-align: center;
+  font-family: var(--rc-font);
+  font-size: clamp(17px, 2.3vw, 36px);   /* 比当前行小一档，退为背景叙事 */
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  line-height: 1.5;
+  overflow-wrap: break-word;
+  animation: rainyGhostFade 7s ease forwards;
+}
+@keyframes rainyGhostFade {
+  0% { opacity: 0.30; filter: blur(0); }
+  55% { opacity: 0.20; filter: blur(0.8px); }
+  100% { opacity: 0; filter: blur(2.4px); }
+}
+
+.rainy-lyric {
+  position: relative;
+  text-align: center;
+  font-family: var(--rc-font);
+  font-size: clamp(24px, 3.2vw, 50px);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  line-height: 1.5;
+  color: var(--rc-sung);
+  text-shadow: 0 0 22px rgba(160, 184, 214, 0.24), 0 2px 14px rgba(0, 0, 0, 0.5);
+  overflow-wrap: break-word;
+}
+.rainy-lyric.entering {
+  animation: rainyLineIn 0.6s ease;
+}
+@keyframes rainyLineIn {
+  from { opacity: 0.3; filter: blur(3px); }
+  to { opacity: 1; filter: blur(0); }
+}
+
+/* 逐字"写在雾玻璃上"：模糊 → 凝出 */
+.rainy-char {
+  opacity: 0;
+  filter: blur(7px);
+  transform: scale(1.05);
+  transition: opacity 0.55s ease, filter 0.65s ease, transform 0.55s ease;
+}
+.rainy-char.is-shown {
+  opacity: 1;
+  filter: blur(0);
+  transform: scale(1);
+}
+.rainy-word {
+  display: inline-block;
+  white-space: nowrap;
+}
+.rainy-space {
+  display: inline-block;
+  width: 0.30em;
+}
+.rainy-idle {
+  color: rgba(198, 212, 230, 0.30);
+  letter-spacing: 0.42em;
+  font-size: 0.6em;
+}
+/* 水痕字继承已显现态（ghost 层内固定为已凝出） */
+.rainy-ghost-line .rainy-char {
+  opacity: 1;
+  filter: blur(0);
+  transform: scale(1);
+  transition: none;
+  color: rgba(190, 205, 226, 0.85);
+}
+
+/* ---------- L4 · 仪表台剪影（"人坐在车里"的包裹暗示） ---------- */
+.rainy-dash {
+  position: absolute;
+  left: -4%;
+  right: -4%;
+  bottom: -6vh;
+  height: 17vh;
+  background: linear-gradient(180deg, rgba(4, 6, 10, 0.88) 0%, rgba(2, 3, 6, 0.97) 40%);
+  border-radius: 50% 46% 0 0 / 88% 72% 0 0;
+  z-index: 4;
+}
+/* 仪表台缝隙微光线 */
+.rainy-dash::before {
+  content: "";
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    rgba(150, 170, 200, 0) 0%,
+    rgba(150, 170, 200, 0.16) 30%,
+    rgba(170, 190, 218, 0.26) 50%,
+    rgba(150, 170, 200, 0.16) 70%,
+    rgba(150, 170, 200, 0) 100%);
+}
+
+/* 小屏收窄 */
+@media (max-width: 760px) {
+  .rainy-stage {
+    left: 6vw;
+    right: 6vw;
+    top: 36%;
+  }
+}

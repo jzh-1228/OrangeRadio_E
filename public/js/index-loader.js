@@ -110,6 +110,8 @@
     'js/modules/10-shell/06-film-radio.js',
     'js/modules/10-shell/07-mini-player.js',
     'js/modules/10-shell/08-graffiti-lyrics.js',
+    'js/modules/10-shell/09-aurora-flow.js',
+    'js/modules/10-shell/10-rainy-cab.js',
     'js/modules/10-shell/10-support.js',
     'js/modules/10-shell/11-feedback.js',
     'js/modules/10-shell/12-taskbar-controls.js',

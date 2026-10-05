@@ -26,6 +26,8 @@
   <link rel="stylesheet" href="css/index.css?v=20260814-splash-video">
   <link rel="stylesheet" href="css/film-radio.css?v=20260728-vinyl-radio">
   <link rel="stylesheet" href="css/graffiti-lyrics.css?v=20260813-multilang-anim">
+  <link rel="stylesheet" href="css/aurora-flow.css?v=20260910-aurora-flow">
+  <link rel="stylesheet" href="css/rainy-cab.css?v=20260910-rainy-cab">
 </head>
 
 <body>
@@ -516,6 +518,14 @@
       <div class="fx-slider"><label>立体感</label><input id="fx-depth" type="range" min="0.2" max="1.8"
           step="0.01"><output></output></div>
       <div class="fx-slider"><label>封面清晰度</label><input id="fx-coverres" type="range" min="0.75" max="1.55"
+          step="0.01"><output></output></div>
+      <div class="fx-slider"><label>雨势</label><input id="fx-rainintensity" type="range" min="0" max="1"
+          step="0.01"><output></output></div>
+      <div class="fx-slider"><label>雾气浓度</label><input id="fx-rainfog" type="range" min="0" max="1"
+          step="0.01"><output></output></div>
+      <div class="fx-slider"><label>车流亮度</label><input id="fx-raincity" type="range" min="0" max="1"
+          step="0.01"><output></output></div>
+      <div class="fx-slider"><label>车速</label><input id="fx-rainspeed" type="range" min="0" max="1"
           step="0.01"><output></output></div>
       <div class="fx-slider"><label>镜头晃动</label><input id="fx-cineshake" type="range" min="0" max="1.8"
           step="0.01"><output></output></div>
@@ -1582,6 +1592,37 @@
       <div class="graffiti-stage" id="graffiti-stage">
         <div class="graffiti-line" id="graffiti-line"></div>
       </div>
+    </div>
+
+    <!-- 流光覆盖层（Aurora Flow · 封面极光氛围）：取色色雾 + 逐字点亮歌词 + 呼吸波形线 -->
+    <div id="aurora-overlay" aria-hidden="true">
+      <canvas class="aurora-bg" id="aurora-bg-canvas"></canvas>
+      <div class="aurora-vignette" aria-hidden="true"></div>
+      <div class="aurora-badge" aria-hidden="true">
+        <div class="aurora-badge-cover cover-empty" id="aurora-badge-cover"></div>
+        <div class="aurora-badge-meta">
+          <div class="aurora-badge-title" id="aurora-badge-title">未在播放</div>
+          <div class="aurora-badge-artist" id="aurora-badge-artist"></div>
+        </div>
+      </div>
+      <div class="aurora-stage">
+        <div class="aurora-line aurora-line-prev empty" id="aurora-line-prev"></div>
+        <div class="aurora-line aurora-line-main" id="aurora-line-main"></div>
+        <div class="aurora-line aurora-line-next empty" id="aurora-line-next"></div>
+      </div>
+      <canvas class="aurora-wave" id="aurora-wave-canvas"></canvas>
+    </div>
+
+    <!-- 雨夜车窗覆盖层（Rainy Cab · 深夜行车）：窗外霓虹光斑 + 玻璃雨滴 + 雾玻璃歌词 -->
+    <div id="rainy-overlay" aria-hidden="true">
+      <canvas class="rainy-far" id="rainy-far-canvas"></canvas>
+      <div class="rainy-glass-tint" aria-hidden="true"></div>
+      <canvas class="rainy-glass" id="rainy-glass-canvas"></canvas>
+      <div class="rainy-stage" id="rainy-stage">
+        <div class="rainy-ghost-layer" id="rainy-ghost-layer"></div>
+        <div class="rainy-lyric" id="rainy-lyric"></div>
+      </div>
+      <div class="rainy-dash" aria-hidden="true"></div>
     </div>
 
     <input type="file" id="file-input"

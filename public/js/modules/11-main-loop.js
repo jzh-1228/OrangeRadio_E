@@ -71,7 +71,9 @@ function isMainSceneCoveredBySplash() {
    不彻底停掉是为了保持场景温热，退出时不冷启动卡顿（参照 splash 覆盖策略）。 */
 function isMainSceneCoveredByOverlay() {
   return (typeof filmRadioMode !== 'undefined' && filmRadioMode)
-    || (typeof graffitiMode !== 'undefined' && graffitiMode);
+    || (typeof graffitiMode !== 'undefined' && graffitiMode)
+    || (typeof auroraMode !== 'undefined' && auroraMode)
+    || (typeof rainyMode !== 'undefined' && rainyMode);
 }
 function currentRenderAdaptiveContext(now) {
   var tier = (typeof getRenderLoadTier === 'function') ? getRenderLoadTier() : 0;

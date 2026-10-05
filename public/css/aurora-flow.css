@@ -1,0 +1,206 @@
+/* =========================================================================
+   OrangeSea · 流光（Aurora Flow · 封面极光氛围）
+   body.aurora 命名空间，与 index.css / film-radio.css / graffiti-lyrics.css
+   完全隔离。交互范式与胶片电台/涂鸦墙一致：DIY 控制台卡片切换，
+   保留底部控制栏，选择其他预设自动退出。
+
+   设计概念：封面取色的流体色雾 + 大字逐字点亮歌词 + 底部呼吸波形线。
+     · 零频闪零高频运动（挂机/睡前/工作背景，长时间注视不疲劳）；
+     · 色雾 canvas 低分辨率绘制 + CSS blur 柔化（GPU 承担模糊）；
+     · 背景不透明 —— Electron 下 backdrop-filter 不可靠，半透明会透出 3D 场景。
+   ========================================================================= */
+
+#aurora-overlay {
+  --af-c1: #2b3f6b;              /* 取色主色 1（JS 同步覆盖） */
+  --af-c2: #5a3b6e;              /* 取色主色 2 */
+  --af-c3: #173052;              /* 取色主色 3 */
+  --af-sung: #dfe8ff;            /* 已唱字色（JS 按封面亮色同步） */
+  --af-idle: rgba(226, 232, 244, 0.26);
+
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;                     /* 铺满全屏，#bottom-bar(z-index:6) 悬浮其上 */
+  z-index: 5;
+  display: none;
+  overflow: hidden;
+  background: #07080d;           /* 不透明夜色基底（封面未取色前也有氛围） */
+  pointer-events: none;          /* 默认不拦截，切到本模式时由 body.aurora 打开 */
+}
+
+body.aurora #aurora-overlay {
+  display: block;
+  animation: auroraOverlayIn 0.7s ease;
+}
+
+body.aurora #empty-home,
+body.rainy #empty-home {
+  display: none;
+}
+
+@keyframes auroraOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ---------- L0 · 色雾 canvas（低分辨率绘制 + CSS blur 柔化） ---------- */
+.aurora-bg {
+  position: absolute;
+  left: -6%;
+  top: -6%;
+  width: 112%;
+  height: 112%;                  /* 放大防 blur 后边缘露出暗边 */
+  filter: blur(46px) saturate(1.28);
+  z-index: 0;
+}
+
+/* ---------- L0.5 · 暗角遮罩（压边聚焦 + 底部向控制栏过渡） ---------- */
+.aurora-vignette {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 42%, rgba(5, 6, 10, 0) 40%, rgba(4, 5, 9, 0.52) 100%),
+    linear-gradient(180deg, rgba(5, 6, 10, 0.30) 0%, rgba(5, 6, 10, 0) 22%, rgba(5, 6, 10, 0) 66%, rgba(4, 5, 9, 0.62) 100%);
+  z-index: 1;
+}
+
+/* ---------- L1 · 角标（小封面 + 歌名歌手，低调存在） ---------- */
+.aurora-badge {
+  position: absolute;
+  left: 34px;
+  top: 92px;                     /* 避开顶部搜索栏悬浮区 */
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  opacity: 0.62;
+  z-index: 2;
+}
+.aurora-badge-cover {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background-size: cover;
+  background-position: center;
+  background-color: #12141d;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+}
+.aurora-badge-cover.cover-empty {
+  background-image: none;
+}
+.aurora-badge-title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(232, 238, 250, 0.92);
+}
+.aurora-badge-artist {
+  margin-top: 3px;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  color: rgba(214, 222, 238, 0.62);
+}
+
+/* ---------- L2 · 歌词舞台（上一行 / 当前行 / 下一行） ---------- */
+.aurora-stage {
+  position: absolute;
+  left: 9vw;
+  right: 9vw;
+  top: 36%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(14px, 2.6vh, 26px);
+  z-index: 2;
+}
+.aurora-line {
+  max-width: 100%;
+  text-align: center;
+  font-family: var(--af-font, "PingFang SC", "HarmonyOS Sans SC", "MiSans", "Microsoft YaHei UI", "Source Han Sans SC", system-ui, sans-serif);
+  font-feature-settings: "tnum" off;
+  overflow-wrap: break-word;
+}
+.aurora-line.empty {
+  visibility: hidden;
+}
+
+/* 上一行：淡出远去 */
+.aurora-line-prev {
+  font-size: clamp(14px, 1.7vw, 22px);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: rgba(222, 230, 244, 0.34);
+  filter: blur(0.6px);
+}
+
+/* 下一行：预览 */
+.aurora-line-next {
+  font-size: clamp(15px, 1.9vw, 25px);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: rgba(226, 233, 246, 0.46);
+}
+
+/* 当前行：大字逐字点亮（卡拉OK推进，柔和填色不位移） */
+.aurora-line-main {
+  font-size: clamp(32px, 5.6vw, 88px);
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  line-height: 1.32;
+  color: var(--af-idle);
+  text-wrap: balance;
+}
+.aurora-line-main.entering {
+  animation: auroraLineIn 0.55s cubic-bezier(0.22, 0.9, 0.3, 1);
+}
+@keyframes auroraLineIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.aurora-word {
+  display: inline-block;         /* 拉丁词不可拆行 */
+  white-space: nowrap;
+}
+.aurora-space {
+  display: inline-block;
+  width: 0.30em;
+}
+.aurora-char {
+  color: var(--af-idle);
+  transition: color 0.30s ease, text-shadow 0.45s ease;
+}
+.aurora-char.is-sung {
+  color: var(--af-sung);
+  text-shadow:
+    0 0 18px color-mix(in srgb, var(--af-sung) 42%, transparent),
+    0 0 46px color-mix(in srgb, var(--af-c1) 30%, transparent);
+}
+.aurora-idle {
+  color: rgba(222, 230, 246, 0.30);
+  letter-spacing: 0.3em;
+}
+
+/* ---------- L3 · 呼吸波形线（底部点缀，非频谱条） ---------- */
+.aurora-wave {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 96px;                  /* 悬浮于底部控制栏上方 */
+  width: 100%;
+  height: 140px;
+  z-index: 2;
+  opacity: 0.85;
+}
+
+/* 小屏收窄 */
+@media (max-width: 760px) {
+  .aurora-badge {
+    left: 20px;
+    top: 84px;
+  }
+  .aurora-wave {
+    bottom: 84px;
+    height: 90px;
+  }
+}

@@ -10,6 +10,10 @@ var fxDefaults = {
   preset: 0,            // 0=emily cover, 1=tunnel, 2=orbit, 3=void, 4=vinyl, 5=wallpaper, 6=skull, 7=sonic topography
   intensity: 0.85,
   cinemaShake: 0.5,
+  rainIntensity: 0.5,
+  rainFog: 0.5,
+  rainCity: 0.6,
+  rainSpeed: 0.5,
   depth: 0.2,
   coverResolution: 1.55,
   point: 1.0, speed: 1.0, twist: 0.0, color: 1.10, scatter: 0.0, bgFade: 0.20,

@@ -76,3 +76,6 @@ scripts/check-errors.py
 scripts/test-sticks-visible.py
 scripts/screenshot-concert.py
 scripts/concert-screenshot.png
+
+.v2c/
+.video_agent/

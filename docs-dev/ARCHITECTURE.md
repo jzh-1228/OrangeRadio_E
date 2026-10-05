@@ -167,6 +167,12 @@ server.js（73 行门面）
 
 另有独立于数值预设的「涂鸦墙（Graffiti Wall · 暗夜墨光）」特殊卡片（`10-shell/08-graffiti-lyrics.js`，纯 DOM/CSS 满屏歌词模式，与胶片电台/数值预设互斥）。设计概念：一句歌词用行草书法大字自然换行（2~3 行）铺满屏幕，逐字蹦出——氛围基调「暗夜墨光」四层叠加：L0 模糊封面取色底 + L0.5 暗化遮罩 + L1 双光晕呼吸（11~13s）+ L2 墨光粒子（Canvas 2D 离屏精灵复用，亮度随低频能量）+ L3 歌词大字（text-shadow 三层柔光发光）。字号自适应用二分查找（`scrollHeight ≤ 可视区 74%`）；打字机时序按 YRC 逐字真实节奏或 LRC 均分；每字带稳定随机旋转 ±8°（行/字索引种子）。独立样式在 `public/css/graffiti-lyrics.css`（`body.graffiti` 命名空间，token：`--gw-ink` 字色 / `--gw-glow` 远光晕 / `--gw-font` 字体栈）。
 
+另有「流光（Aurora Flow · 封面极光氛围）」特殊卡片（`10-shell/09-aurora-flow.js`，`docs/AURORA_FLOW.md`）：日常沉浸档——封面取色流体色雾（32×32 降采样 HSL 24 桶取 top3，低分辨率 Canvas + CSS blur）+ 三行歌词逐字点亮（复用 `tokenizeGraffitiText`/`computeGraffitiReveals`，YRC 真实时序）+ 底部呼吸波形线（`timeDomainData`）。音频特征自算（`auroraBass/Energy/Beat/Chorus`，覆盖层期间主循环不更新全局特征值）；节拍只做 ≤4% 亮度心跳（零频闪承诺）；副歌闸门驱动色雾浓度 + 单条极光丝带。样式 `public/css/aurora-flow.css`（`body.aurora`，token：`--af-c1/c2/c3`/`--af-sung`/`--af-idle`）。
+
+另有「雨夜车窗（Rainy Cab · 深夜行车）」特殊卡片（`10-shell/10-rainy-cab.js`，`docs/RAINY_CAB.md`）：深夜情绪档——窗外封面同色 bokeh 光斑（74 个双视差层散景圆，`blur(13px)`）+ 玻璃雨滴对象池（cling 贴附/slide 滑落两态，生成率随音乐能量与间奏雨势）+ 雾玻璃逐字凝出歌词（字体跟随 `fx.lyricFont`）+ 水痕旧句 7s 冲淡 + 仪表台剪影。物理细节：bass 弹簧微颤只抖窗外光斑层（钳制 ±2.2px，玻璃/雨滴/歌词相对不动）；间奏（无歌词行 >1.5s）雨渐大；副歌天际线泛暖。样式 `public/css/rainy-cab.css`（`body.rainy`，token：`--rc-neon1/2/3`/`--rc-sung`/`--rc-font`）。
+
+两者与胶片电台/涂鸦墙构成**四方互斥**的全屏覆盖层模式（互相进入时退出他者，数值预设 `setPreset` 亦互退），均照 film-radio 范式：localStorage 偏好 + 临时 eco 质量档 + MutationObserver 零侵入同步 + 自有 30fps rAF + `isMainSceneCoveredByOverlay()` 主循环保温门控。
+
 ### 6.4 主题系统
 
 CSS 变量集中在 `public/css/index.css` 多个 `:root` 块（灰阶/品牌色/玻璃材质/图标色）。主题切换 = 运行时改写 CSS 变量（`07-fx/02-accent-background-controls.js`），无预设皮肤机制。胶片电台独立样式在 `public/css/film-radio.css`（`body.film-radio` 命名空间，自带局部 token：`--fr-void` 暖黑底 / `--fr-paper` 相纸暖白 / `--fr-amber` 放映暖光 / `--fr-amber-hi` 强调金 / `--fr-leak` 漏光橙红）。

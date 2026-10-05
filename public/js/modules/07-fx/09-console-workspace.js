@@ -133,6 +133,12 @@ var FX_CONSOLE_LAYOUT = [
         fxConsoleItem('fx-cineshake', '电影镜头', '镜头晃动 强度'),
         fxConsoleItem('t-cinema', '电影镜头开关', '动态镜头')
       ] },
+      { key: 'rainy-cab', title: '雨夜车窗', hint: '雨势、雾气、车流与车速（激活雨夜车窗时显示）', items: [
+        fxConsoleItem('fx-rainintensity', '雨的大小', '雨势 雨量 雨夜车窗'),
+        fxConsoleItem('fx-rainfog', '雾气浓度', '雾气 湿气 玻璃 雨夜车窗'),
+        fxConsoleItem('fx-raincity', '车流亮度', '光斑 霓虹 城市 雨夜车窗'),
+        fxConsoleItem('fx-rainspeed', '车速', '行驶 视差 移动 雨夜车窗')
+      ] },
       { key: 'particles', title: '粒子与光影', hint: '粒子尺寸、运动、扭曲和溢光', items: [
         fxConsoleItem('t-float', '浮空粒子层', '漂浮粒子'),
         fxConsoleItem('t-bloom', '粒子溢光', '粒子光晕'),
@@ -294,6 +300,29 @@ var SONIC_FX_CONSOLE_GROUP_KEYS = [
   'motion:sonic-audio',
   'motion:sonic-blocks'
 ];
+
+/* 雨夜车窗专属设置组：仅在 rainyMode 激活时显示（复用 sonic 的隐藏机制） */
+var RAINY_FX_CONSOLE_GROUP_KEYS = ['motion:rainy-cab'];
+
+function setRainyFxConsoleGroupsHidden(hidden) {
+  RAINY_FX_CONSOLE_GROUP_KEYS.forEach(function (key) {
+    var group = fxConsoleGroups[key];
+    if (!group) return;
+    group.classList.toggle('fx-sonic-hidden', !!hidden);
+    group.setAttribute('aria-hidden', hidden ? 'true' : 'false');
+  });
+  if (typeof document !== 'undefined' && typeof renderFxConsoleSearchResults === 'function') {
+    var search = document.getElementById('fx-console-search');
+    var results = document.getElementById('fx-console-search-results');
+    if (search && search.value && results && !results.hidden) renderFxConsoleSearchResults(search.value);
+  }
+}
+
+/* 供 rainy 模块与其他预设切换点调用（模块加载顺序晚于本文件，须 typeof 守卫） */
+function updateRainyControlVisibility() {
+  var show = typeof rainyMode !== 'undefined' && rainyMode;
+  setRainyFxConsoleGroupsHidden(!show);
+}
 
 function setSonicFxConsoleGroupsHidden(hidden) {
   SONIC_FX_CONSOLE_GROUP_KEYS.forEach(function (key) {
@@ -540,6 +569,7 @@ function organizeFxConsoleWorkspace() {
   panel.setAttribute('data-console-layout', 'task-first-v2');
   setFxPanelTab(fxPanelTab);
   if (typeof updateSonicSeriesControlVisibility === 'function') updateSonicSeriesControlVisibility();
+  if (typeof updateRainyControlVisibility === 'function') updateRainyControlVisibility();
 }
 
 function fxConsoleEntryForElement(element) {

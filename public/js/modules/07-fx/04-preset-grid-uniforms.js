@@ -19,7 +19,7 @@ function buildPresetGrid() {
       '<div class="pc-name">' + name + '</div>' +
       '<div class="pc-desc">' + desc + '</div>' +
       '</div>';
-  }).join('') + buildFilmRadioPresetCard() + buildGraffitiPresetCard();
+  }).join('') + buildFilmRadioPresetCard() + buildGraffitiPresetCard() + buildAuroraPresetCard() + buildRainyPresetCard();
   refreshPresetGrid();
 }
 
@@ -41,9 +41,30 @@ function buildGraffitiPresetCard() {
     '</div>';
 }
 
+/* 流光：独立于数值预设之外的特殊卡片，封面极光氛围 · 逐字点亮歌词 */
+function buildAuroraPresetCard() {
+  return '<div class="preset-card aurora-card" data-aurora="1" onclick="toggleAuroraMode()" title="流光">' +
+    '<div class="pc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 14c2.5-4.5 5-7 8-8"/><path d="M8 18c3-6 7-10 13-12"/><path d="M13 18c2-3.5 4.5-6 8-7.5"/><circle cx="19" cy="19" r="1.6"/></svg></div>' +
+    '<div class="pc-name">流光</div>' +
+    '<div class="pc-desc">封面极光 · 逐字点亮</div>' +
+    '</div>';
+}
+
+/* 雨夜车窗：独立于数值预设之外的特殊卡片，窗外霓虹雨夜 · 雾玻璃歌词 */
+function buildRainyPresetCard() {
+  return '<div class="preset-card rainy-card" data-rainy="1" onclick="toggleRainyMode()" title="雨夜车窗">' +
+    '<div class="pc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2.5"/><path d="M7 8.5c1.2 1.6 1.2 3.4 0 5"/><path d="M12.5 7.5c1.6 2.2 1.6 4.8 0 7"/><path d="M17.5 8.8c1 1.4 1 3 0 4.4"/><path d="M5 21h14"/></svg></div>' +
+    '<div class="pc-name">雨夜车窗</div>' +
+    '<div class="pc-desc">窗外霓虹 · 雾玻璃歌词</div>' +
+    '</div>';
+}
+
 function refreshPresetGrid() {
-  // 胶片电台/涂鸦墙激活时，常规预设卡片不再显示激活态，避免「两个预设同时亮」
-  var specialActive = (typeof filmRadioMode !== 'undefined' && filmRadioMode) || (typeof graffitiMode !== 'undefined' && graffitiMode);
+  // 覆盖层模式（胶片/涂鸦/流光/雨夜车窗）激活时，常规预设卡片不再显示激活态，避免「两个预设同时亮」
+  var specialActive = (typeof filmRadioMode !== 'undefined' && filmRadioMode)
+    || (typeof graffitiMode !== 'undefined' && graffitiMode)
+    || (typeof auroraMode !== 'undefined' && auroraMode)
+    || (typeof rainyMode !== 'undefined' && rainyMode);
   document.querySelectorAll('.preset-card').forEach(function (el) {
     var filmRadio = el.getAttribute('data-film-radio');
     if (filmRadio) {
@@ -53,6 +74,16 @@ function refreshPresetGrid() {
     var graffiti = el.getAttribute('data-graffiti');
     if (graffiti) {
       el.classList.toggle('active', !!(typeof graffitiMode !== 'undefined' && graffitiMode));
+      return;
+    }
+    var aurora = el.getAttribute('data-aurora');
+    if (aurora) {
+      el.classList.toggle('active', !!(typeof auroraMode !== 'undefined' && auroraMode));
+      return;
+    }
+    var rainy = el.getAttribute('data-rainy');
+    if (rainy) {
+      el.classList.toggle('active', !!(typeof rainyMode !== 'undefined' && rainyMode));
       return;
     }
     el.classList.toggle('active', !specialActive && Number(el.dataset.preset) === fx.preset);
@@ -110,6 +141,14 @@ function setPreset(p, opts) {
   if (!opts.silent && typeof graffitiMode !== 'undefined' && graffitiMode && typeof applyGraffitiMode === 'function') {
     applyGraffitiMode(false, { save: true });
   }
+  // 同上：退出流光（封面极光氛围）
+  if (!opts.silent && typeof auroraMode !== 'undefined' && auroraMode && typeof applyAuroraMode === 'function') {
+    applyAuroraMode(false, { save: true });
+  }
+  // 同上：退出雨夜车窗（深夜行车）
+  if (!opts.silent && typeof rainyMode !== 'undefined' && rainyMode && typeof applyRainyMode === 'function') {
+    applyRainyMode(false, { save: true });
+  }
   fx.preset = p;
   if (changed && prev === SKULL_PRESET_INDEX && p !== SKULL_PRESET_INDEX) clearSkullPresetResidue();
   if (p === SKULL_PRESET_INDEX) loadSkullParticleAsset();
@@ -121,6 +160,7 @@ function setPreset(p, opts) {
   }
   refreshPresetGrid();
   if (typeof updateSonicSeriesControlVisibility === 'function') updateSonicSeriesControlVisibility();
+  if (typeof updateRainyControlVisibility === 'function') updateRainyControlVisibility();
   if (typeof updateSonicWorkshopColorControls === 'function') updateSonicWorkshopColorControls();
   if (changed && !opts.skipTransition) triggerPresetParticleTransition(prev, p);
   // 每个预设对应的相机基线 (改 userOrbit)

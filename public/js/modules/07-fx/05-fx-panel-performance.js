@@ -218,6 +218,10 @@ function setForegroundFpsMode(mode, silent) {
 function updateFxInputs() {
   normalizeDevelopmentLockedFxState();
   applyShelfCameraDefaultAngle(false);
+  setRange('fx-rainintensity', fx.rainIntensity);
+  setRange('fx-rainfog', fx.rainFog);
+  setRange('fx-raincity', fx.rainCity);
+  setRange('fx-rainspeed', fx.rainSpeed);
   setRange('fx-intensity', fx.intensity);
   setRange('fx-cineshake', fx.cinemaShake);
   setRange('fx-depth', fx.depth);
@@ -404,6 +408,7 @@ function updateFxInputs() {
   if (typeof updateSonicGroundColorControls === 'function') updateSonicGroundColorControls();
   if (typeof updateSonicWorkshopColorControls === 'function') updateSonicWorkshopColorControls();
   updateSonicSeriesControlVisibility();
+  if (typeof updateRainyControlVisibility === 'function') updateRainyControlVisibility();
   applyControlGlassChromaticOffset();
   syncFxUniforms();
 }
