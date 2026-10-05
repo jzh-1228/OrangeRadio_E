@@ -175,6 +175,10 @@ server.js（73 行门面）
 
 两者与胶片电台/涂鸦墙构成**四方互斥**的全屏覆盖层模式（互相进入时退出他者，数值预设 `setPreset` 亦互退），均照 film-radio 范式：localStorage 偏好 + 临时 eco 质量档 + MutationObserver 零侵入同步 + 自有 30fps rAF + `isMainSceneCoveredByOverlay()` 主循环保温门控。
 
+### 6.3a 视觉模式平台
+
+`02-visual/90-visualizer-registry.js`：前景模式注册表（覆盖层四模式 + sonic 外挂清单），互斥/保温门控/预设网格激活态的单一 owner（entry 的 stateVar/applyFn 经 window 延迟解析）。`92-background-registry.js` 背景正交协议；`00-state/12-motion-signals.js` 每帧信号对象（主循环写、模式 rAF 读、值变化才唤醒）。详见 `docs/VISUALIZER_PLATFORM.md`。
+
 ### 6.4 主题系统
 
 CSS 变量集中在 `public/css/index.css` 多个 `:root` 块（灰阶/品牌色/玻璃材质/图标色）。主题切换 = 运行时改写 CSS 变量（`07-fx/02-accent-background-controls.js`），无预设皮肤机制。胶片电台独立样式在 `public/css/film-radio.css`（`body.film-radio` 命名空间，自带局部 token：`--fr-void` 暖黑底 / `--fr-paper` 相纸暖白 / `--fr-amber` 放映暖光 / `--fr-amber-hi` 强调金 / `--fr-leak` 漏光橙红）。

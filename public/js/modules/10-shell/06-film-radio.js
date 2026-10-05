@@ -31,14 +31,8 @@ function applyFilmRadioMode(on, opts) {
   opts = opts || {};
   filmRadioMode = !!on;
   // 双向互斥：进入胶片电台时先退出涂鸦墙/流光/雨夜车窗
-  if (filmRadioMode && typeof graffitiMode !== 'undefined' && graffitiMode && typeof applyGraffitiMode === 'function') {
-    applyGraffitiMode(false, { save: true });
-  }
-  if (filmRadioMode && typeof auroraMode !== 'undefined' && auroraMode && typeof applyAuroraMode === 'function') {
-    applyAuroraMode(false, { save: true });
-  }
-  if (filmRadioMode && typeof rainyMode !== 'undefined' && rainyMode && typeof applyRainyMode === 'function') {
-    applyRainyMode(false, { save: true });
+  if (filmRadioMode && typeof exitOtherVisualizerOverlays === 'function') {
+    exitOtherVisualizerOverlays('film-radio', { save: true });
   }
   document.documentElement.classList.toggle('film-radio-preload', filmRadioMode);
   document.body.classList.toggle('film-radio', filmRadioMode);

@@ -2,6 +2,7 @@
 
 ## 未发布
 
+- 新增**视觉模式平台**（注册表化）：覆盖层互斥从 6 处复制收敛为注册表单一 owner（`02-visual/90-visualizer-registry.js` 声明式清单 + window 延迟解析，与加载顺序无关）；主循环保温门控（`isMainSceneCoveredByOverlay`）与预设网格特殊卡片激活态改注册表查询——**新增覆盖层模式 = 清单一行**；背景注册表落地正交协议（背景只接主题/封面/音频信号，不拿歌词行与前景 tuning，测试钉死）；新增每帧信号对象（`00-state/12-motion-signals.js`，MotionValue 原生等价：主循环写 currentTime/audioPower/bands/spectrum，值变化才唤醒订阅者）。详见 `docs/VISUALIZER_PLATFORM.md`，测试基线 42 → 43。
 - 智能混音新增**神经网络推理层**（可选，模型按需下载）：`desktop/analysis/` 推理宿主（utilityProcess 进程隔离，主进程零阻塞）+ Beat This! 拍点 ONNX 模型（83MB，MIT）+ htdemucs 人声分离（109MB + 裁剪 Python 运行时，sidecar 进程用完即退）；多镜像下载（hf-mirror→hf→github）+ sha256 双校验；DIY 控制台新增「混音模型」管理面板（状态/下载/进度/取消）。模型缺失自动回退自研估计器（2a 链路），不装模型功能完整可用。详见 `docs/AUTOMIX.md`。
 - 新增**智能混音过渡（Automix）**（DIY 控制台「系统 → 智能混音」分组，默认关）：歌曲之间智能衔接——离线分析（节拍/响度/调性/段落边界/结尾形态/人声窗口，播放代理 Range 前缀取字节，档案 localStorage 持久化）→ 乐理决策（四接法 beatCut/bassSwap/tailRide/plainBlend，过渡长度按乐句量化而非固定秒数，调性×速度系数乘积带地板）→ 双 deck 等功率曲线交叉（together 平台段）+ 出场曲变速不变调；与同专辑无缝、Cuefield、单曲循环的让位关系明确，收养失败干净回退常规切歌。详见 `docs/AUTOMIX.md`。
 - 新增**音源 Omni 抽象层**（`public/js/modules/04-omni/`，11 个模块）：前端多平台音源统一门面——歌曲身份键（`getPlaybackSongKey` 三段键 `online:{provider}:{mediaId}`，判别式 sourceRef）、六平台 provider 注册表（网易/QQ/酷狗/汽水/Spotify/本地，各带能力标志与 URL 构建）、`omni` 门面（搜索/播放/歌词 URL 路由 + 数据方法带 request generation 晚到响应防护——切换平台事务后旧响应变 AbortError 丢弃）、资源缓存键规范（`{kind}_{songKey}`）。**纯重构零行为变化**：playQueueAt 与专辑无缝两处播放 URL if/else、歌词端点、搜索端点全部改经 omni 路由，`qqPlaybackEvidenceQuery`/`neteasePlaybackMatchQuery` 收敛至 provider 层（全局名保留）。详见 `docs/OMNI_PROVIDERS.md`，测试基线 40 → 41。

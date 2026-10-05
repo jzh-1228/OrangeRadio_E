@@ -60,17 +60,9 @@ var rainyLastFontKey = null;          /* 字体变化检测（fx.lyricFont 实�
 function applyRainyMode(on, opts) {
   opts = opts || {};
   rainyMode = !!on;
-  /* 四方互斥：进入雨夜车窗时先退出其他覆盖层模式 */
-  if (rainyMode) {
-    if (typeof filmRadioMode !== 'undefined' && filmRadioMode && typeof applyFilmRadioMode === 'function') {
-      applyFilmRadioMode(false, { save: true });
-    }
-    if (typeof graffitiMode !== 'undefined' && graffitiMode && typeof applyGraffitiMode === 'function') {
-      applyGraffitiMode(false, { save: true });
-    }
-    if (typeof auroraMode !== 'undefined' && auroraMode && typeof applyAuroraMode === 'function') {
-      applyAuroraMode(false, { save: true });
-    }
+  /* 四方互斥：经视觉模式注册表退出其它覆盖层模式 */
+  if (rainyMode && typeof exitOtherVisualizerOverlays === 'function') {
+    exitOtherVisualizerOverlays('rainy', { save: true });
   }
   document.body.classList.toggle('rainy', rainyMode);
   var overlay = document.getElementById('rainy-overlay');

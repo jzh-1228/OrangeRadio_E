@@ -60,30 +60,27 @@ function buildRainyPresetCard() {
 }
 
 function refreshPresetGrid() {
-  // 覆盖层模式（胶片/涂鸦/流光/雨夜车窗）激活时，常规预设卡片不再显示激活态，避免「两个预设同时亮」
-  var specialActive = (typeof filmRadioMode !== 'undefined' && filmRadioMode)
-    || (typeof graffitiMode !== 'undefined' && graffitiMode)
-    || (typeof auroraMode !== 'undefined' && auroraMode)
-    || (typeof rainyMode !== 'undefined' && rainyMode);
+  // 覆盖层模式激活时，常规预设卡片不再显示激活态（经视觉模式注册表）
+  var specialActive = !!(typeof activeVisualizerOverlay === 'function' && activeVisualizerOverlay());
   document.querySelectorAll('.preset-card').forEach(function (el) {
     var filmRadio = el.getAttribute('data-film-radio');
     if (filmRadio) {
-      el.classList.toggle('active', !!(typeof filmRadioMode !== 'undefined' && filmRadioMode));
+      el.classList.toggle('active', !!(typeof overlayModeIsActive === 'function' && getVisualizerOverlayMode('film-radio') && overlayModeIsActive(getVisualizerOverlayMode('film-radio'))));
       return;
     }
     var graffiti = el.getAttribute('data-graffiti');
     if (graffiti) {
-      el.classList.toggle('active', !!(typeof graffitiMode !== 'undefined' && graffitiMode));
+      el.classList.toggle('active', !!(typeof overlayModeIsActive === 'function' && getVisualizerOverlayMode('graffiti') && overlayModeIsActive(getVisualizerOverlayMode('graffiti'))));
       return;
     }
     var aurora = el.getAttribute('data-aurora');
     if (aurora) {
-      el.classList.toggle('active', !!(typeof auroraMode !== 'undefined' && auroraMode));
+      el.classList.toggle('active', !!(typeof overlayModeIsActive === 'function' && getVisualizerOverlayMode('aurora') && overlayModeIsActive(getVisualizerOverlayMode('aurora'))));
       return;
     }
     var rainy = el.getAttribute('data-rainy');
     if (rainy) {
-      el.classList.toggle('active', !!(typeof rainyMode !== 'undefined' && rainyMode));
+      el.classList.toggle('active', !!(typeof overlayModeIsActive === 'function' && getVisualizerOverlayMode('rainy') && overlayModeIsActive(getVisualizerOverlayMode('rainy'))));
       return;
     }
     el.classList.toggle('active', !specialActive && Number(el.dataset.preset) === fx.preset);
@@ -131,23 +128,11 @@ function setPreset(p, opts) {
   p = Math.max(0, Math.min(presetMeta.length - 1, Number(p) || 0));
   var prev = fx.preset;
   var changed = prev !== p;
-  // 用户主动选择常规预设时退出胶片电台（全屏黑胶播放器）。
+  // 用户主动选择常规预设时退出全部覆盖层模式（经视觉模式注册表）。
   // 用 !opts.silent 而非 changed：即便预设号没变（如「星河 → 涂鸦墙 → 再点星河」），
   // 只要是用户点击（非 silent 恢复）且特殊模式在激活，就应退出，否则回不到原预设。
-  if (!opts.silent && typeof filmRadioMode !== 'undefined' && filmRadioMode && typeof applyFilmRadioMode === 'function') {
-    applyFilmRadioMode(false, { save: true });
-  }
-  // 同上：退出涂鸦墙（满屏涂鸦歌词）
-  if (!opts.silent && typeof graffitiMode !== 'undefined' && graffitiMode && typeof applyGraffitiMode === 'function') {
-    applyGraffitiMode(false, { save: true });
-  }
-  // 同上：退出流光（封面极光氛围）
-  if (!opts.silent && typeof auroraMode !== 'undefined' && auroraMode && typeof applyAuroraMode === 'function') {
-    applyAuroraMode(false, { save: true });
-  }
-  // 同上：退出雨夜车窗（深夜行车）
-  if (!opts.silent && typeof rainyMode !== 'undefined' && rainyMode && typeof applyRainyMode === 'function') {
-    applyRainyMode(false, { save: true });
+  if (!opts.silent && typeof exitAllVisualizerOverlays === 'function') {
+    exitAllVisualizerOverlays({ save: true });
   }
   fx.preset = p;
   if (changed && prev === SKULL_PRESET_INDEX && p !== SKULL_PRESET_INDEX) clearSkullPresetResidue();

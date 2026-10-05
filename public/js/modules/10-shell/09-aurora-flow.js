@@ -47,17 +47,9 @@ var auroraWavePts = null;
 function applyAuroraMode(on, opts) {
   opts = opts || {};
   auroraMode = !!on;
-  /* 四方互斥：进入流光时先退出胶片电台/涂鸦墙/雨夜车窗 */
-  if (auroraMode) {
-    if (typeof filmRadioMode !== 'undefined' && filmRadioMode && typeof applyFilmRadioMode === 'function') {
-      applyFilmRadioMode(false, { save: true });
-    }
-    if (typeof graffitiMode !== 'undefined' && graffitiMode && typeof applyGraffitiMode === 'function') {
-      applyGraffitiMode(false, { save: true });
-    }
-    if (typeof rainyMode !== 'undefined' && rainyMode && typeof applyRainyMode === 'function') {
-      applyRainyMode(false, { save: true });
-    }
+  /* 四方互斥：经视觉模式注册表退出其它覆盖层 */
+  if (auroraMode && typeof exitOtherVisualizerOverlays === 'function') {
+    exitOtherVisualizerOverlays('aurora', { save: true });
   }
   document.body.classList.toggle('aurora', auroraMode);
   var overlay = document.getElementById('aurora-overlay');

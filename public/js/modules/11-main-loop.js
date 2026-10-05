@@ -70,10 +70,7 @@ function isMainSceneCoveredBySplash() {
 /* 胶片电台/涂鸦墙等全屏覆盖层盖住 3D 场景：3D 不可见，应大幅降频渲染省 GPU。
    不彻底停掉是为了保持场景温热，退出时不冷启动卡顿（参照 splash 覆盖策略）。 */
 function isMainSceneCoveredByOverlay() {
-  return (typeof filmRadioMode !== 'undefined' && filmRadioMode)
-    || (typeof graffitiMode !== 'undefined' && graffitiMode)
-    || (typeof auroraMode !== 'undefined' && auroraMode)
-    || (typeof rainyMode !== 'undefined' && rainyMode);
+  return !!(typeof activeVisualizerOverlay === 'function' && activeVisualizerOverlay());
 }
 function currentRenderAdaptiveContext(now) {
   var tier = (typeof getRenderLoadTier === 'function') ? getRenderLoadTier() : 0;
@@ -386,6 +383,10 @@ function animate() {
     if (typeof automixTick === 'function') { try { automixTick(now); } catch (e) { } }
     analyser.getByteFrequencyData(frequencyData);
     analyser.getByteTimeDomainData(timeDomainData);
+    if (typeof motionSignalSet === 'function') {
+      motionSignalSet('currentTime', audio.currentTime || 0);
+      motionSignalSet('spectrum', frequencyData);
+    }
     var len = frequencyData.length;
     // 精确频段
     var kickEnd = 7;                          // 60-150 Hz, 鼓 kick
@@ -419,6 +420,10 @@ function animate() {
     treblePeak = Math.max(treblePeak * 0.992, tHigh, 0.018);
     energyPeak = Math.max(energyPeak * 0.995, rms, 0.030);
 
+    if (typeof motionSignalSet === 'function') {
+      motionSignalSet('audioPower', Math.min(1, rms * 2.4));
+      motionSignalSet('bands', { kick: bKick, vocal: voc, mid: mInst, treble: tHigh, rms: rms });
+    }
     var rb = Math.min(1, Math.pow(bKick / Math.max(0.038, bassPeak * 0.66), 0.78));
     var rm = Math.min(1, Math.pow(mInst / Math.max(0.025, midPeak * 0.70), 0.86));
     var rt = Math.min(1, Math.pow(tHigh / Math.max(0.020, treblePeak * 0.74), 0.92));
