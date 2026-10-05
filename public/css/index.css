@@ -18017,3 +18017,6 @@ body.desktop-shell #desktop-titlebar #feedback-entry:hover .feedback-bubble {
   border-radius: 6px; padding: 2px 10px; font-size: 12px; cursor: pointer; }
 .automix-model-btn:hover { background: rgba(255,149,98,0.28); }
 .automix-model-hint { opacity: 0.6; }
+
+.automix-model-manual a { color: #ff9562; text-decoration: none; }
+.automix-model-manual a:hover { text-decoration: underline; }

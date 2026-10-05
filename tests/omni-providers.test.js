@@ -149,6 +149,23 @@ const g = sandbox;
   assert.equal(g.omniQqProvider.lyrics.urlFor({ mid: 'M1', id: 'abc' }), '/api/qq/lyric?mid=M1&id=');
   assert.equal(g.omniNeteaseProvider.lyrics.urlFor({ id: 9 }), '/api/lyric?id=9');
   assert.equal(g.omniLocalProvider.lyrics.urlFor({ localPath: 'D:/x.mp3' }), '/api/local/lyric?path=' + encodeURIComponent('D:/x.mp3'));
+  // 酷狗歌词：duration 主路径（注入 playbackDurationFromSong 后携带）与缺失回退
+  g.playbackDurationFromSong = (song) => (song && song.durationMs / 1000) || 0;
+  assert.equal(g.omniKugouProvider.lyrics.urlFor({ hash: 'H1', albumAudioId: 'AA1', durationMs: 210000 }),
+    '/api/kugou/lyric?hash=H1&albumAudioId=AA1&duration=210');
+  delete g.playbackDurationFromSong;
+  assert.equal(g.omniKugouProvider.lyrics.urlFor({ hash: 'H1' }), '/api/kugou/lyric?hash=H1&albumAudioId=&duration=');
+  // Spotify 歌词：id 解析链 id > providerSongId > spotifyId
+  assert.equal(g.omniSpotifyProvider.lyrics.urlFor({ providerSongId: 'PS1', spotifyId: 'SP9' }), '/api/spotify/lyric?id=PS1');
+  assert.equal(g.omniSpotifyProvider.lyrics.urlFor({ spotifyId: 'SP9' }), '/api/spotify/lyric?id=SP9');
+  // 播客歌：playback 无 URL（消费方回落网易通道）、歌词走网易
+  assert.equal(g.omni.playbackUrlForSong({ type: 'podcast', programId: 5, id: 77 }, {}), null);
+  assert.equal(g.omni.lyricUrlForSong({ type: 'podcast', programId: 5, id: 77 }), '/api/lyric?id=77');
+  // 13-playback 的播客回落分支存在性（omniBuilt 为 null 时拼网易 URL）
+  const fsMod = require('node:fs');
+  const pathMod = require('node:path');
+  const playbackSrc = fsMod.readFileSync(pathMod.join(__dirname, '..', 'public', 'js', 'modules', '05-playback', '13-playback-start-audio.js'), 'utf8');
+  assert.ok(/omniBuilt \? omniBuilt\.url : '\/api\/song\/url\?id='/.test(playbackSrc), 'omniBuilt=null falls back to netease playback URL');
 
   // 搜索端点
   assert.equal(g.omni.searchUrlFor('kugou', '词', 30, 10), '/api/kugou/search?keywords=' + encodeURIComponent('词') + '&limit=30&offset=10');
@@ -196,10 +213,14 @@ const g = sandbox;
     assert.equal(lateReject && lateReject.name, 'AbortError');
     assert.ok(g.omni.getActiveRequestGeneration() > gen0);
     assert.equal(g.omni.getActiveProviderId(), 'netease');
-    // 正常路径：事务内返回的响应放行
-    g.apiJson = async () => ({ songs: [1], code: 0 });
+    // 正常路径：事务内返回的响应放行 + 超时分档（网易 14s，其余 9s）
+    let capturedOpts = null;
+    g.apiJson = async (url, opts) => { capturedOpts = opts; return { songs: [1], code: 0 }; };
     const ok = await g.omni.searchProviderSongs('qq', 'x', { limit: 5 }).catch(() => 'aborted');
     assert.deepEqual(ok, { songs: [1], code: 0 });
+    assert.equal(capturedOpts && capturedOpts.timeoutMs, 9000, 'qq search timeout 9s');
+    await g.omni.searchProviderSongs('netease', 'x', { limit: 5 });
+    assert.equal(capturedOpts && capturedOpts.timeoutMs, 14000, 'netease search timeout 14s');
     console.log('OK omni-providers');
   })().catch((err) => { console.error(err); process.exit(1); });
 }

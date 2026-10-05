@@ -385,7 +385,7 @@ function animate() {
     analyser.getByteTimeDomainData(timeDomainData);
     if (typeof motionSignalSet === 'function') {
       motionSignalSet('currentTime', audio.currentTime || 0);
-      motionSignalSet('spectrum', frequencyData);
+      motionSignalSet('spectrum', frequencyData, true);
     }
     var len = frequencyData.length;
     // 精确频段

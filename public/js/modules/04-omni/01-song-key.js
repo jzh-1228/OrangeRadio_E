@@ -50,7 +50,7 @@ function getPlaybackSourceRef(song) {
 
 // 在歌曲进入来源感知路径前补上 sourceRef（幂等）。
 function normalizePlaybackSongSource(song) {
-  song = song || song;
+  song = song || {};
   if (!song) return song;
   if (!song.sourceRef) {
     try { song.sourceRef = getPlaybackSourceRef(song); } catch (e) { /* 保持透传 */ }

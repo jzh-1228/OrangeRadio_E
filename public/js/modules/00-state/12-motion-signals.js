@@ -24,11 +24,14 @@ var motionSignals = (function () {
   var listeners = {};
   return {
     get: function (key) { return values[key]; },
-    set: function (key, value) {
+    set: function (key, value, opts) {
       var prev = values[key];
       values[key] = value;
+      // 引用型就地更新信号（如 spectrum 共享主循环的 frequencyData）不适用
+      // "值变化才唤醒"——引用恒等而内容每帧在变，须由写入方传 force 逐帧唤醒。
+      var force = !!(opts && opts.force);
       var subs = listeners[key];
-      if (subs && subs.length && prev !== value) {
+      if (subs && subs.length && (force || prev !== value)) {
         for (var i = 0; i < subs.length; i++) {
           try { subs[i](value, prev); } catch (e) { }
         }
@@ -47,5 +50,5 @@ var motionSignals = (function () {
 })();
 
 function motionSignalGet(key) { return motionSignals.get(key); }
-function motionSignalSet(key, value) { motionSignals.set(key, value); }
+function motionSignalSet(key, value, force) { motionSignals.set(key, value, { force: force }); }
 function motionSignalSubscribe(key, listener) { return motionSignals.subscribe(key, listener); }

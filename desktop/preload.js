@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('electron', {
   downloadAutomixModel: (name) => ipcRenderer.invoke('automix-model-download', name),
   cancelAutomixModelDownload: (name) => ipcRenderer.invoke('automix-model-cancel', name),
   installAutomixModel: (name, source) => ipcRenderer.invoke('automix-model-install', name, source),
+  removeAutomixModels: () => ipcRenderer.invoke('automix-model-remove-all'),
   onMemoryPressure: (callback) => {
     if (typeof callback !== 'function') return () => {};
     const listener = (_event, payload) => callback(payload || {});

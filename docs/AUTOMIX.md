@@ -59,8 +59,8 @@ playQueueAt 收养分支（`automixAdopted` 增益语义），**不触碰主音�
 - `desktop/analysis/`（自 folia-major 移植）：`host.cjs`（utilityProcess 宿主：
   空闲 120s 终止、崩溃重试一次、90s 硬超时 kill + forceCpu 重启）、`worker.cjs`
   （Beat This! ONNX：梅尔前处理契约、WebGPU→CPU 降级、线程=核数 1/4、内存 arena 关闭）、
-  `sidecar.cjs` + `htdemucs_runner.py`（Python 子进程人声分离：临时 wav、
-  overlap-add、`enable_mem_reuse=False` 省约 2GB）、`modelStore.cjs`（多镜像下载
+  `sidecar.cjs` + `htdemucs_runner.py`（Python 子进程人声分离：无头裸 float32
+  文件契约（mix.in/stems.out）、overlap-add、`enable_mem_reuse=False` 省约 2GB）、`modelStore.cjs`（多镜像下载
   hf-mirror→hf→github + sha256+字节双校验 + 进度节流 + runtime zip 解包）、
   `modelPaths.cjs`（目录解析：缓存根 models > userData/models > resources/models）
 - `shared/modelManifest.json`：模型唯一描述处（两模型 MIT 可分发；Python runtime
@@ -73,7 +73,8 @@ playQueueAt 收养分支（`automixAdopted` 增益语义），**不触碰主音�
 - DIY 控制台「混音模型」面板：状态/下载/取消/进度（automix-model-panel）
 - deckManager：automix 模式且模型在盘时 `wantGrid: true`（拍点网格六字段权威来源，
   自研估计器降级为回退，两套不混用）
-- npm 依赖：onnxruntime-node + fflate；打包 asarUnlock 原生模块与 runner.py
+- npm 依赖：onnxruntime-node + fflate；打包 asarUnpack 声明原生模块与 runner.py
+  （当前构建 asar:false，该项为开启 asar 时的前瞻防护，现况无害冗余）
 
 ## 后续（采样级执行层）
 

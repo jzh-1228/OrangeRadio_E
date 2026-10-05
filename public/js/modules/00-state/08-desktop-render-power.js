@@ -404,12 +404,6 @@ function sweepLocalBlobUrls() {
         if (s && typeof s.localUrl === 'string' && s.localUrl.indexOf('blob:') === 0) keep[s.localUrl] = true;
       }
     }
-    if (typeof pendingLocalSongs !== 'undefined' && Array.isArray(pendingLocalSongs)) {
-      for (var j = 0; j < pendingLocalSongs.length; j++) {
-        var ps = pendingLocalSongs[j];
-        if (ps && typeof ps.localUrl === 'string') keep[ps.localUrl] = true;
-      }
-    }
     if (typeof document !== 'undefined') {
       document.querySelectorAll('audio, video').forEach(function (el) {
         if (el.src && el.src.indexOf('blob:') === 0) keep[el.src] = true;

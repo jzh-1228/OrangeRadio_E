@@ -93,7 +93,8 @@ function automixCanAttempt() {
   var nextIdx = currentIdx + 1;
   if (nextIdx < 0 || nextIdx >= playQueue.length) return false;
   var next = playQueue[nextIdx];
-  if (!next || next.type === 'local' || next.localUrl) { /* 本地歌 2a 可混合（文件直连），暂保守跳过 */ if (next && (next.type === 'local' || next.source === 'local')) return false; }
+  if (!next) return false; // 空洞队列防御：null fall-through 会在 automixTick 解引用崩溃
+  if (next.type === 'local' || next.source === 'local' || next.localUrl) return false; // 本地歌 2a 暂保守跳过（文件直连）
   return true;
 }
 
@@ -398,6 +399,19 @@ function automixRenderModelState() {
           : '<button type="button" class="automix-model-btn" data-action="download">下载</button>') +
         '</div>';
     });
+    var manual = status.manual;
+    if (manual && Array.isArray(manual.links) && manual.links.length) {
+      html += '<div class="automix-model-row automix-model-manual"><span class="automix-model-hint">下载慢？网盘手动下载：' +
+        manual.links.map(function (link) {
+          return '<a href="' + link.url + '" target="_blank" rel="noopener noreferrer">' + (link.label || '网盘') +
+            (link.code ? '（提取码 ' + link.code + '）' : '') + '</a>';
+        }).join(' · ') + '</span></div>';
+    }
+    var anyInstalled = (status.models || []).some(function (m) { return automixModelInstalled(m); });
+    if (anyInstalled) {
+      html += '<div class="automix-model-row"><span class="automix-model-hint">删除已下载的模型释放磁盘</span>' +
+        '<button type="button" class="automix-model-btn" data-action="remove-all">删除全部模型</button></div>';
+    }
     list.innerHTML = html || '<div class="automix-model-row"><span class="automix-model-hint">拍点检测与人声分离模型可选装（完全体混音）</span></div>';
   }).catch(function () { });
 }
@@ -412,7 +426,18 @@ function automixBindModelPanel() {
     var row = btn.closest('.automix-model-row');
     var name = row && row.getAttribute('data-model');
     if (!name) return;
-    if (btn.getAttribute('data-action') === 'cancel') window.electron.cancelAutomixModelDownload(name);
+    var action = btn.getAttribute('data-action');
+    if (action === 'remove-all') {
+      if (window.electron.removeAutomixModels) {
+        window.electron.removeAutomixModels().then(function () {
+          automixRenderModelState();
+          if (typeof refreshModelAvailability === 'function') refreshModelAvailability();
+        }).catch(function () { });
+      }
+      return;
+    }
+    if (!name) return;
+    if (action === 'cancel') window.electron.cancelAutomixModelDownload(name);
     else window.electron.downloadAutomixModel(name);
   });
   if (!automixModelProgressSubscribed && typeof window.electron.onAutomixModelProgress === 'function') {
