@@ -43,13 +43,19 @@
       "!desktop/wallpaper-preload.js",
       "!public/wallpaper.html",
       "!public/index.*.html",
-      "public/index.html"
+      "public/index.html",
+      "shared/**/*"
     ],
     "asar": false,
     "mac": {
       "icon": "build/icon-mac.png",
       "target": [
-        { "target": "dmg", "arch": ["universal"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
       ],
       "category": "public.app-category.music",
       "identity": null,
@@ -82,7 +88,11 @@
       "installerHeader": "build/installerHeader.bmp",
       "include": "build/installer.nsh",
       "artifactName": "OrangeSea-${version}-Setup.${ext}"
-    }
+    },
+    "asarUnpack": [
+      "node_modules/onnxruntime-node/**/*",
+      "desktop/analysis/htdemucs_runner.py"
+    ]
   },
   "mineradio": {
     "update": {
@@ -95,10 +105,12 @@
     "appUserModelId": "com.orangesea.desktop"
   },
   "dependencies": {
+    "fflate": "^0.8.3",
     "gsap": "^3.15.0",
     "mpg123-decoder": "^1.0.3",
     "NeteaseCloudMusicApi": "^4.32.0",
-    "node-id3": "^0.2.9"
+    "node-id3": "^0.2.9",
+    "onnxruntime-node": "^1.30.0"
   },
   "overrides": {
     "axios": "1.18.1",

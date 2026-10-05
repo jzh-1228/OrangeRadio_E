@@ -106,6 +106,8 @@
     'js/modules/15-automix/18-automix-session.js',
     'js/modules/15-automix/19-profile-service.js',
     'js/modules/15-automix/20-blob-url-ledger.js',
+    'js/modules/15-automix/21-deck-manager.js',
+    'js/modules/15-automix/22-beat-this.js',
     'js/modules/06-lyrics/00-lyrics-fetch-parse.js',
     'js/modules/06-lyrics/01-playlist-panel-shell.js',
     'js/modules/06-lyrics/02-playlist-detail.js',

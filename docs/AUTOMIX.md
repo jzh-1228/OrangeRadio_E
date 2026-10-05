@@ -54,12 +54,31 @@ playQueueAt 收养分支（`automixAdopted` 增益语义），**不触碰主音�
 - 分析失败静默跳过，不允许阻断播放（`ensureTrackProfile` 全链 try/catch）。
 - `AUTOMIX_MAX_OVERLAP_SEC = 25` 是天花板不是答案：实际长度按乐句量化得出。
 
-## 2b 待办（采样级执行 + 神经网络证据）
+## 2b 已交付（推理层）
 
-- `desktop/analysis/`：utilityProcess 推理宿主 + worker（Beat This! ONNX 拍点，
-  F-measure 对拍 1.0000 验收）+ Python sidecar（htdemucs 人声分离，
-  `enable_mem_reuse=False` 省约 2GB）+ 模型下载器（多镜像 + sha256 双校验）
+- `desktop/analysis/`（自 folia-major 移植）：`host.cjs`（utilityProcess 宿主：
+  空闲 120s 终止、崩溃重试一次、90s 硬超时 kill + forceCpu 重启）、`worker.cjs`
+  （Beat This! ONNX：梅尔前处理契约、WebGPU→CPU 降级、线程=核数 1/4、内存 arena 关闭）、
+  `sidecar.cjs` + `htdemucs_runner.py`（Python 子进程人声分离：临时 wav、
+  overlap-add、`enable_mem_reuse=False` 省约 2GB）、`modelStore.cjs`（多镜像下载
+  hf-mirror→hf→github + sha256+字节双校验 + 进度节流 + runtime zip 解包）、
+  `modelPaths.cjs`（目录解析：缓存根 models > userData/models > resources/models）
+- `shared/modelManifest.json`：模型唯一描述处（两模型 MIT 可分发；Python runtime
+  按平台分档，"被截断的 ONNX 不会报错，它会加载成功然后自信地答错"——sha256 是本文件的存在意义）
+- main.js IPC：`automix-beat-this` / `automix-htdemucs` / `automix-models-present` /
+  模型下载管理五通道；preload 暴露 `window.electron` automix 桥
+- 渲染侧 `22-beat-this.js`：拍点前处理（22050/n_fft 1024/hop 441/mel 30-11000/log1p(1000x)/
+  分块 1500——**前处理常数是模型契约，一个都不能动**）+ modelAvailability
+  （在盘状态同步快照，false 起始、下载落地自愈、无会话级闩锁）
+- DIY 控制台「混音模型」面板：状态/下载/取消/进度（automix-model-panel）
+- deckManager：automix 模式且模型在盘时 `wantGrid: true`（拍点网格六字段权威来源，
+  自研估计器降级为回退，两套不混用）
+- npm 依赖：onnxruntime-node + fflate；打包 asarUnlock 原生模块与 runner.py
+
+## 后续（采样级执行层）
+
 - 常驻双 deck AutomixDeckChain（`16-crossfade-graph` 接线：三频段接缝、回声抛掷、
   stem 交接 8ms 交叉、软限幅总线）替代元素级 volume
 - stem 手势接线（`13/14/15`）与表现模式 build-up
 - `18-automix-session` 完整状态机（ports 注入）替换 deckManager 的轻量时序
+- 验收：beats.json 对拍（Folia 30 首测试集 F-measure 1.0000）

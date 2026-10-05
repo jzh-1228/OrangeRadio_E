@@ -18004,3 +18004,16 @@ body.desktop-shell #desktop-titlebar #feedback-entry:hover .feedback-bubble {
 .feedback-status.fail {
   color: #ff8f9c;
 }
+
+
+/* ---------- Automix 模型管理面板 ---------- */
+.automix-model-section { margin: 10px 0 4px; }
+.automix-model-list { display: flex; flex-direction: column; gap: 6px; }
+.automix-model-row { display: flex; align-items: center; gap: 10px; font-size: 12px; padding: 6px 8px;
+  background: rgba(255,255,255,0.04); border-radius: 8px; }
+.automix-model-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.automix-model-state { opacity: 0.72; font-variant-numeric: tabular-nums; }
+.automix-model-btn { background: rgba(255,149,98,0.16); color: #ff9562; border: 1px solid rgba(255,149,98,0.35);
+  border-radius: 6px; padding: 2px 10px; font-size: 12px; cursor: pointer; }
+.automix-model-btn:hover { background: rgba(255,149,98,0.28); }
+.automix-model-hint { opacity: 0.6; }

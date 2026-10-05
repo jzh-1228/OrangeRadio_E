@@ -142,9 +142,10 @@ async function automixPrepareDeck(nextIdx, song, plan) {
   automixState.bNextIdx = nextIdx;
   // 离线分析下一首（分析队列串行、范围限制在 [当前, 下一首]）
   try {
+    var wantGrid = automixSettings().mode === 'automix' && typeof canRunBeatThis === 'function' && canRunBeatThis();
     setAnalysisScope([playQueue[currentIdx], song]);
-    ensureTrackProfile({ song: song, wantGrid: false, audioUrl: proxyUrl, enableMediaCache: false });
-    ensureTrackProfile({ song: playQueue[currentIdx], wantGrid: false, audioUrl: audio && audio.src, enableMediaCache: false });
+    ensureTrackProfile({ song: song, wantGrid: wantGrid, audioUrl: proxyUrl, enableMediaCache: false });
+    ensureTrackProfile({ song: playQueue[currentIdx], wantGrid: wantGrid, audioUrl: audio && audio.src, enableMediaCache: false });
   } catch (e) { /* 分析失败不阻断过渡 */ }
   await new Promise(function (resolve) {
     if (el.readyState >= 2) return resolve();
@@ -315,6 +316,61 @@ function setAutomixMode(mode) {
   if (typeof scheduleLyricLayoutSave === 'function') scheduleLyricLayoutSave(120);
   updateAutomixConsoleState();
 }
+
+// ---------- 模型下载管理（automix-model-panel） ----------
+
+var automixModelProgressSubscribed = false;
+
+function automixRenderModelState() {
+  var panel = document.getElementById('automix-model-panel');
+  if (!panel || !window.electron || typeof window.electron.getAutomixModelStatus !== 'function') return;
+  window.electron.getAutomixModelStatus().then(function (status) {
+    if (!status) return;
+    var list = panel.querySelector('.automix-model-list');
+    if (!list) return;
+    var html = '';
+    (status.models || []).forEach(function (m) {
+      var state = m.installed ? '已安装' : (m.downloading ? (Math.round((m.progress || 0) * 100) + '%') : '未安装');
+      html += '<div class="automix-model-row" data-model="' + (m.name || '') + '">' +
+        '<span class="automix-model-name">' + (m.label || m.name || '') + (m.bytes ? ' · ' + (m.bytes / 1048576).toFixed(0) + 'MB' : '') + '</span>' +
+        '<span class="automix-model-state">' + state + '</span>' +
+        (m.installed || m.downloading
+          ? (m.downloading ? '<button type="button" class="automix-model-btn" data-action="cancel">取消</button>' : '')
+          : '<button type="button" class="automix-model-btn" data-action="download">下载</button>') +
+        '</div>';
+    });
+    list.innerHTML = html || '<div class="automix-model-row"><span class="automix-model-hint">拍点检测与人声分离模型可选装（完全体混音）</span></div>';
+  }).catch(function () { });
+}
+
+function automixBindModelPanel() {
+  var panel = document.getElementById('automix-model-panel');
+  if (!panel || panel.__automixBound) return;
+  panel.__automixBound = true;
+  panel.addEventListener('click', function (ev) {
+    var btn = ev.target && ev.target.closest ? ev.target.closest('.automix-model-btn') : null;
+    if (!btn || !window.electron) return;
+    var row = btn.closest('.automix-model-row');
+    var name = row && row.getAttribute('data-model');
+    if (!name) return;
+    if (btn.getAttribute('data-action') === 'cancel') window.electron.cancelAutomixModelDownload(name);
+    else window.electron.downloadAutomixModel(name);
+  });
+  if (!automixModelProgressSubscribed && typeof window.electron.onAutomixModelProgress === 'function') {
+    automixModelProgressSubscribed = true;
+    window.electron.onAutomixModelProgress(function () { automixRenderModelState(); if (typeof refreshModelAvailability === 'function') refreshModelAvailability(); });
+  }
+  setInterval(automixRenderModelState, 5000);
+  automixRenderModelState();
+}
+
+(function scheduleAutomixModelPanel() {
+  function go() { automixBindModelPanel(); }
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go);
+    else go();
+  }
+})();
 
 (function bindAutomixConsoleControls() {
   function bind() {

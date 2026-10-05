@@ -1,5 +1,24 @@
 const { contextBridge, ipcRenderer, clipboard } = require('electron');
 
+contextBridge.exposeInMainWorld('electron', {
+  // Automix 智能混音推理桥（desktop/analysis/）：模型缺失时主进程返回 null，
+  // 渲染侧回落自研估计器——与无桥环境同一退化路径。
+  runBeatThis: (chunks) => ipcRenderer.invoke('automix-beat-this', chunks),
+  separateStems: (request) => ipcRenderer.invoke('automix-htdemucs', request),
+  getAutomixModelsPresent: () => ipcRenderer.invoke('automix-models-present'),
+  diagMark: (text) => ipcRenderer.send('automix-diag', String(text || '')),
+  getAutomixModelStatus: () => ipcRenderer.invoke('automix-model-status'),
+  downloadAutomixModel: (name) => ipcRenderer.invoke('automix-model-download', name),
+  cancelAutomixModelDownload: (name) => ipcRenderer.invoke('automix-model-cancel', name),
+  installAutomixModel: (name, source) => ipcRenderer.invoke('automix-model-install', name, source),
+  onAutomixModelProgress: (callback) => {
+    if (typeof callback !== 'function') return () => {};
+    const listener = (_event, payload) => callback(payload || {});
+    ipcRenderer.on('automix-model-progress', listener);
+    return () => ipcRenderer.removeListener('automix-model-progress', listener);
+  },
+});
+
 contextBridge.exposeInMainWorld('desktopWindow', {
   isDesktop: true,
   minimize: () => ipcRenderer.invoke('desktop-window-minimize'),

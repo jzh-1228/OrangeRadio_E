@@ -119,6 +119,9 @@ const STARTUP_SERVER_TIMEOUT_MS = 10000;
 const STARTUP_HTTP_TIMEOUT_MS = 8000;
 const STARTUP_NAVIGATION_TIMEOUT_MS = 15000;
 const STARTUP_SHOW_WATCHDOG_MS = 3500;
+// Automix 智能混音推理层（拍点模型 + 人声分离 + 模型下载器）
+const { createAnalysisHost } = require('./analysis/host.cjs');
+const { createModelStore } = require('./analysis/modelStore.cjs');
 const CACHE_SETTINGS_FILE = 'cache-settings.json';
 const LYRIC_CACHE_VERSION = 1;
 const LYRIC_CACHE_MAX_BYTES = 96 * 1024 * 1024;
@@ -264,6 +267,51 @@ function wallpaperEnginePhysicalContentBounds(win, fallback = {}) {
 
 function cacheSettingsConfigPath() {
   return path.join(app.getPath('userData'), CACHE_SETTINGS_FILE);
+}
+
+// Automix 模型目录优先级：缓存根 models > userData/models > 安装包 resources/models。
+// 模型 83~109MB 不进安装包，按需下载（manifest 见 shared/modelManifest.json）。
+function getAutomixModelsDirectories() {
+  const dirs = [];
+  try { dirs.push(path.join(normalizeCacheRootPath(null), 'models')); } catch (e) { }
+  try { dirs.push(path.join(app.getPath('userData'), 'models')); } catch (e) { }
+  try { dirs.push(path.join(process.resourcesPath || '', 'models')); } catch (e) { }
+  return dirs;
+}
+
+let automixAnalysisHost = null;
+
+function ensureAutomixAnalysisHost() {
+  if (automixAnalysisHost) return automixAnalysisHost;
+  automixAnalysisHost = createAnalysisHost({ app, ipcMain, getModelsDirs: getAutomixModelsDirectories });
+  return automixAnalysisHost;
+}
+
+let automixModelStore = null;
+
+function ensureAutomixModelStore() {
+  if (automixModelStore) return automixModelStore;
+  automixModelStore = createModelStore({
+    getModelsDirs: getAutomixModelsDirectories,
+    getDownloadDir: () => getAutomixModelsDirectories()[0],
+    onProgress: (event) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('automix-model-progress', event);
+      }
+    },
+    onChanged: () => { if (automixAnalysisHost) automixAnalysisHost.reload(); },
+  });
+  return automixModelStore;
+}
+
+function registerAutomixAnalysisIpc() {
+  ensureAutomixAnalysisHost();
+  const modelStore = ensureAutomixModelStore();
+  ipcMain.handle('automix-model-status', () => modelStore.status());
+  ipcMain.handle('automix-model-download', (_event, name) => modelStore.download(name));
+  ipcMain.handle('automix-model-cancel', (_event, name) => modelStore.cancel(name));
+  ipcMain.handle('automix-model-install', (_event, name, source) => modelStore.installLocal(name, source));
+  ipcMain.handle('automix-model-remove-all', () => modelStore.removeAll());
 }
 
 function defaultCacheRootPath() {
@@ -5438,6 +5486,8 @@ ipcMain.handle('mineradio-desktop-lyrics-set-hot-bounds', async (_event, bounds)
     return { ok: false, error: e.message || 'DESKTOP_LYRICS_HOT_BOUNDS_FAILED' };
   }
 });
+
+registerAutomixAnalysisIpc();
 
 ipcMain.handle('mineradio-desktop-lyrics-set-lock-state', async (_event, locked) => {
   try {

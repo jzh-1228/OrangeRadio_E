@@ -1,21 +1,12 @@
 // ============================================================
-// 03-model-stub.js — Automix 推理模型存根（2a 阶段）
+// 03-runtime-stubs.js — Automix 运行时环境适配
 // Portions Copyright (c) 2025 chthollyphile and Folia contributors
-// Adapted from folia-major (AGPL-3.0): beatThis.ts / modelAvailability.ts 的无模型回退路径。
+// Adapted from folia-major (AGPL-3.0): analysisOffThread.ts 回退路径 + audioCache 事件适配。
 //
-// 2a 纯 JS 引擎阶段：拍点模型（Beat This! ONNX）与人声分离（htdemucs）
-// 尚未接入，本文件提供回退实现——canRunBeatThis() 恒 false 使
-// profileService 走自研 estimateTempo/estimateDownbeat（浏览器构建的
-// 正式链路，非降级 hack），TrackProfile.gridless 标记区分"模型没跑"。
-// 2b 阶段接入 desktop/analysis 推理进程后替换本文件。
+// 拍点模型与在盘状态的真实现见 22-beat-this.js（模型缺失时 canRunBeatThis
+// 返回 false，profileService 走自研估计器——浏览器构建的正式链路）。
 // ============================================================
 
-const canRunBeatThis = () => false;
-const modelCanRun = () => false;
-async function analyseBeatGrid() { return null; }
-async function melSpectrogramOffThread() { return null; }
-// trackProfile 运行时引用（模型拍点 → 网格）；无模型时返回 null 走 gridless 路径。
-function gridFromBeats() { return null; }
 async function analyseTrackOffThread(mid, sampleRate, options) {
   // analysisOffThread 的回退路径：worker 不可用时原地调 analyseTrack
   // （yieldToUi 按 8ms 预算分片让路主线程）。

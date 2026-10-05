@@ -262,7 +262,8 @@ var FX_CONSOLE_LAYOUT = [
       { key: 'automix', title: '智能混音', hint: '歌曲衔接的智能过渡（节拍/响度/结尾形态感知）', items: [
         fxConsoleItem('t-automix', '智能混音过渡', '混音 衔接 过渡 automix 交叉淡化'),
         fxConsoleItem('automix-mode-seg', '过渡策略', '智能混音 交叉淡化 策略 模式'),
-        fxConsoleItem('fx-automixcrossfadeSec', '过渡长度', '交叉 秒 淡化 长度')
+        fxConsoleItem('fx-automixcrossfadeSec', '过渡长度', '交叉 秒 淡化 长度'),
+        fxConsoleItem('automix-model-panel', '混音模型', '模型 下载 拍点 分离 beat_this htdemucs 完全体', false)
       ] },
       { key: 'performance', title: '性能与后台', hint: '画质档位、后台渲染和直播保持', items: [
         fxConsoleItem('performance-quality-seg', '画质档位', '低配 中 高 超高 渲染质量'),
