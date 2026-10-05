@@ -798,12 +798,12 @@ function searchProviderLoginNotice(mode) {
   return '当前没有可用的音乐目录搜索源';
 }
 function searchProviderUrl(provider, q, limit, offset) {
+  // 平台搜索端点统一由 Omni 层路由（04-omni/*-provider-*.js）。
+  if (typeof omni !== 'undefined' && omni && typeof omni.searchUrlFor === 'function') {
+    var omniUrl = omni.searchUrlFor(provider, q, limit, offset);
+    if (omniUrl) return omniUrl;
+  }
   var suffix = '&limit=' + limit + '&offset=' + Math.max(0, Number(offset) || 0);
-  if (provider === 'local') return '/api/local/search?keywords=' + encodeURIComponent(q) + suffix;
-  if (provider === 'qq') return '/api/qq/search?keywords=' + encodeURIComponent(q) + suffix;
-  if (provider === 'kugou') return '/api/kugou/search?keywords=' + encodeURIComponent(q) + suffix;
-  if (provider === 'qishui') return '/api/qishui/search?keywords=' + encodeURIComponent(q) + suffix;
-  if (provider === 'spotify') return '/api/spotify/search?keywords=' + encodeURIComponent(q) + suffix;
   return '/api/search?keywords=' + encodeURIComponent(q) + suffix;
 }
 function simpleSearchNorm(text) {

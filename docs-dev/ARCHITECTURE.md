@@ -143,6 +143,7 @@ server.js（73 行门面）
 | `01-scene/` | 渲染器画质、轨道/自由相机、鼓点镜头、电影镜头 |
 | `02-visual/` | 封面粒子舞台（`00-pointer-cover-particles.js` 含 9 预设 shader 分支）、3D 歌词舞台（`14-stage-lyrics-rendering.js` 最大文件）、星河、涟漪 |
 | `03-beat/` | BPM worker 预取、离线频带分析、beatmap 运行时、音域频谱监控 |
+| `04-omni/` | **音源 Omni 抽象层**（11 模块）：歌曲身份键（`01-song-key.js` 三段键 `online:{provider}:{mediaId}`）→ provider 注册表（`02`）→ 六平台 provider（`03~08`：netease/qq/kugou/qishui/spotify/local，各带能力标志与 search/playback/lyrics URL 构建）→ `omni` 门面（`09`：URL 路由 + request generation 晚到响应防护）→ 资源缓存键（`10`）。UI 不得直接拼平台 URL 或做平台 if/else；详见 `docs/OMNI_PROVIDERS.md` |
 | `04-shelf/` | 3D 歌单架（canvas 卡片 + 虚拟滚动） |
 | `05-playback/` | 播放核心（`13-playback-start-audio.js` `playQueueAt()`）、搜索、首页仪表盘、EQ、cuefield 自动混音 |
 | `06-lyrics/` | 歌词解析、播放列表面板、进度条、拖放导入 |

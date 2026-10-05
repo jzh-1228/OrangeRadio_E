@@ -2,6 +2,7 @@
 
 ## 未发布
 
+- 新增**音源 Omni 抽象层**（`public/js/modules/04-omni/`，11 个模块）：前端多平台音源统一门面——歌曲身份键（`getPlaybackSongKey` 三段键 `online:{provider}:{mediaId}`，判别式 sourceRef）、六平台 provider 注册表（网易/QQ/酷狗/汽水/Spotify/本地，各带能力标志与 URL 构建）、`omni` 门面（搜索/播放/歌词 URL 路由 + 数据方法带 request generation 晚到响应防护——切换平台事务后旧响应变 AbortError 丢弃）、资源缓存键规范（`{kind}_{songKey}`）。**纯重构零行为变化**：playQueueAt 与专辑无缝两处播放 URL if/else、歌词端点、搜索端点全部改经 omni 路由，`qqPlaybackEvidenceQuery`/`neteasePlaybackMatchQuery` 收敛至 provider 层（全局名保留）。详见 `docs/OMNI_PROVIDERS.md`，测试基线 40 → 41。
 - **许可证由 GPL-3.0 切换为 AGPL-3.0**：本项目将引入来自 Folia（AGPL-3.0）的智能混音引擎、音源抽象层与视觉平台协议等适配代码，依 GPLv3 §14 合并条款将整体按 AGPL-3.0 授权（原 Mineradio GPL-3.0 衍生关系保留，详见 NOTICE.md 移植清单）。
 - 新增两个**沉浸式视觉预设**（DIY 控制台预设网格特殊卡片，与胶片电台/涂鸦墙四方互斥，照 film-radio 覆盖层范式：localStorage 偏好 + 临时 eco 质量档 + 主循环 0.5fps 保温门控）：
   - **流光（Aurora Flow · 封面极光氛围）**：日常沉浸档。专辑封面取色（32×32 降采样 HSL 分桶 top3）的流体色雾背景（低分辨率 Canvas + CSS blur，3 色团互质轨道慢漂）+ 大字逐字卡拉OK歌词（复用涂鸦墙分词与 YRC 揭示时间表，点亮式填色）+ 底部呼吸波形线；歌词字体跟随 DIY 控制台设置的歌词字体（`fx.lyricFont`，与雨夜车窗/涂鸦墙一致）；低频呼吸/节拍心跳（≤4% 亮度，零频闪）/副歌闸门（色雾浓度 + 单条极光丝带）全部自算自 `frequencyData`。取色失败静默回退默认夜色板。详见 `docs/AURORA_FLOW.md`。

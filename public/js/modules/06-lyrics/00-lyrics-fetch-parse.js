@@ -15,28 +15,13 @@ function lyricTranslationTextFromAliases(source) {
 }
 function lyricEndpointForSong(songOrId) {
   var song = (songOrId && typeof songOrId === 'object') ? songOrId : null;
-  var provider = song ? songProviderKey(song) : 'netease';
-  if (provider === 'qq') {
-    var mid = song.mid || song.songmid || song.id || '';
-    var qqId = song.qqId || (/^\d+$/.test(String(song.id || '')) ? song.id : '');
-    return '/api/qq/lyric?mid=' + encodeURIComponent(mid) + '&id=' + encodeURIComponent(qqId);
+  if (!song) return '/api/lyric?id=' + encodeURIComponent(songOrId);
+  // 平台端点统一由 Omni 层路由（04-omni/*-provider-*.js）。
+  if (typeof omni !== 'undefined' && omni && typeof omni.lyricUrlForSong === 'function') {
+    var omniUrl = omni.lyricUrlForSong(song);
+    if (omniUrl) return omniUrl;
   }
-  if (provider === 'kugou') {
-    return '/api/kugou/lyric?hash=' + encodeURIComponent(song.hash || song.fileHash || song.audioHash || song.id || '') +
-      '&albumAudioId=' + encodeURIComponent(song.albumAudioId || song.album_audio_id || song.mixSongId || '') +
-      '&duration=' + encodeURIComponent(playbackDurationFromSong(song) || '');
-  }
-  if (provider === 'qishui') {
-    return '/api/qishui/lyric?id=' + encodeURIComponent(song.id || song.providerSongId || '');
-  }
-  if (provider === 'spotify') {
-    return '/api/spotify/lyric?id=' + encodeURIComponent(song.id || song.providerSongId || song.spotifyId || '');
-  }
-  if (provider === 'local') {
-    return '/api/local/lyric?path=' + encodeURIComponent(song.localPath || song.filePath || song.id || '');
-  }
-  var songId = song ? song.id : songOrId;
-  return '/api/lyric?id=' + encodeURIComponent(songId);
+  return '/api/lyric?id=' + encodeURIComponent(song.id != null ? song.id : '');
 }
 
 function persistentLyricCacheKey(song) {

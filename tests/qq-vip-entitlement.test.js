@@ -288,7 +288,10 @@ function testDesktopReauthCookieSelectionAndBudgets() {
     vkeyBudget + audioProbeBudget < 15000,
     'the complete QQ URL handler deadline must finish before the renderer 15s request deadline'
   );
-  assert((playbackSource.match(/timeoutMs: 15000/g) || []).length >= 2);
+  // QQ 播放请求的渲染侧 15s 预算：定义收敛在 Omni provider，播放链两处消费透传（playQueueAt + albumGapless）。
+  const omniQqSource = fs.readFileSync(path.join(ROOT, 'public/js/modules/04-omni/04-provider-qq.js'), 'utf8');
+  assert(/timeoutMs: 15000/.test(omniQqSource));
+  assert((playbackSource.match(/omniBuilt/g) || []).length >= 2);
   assert(/timeoutMs: 15000/.test(prefetchSource));
 
   assert(!/vipEvidence:\s*playbackVipEvidence/.test(serverSource));

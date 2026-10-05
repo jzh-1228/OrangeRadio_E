@@ -436,45 +436,8 @@ function albumGaplessQueueCanAdvance(idx) {
   return currentKey === albumGaplessState.albumKey && nextKey === albumGaplessState.albumKey;
 }
 
-function qqPlaybackEvidenceQuery(song) {
-  song = song || {};
-  var vipRequired = !!(song.vipRequired || song.needVip || song.need_vip || song.onlyVipPlayable || song.only_vip_playable);
-  if (!vipRequired && typeof songRequiresVip === 'function') {
-    try { vipRequired = songRequiresVip(song); } catch (e) { vipRequired = false; }
-  }
-  return '&vipRequired=' + encodeURIComponent(vipRequired ? '1' : '') +
-    '&needVip=' + encodeURIComponent(song.needVip || song.need_vip ? '1' : '') +
-    '&onlyVipPlayable=' + encodeURIComponent(song.onlyVipPlayable || song.only_vip_playable ? '1' : '') +
-    '&privilege=' + encodeURIComponent(song.privilege || song.Privilege || song.mediaPrivilege || song.media_privilege || '') +
-    '&fee=' + encodeURIComponent(song.fee || song.Fee || '');
-}
-
-function neteasePlaybackMatchQuery(song, opts) {
-  song = song || {};
-  opts = opts || {};
-  var excludeIds = Array.isArray(opts.excludeIds)
-    ? opts.excludeIds.join(',')
-    : String(opts.excludeIds || '');
-  var artistId = song.artistId || song.artist_id || '';
-  if (!artistId && Array.isArray(song.artists) && song.artists[0]) artistId = song.artists[0].id || '';
-  if (!artistId && Array.isArray(song.ar) && song.ar[0]) artistId = song.ar[0].id || '';
-  var artistRecords = Array.isArray(song.artists) && song.artists.length ? song.artists : (Array.isArray(song.ar) ? song.ar : []);
-  var artistIds = artistRecords.map(function (artist) { return artist && artist.id || ''; }).filter(Boolean);
-  var artistNames = artistRecords.map(function (artist) { return artist && artist.name || ''; }).filter(Boolean);
-  if (!artistIds.length && artistId) artistIds = [artistId];
-  if (!artistNames.length && (song.artist || song.artistName)) artistNames = [song.artist || song.artistName];
-  var albumName = song.album || song.albumName || '';
-  if (albumName && typeof albumName === 'object') albumName = albumName.name || '';
-  return '&name=' + encodeURIComponent(song.name || song.title || '') +
-    '&artist=' + encodeURIComponent(song.artist || song.artistName || '') +
-    '&artistId=' + encodeURIComponent(artistId) +
-    '&artistIds=' + encodeURIComponent(artistIds.join(',')) +
-    '&artistNames=' + encodeURIComponent(artistNames.join('\u001f')) +
-    '&album=' + encodeURIComponent(albumName) +
-    '&duration=' + encodeURIComponent(song.durationMs || song.dt || song.duration || 0) +
-    '&excludeIds=' + encodeURIComponent(excludeIds) +
-    '&skipDirect=' + (opts.skipDirect ? '1' : '');
-}
+// qqPlaybackEvidenceQuery / neteasePlaybackMatchQuery 已收敛至 Omni 层
+// （04-omni/03-provider-netease.js 与 04-provider-qq.js），全局名保留由该处提供。
 
 function clearNeteaseSourceMatchMetadata(song) {
   if (!song) return song;
@@ -559,32 +522,9 @@ async function resolveAlbumGaplessPlaybackData(song) {
   var runtimeQualityCap = playbackQualityCapValue(song, playbackProvider);
   if (playbackQualityAboveCap(requestedQuality, playbackProvider, runtimeQualityCap)) requestedQuality = runtimeQualityCap;
   var qualityParam = '&quality=' + encodeURIComponent(requestedQuality);
-  if (playbackProvider === 'qq') {
-    return apiJson('/api/qq/song/url?mid=' + encodeURIComponent(song.mid || song.songmid || song.id || '') + '&mediaMid=' + encodeURIComponent(song.mediaMid || song.media_mid || '') + qqPlaybackEvidenceQuery(song) + qualityParam, { timeoutMs: 15000 });
-  }
-  if (playbackProvider === 'kugou') {
-    return apiJson('/api/kugou/song/url?hash=' + encodeURIComponent(song.hash || song.fileHash || song.audioHash || song.id || '') +
-      '&albumId=' + encodeURIComponent(song.albumId || song.album_id || '') +
-      '&albumAudioId=' + encodeURIComponent(song.albumAudioId || song.album_audio_id || song.mixSongId || '') +
-      '&mixSongId=' + encodeURIComponent(song.mixSongId || '') +
-      '&hqHash=' + encodeURIComponent(song.hqHash || song.hq_hash || '') +
-      '&sqHash=' + encodeURIComponent(song.sqHash || song.sq_hash || '') +
-      '&resHash=' + encodeURIComponent(song.resHash || song.res_hash || '') +
-      '&vipRequired=' + encodeURIComponent(song.vipRequired || song.needVip || song.onlyVipPlayable || song.only_vip_playable ? '1' : '') +
-      '&privilege=' + encodeURIComponent(song.privilege || song.Privilege || song.mediaPrivilege || song.media_privilege || '') +
-      '&fee=' + encodeURIComponent(song.fee || song.Fee || '') +
-      qualityParam, { timeoutMs: 9000 });
-  }
-  if (playbackProvider === 'qishui') {
-    return apiJson('/api/qishui/song/url?id=' + encodeURIComponent(song.id || song.providerSongId || '') + qqPlaybackEvidenceQuery(song) + qualityParam, { timeoutMs: 9000 });
-  }
-  if (playbackProvider === 'spotify') {
-    return apiJson('/api/spotify/song/url?id=' + encodeURIComponent(song.id || song.providerSongId || song.spotifyId || '') +
-      '&spotifyId=' + encodeURIComponent(song.spotifyId || '') +
-      '&uri=' + encodeURIComponent(song.spotifyUri || song.uri || '') +
-      qualityParam, { timeoutMs: 9000 });
-  }
-  return apiJson('/api/song/url?id=' + encodeURIComponent(song.id || '') + neteasePlaybackMatchQuery(song) + qualityParam, { timeoutMs: 14000 });
+  var omniBuilt = omni.playbackUrlForSong(song, { qualityParam: qualityParam });
+  if (!omniBuilt) return null;
+  return apiJson(omniBuilt.url, { timeoutMs: omniBuilt.timeoutMs });
 }
 
 function consumeAlbumGaplessPreload(preload) {
@@ -1090,29 +1030,12 @@ async function playQueueAt(idx, opts) {
         data = opts.preloadedData;
       } else if (opts.preResolvedPlaybackData && opts.preResolvedPlaybackData.url) {
         data = opts.preResolvedPlaybackData;
-      } else if (isQQPlayback) {
-        data = await apiJson('/api/qq/song/url?mid=' + encodeURIComponent(song.mid || song.songmid || song.id || '') + '&mediaMid=' + encodeURIComponent(song.mediaMid || song.media_mid || '') + qqPlaybackEvidenceQuery(song) + qualityParam, { timeoutMs: 15000 });
-      } else if (isKugouPlayback) {
-        data = await apiJson('/api/kugou/song/url?hash=' + encodeURIComponent(song.hash || song.fileHash || song.audioHash || song.id || '') +
-          '&albumId=' + encodeURIComponent(song.albumId || song.album_id || '') +
-          '&albumAudioId=' + encodeURIComponent(song.albumAudioId || song.album_audio_id || song.mixSongId || '') +
-          '&mixSongId=' + encodeURIComponent(song.mixSongId || '') +
-          '&hqHash=' + encodeURIComponent(song.hqHash || song.hq_hash || '') +
-          '&sqHash=' + encodeURIComponent(song.sqHash || song.sq_hash || '') +
-          '&resHash=' + encodeURIComponent(song.resHash || song.res_hash || '') +
-          '&vipRequired=' + encodeURIComponent(song.vipRequired || song.needVip || song.onlyVipPlayable || song.only_vip_playable ? '1' : '') +
-          '&privilege=' + encodeURIComponent(song.privilege || song.Privilege || song.mediaPrivilege || song.media_privilege || '') +
-          '&fee=' + encodeURIComponent(song.fee || song.Fee || '') +
-          qualityParam, { timeoutMs: 9000 });
-      } else if (isQishuiPlayback) {
-        data = await apiJson('/api/qishui/song/url?id=' + encodeURIComponent(song.id || song.providerSongId || '') + qqPlaybackEvidenceQuery(song) + qualityParam, { timeoutMs: 9000 });
-      } else if (isSpotifyPlayback) {
-        data = await apiJson('/api/spotify/song/url?id=' + encodeURIComponent(song.id || song.providerSongId || song.spotifyId || '') +
-          '&spotifyId=' + encodeURIComponent(song.spotifyId || '') +
-          '&uri=' + encodeURIComponent(song.spotifyUri || song.uri || '') +
-          qualityParam, { timeoutMs: 9000 });
       } else {
-        data = await apiJson('/api/song/url?id=' + encodeURIComponent(song.id || '') + neteasePlaybackMatchQuery(song) + qualityParam, { timeoutMs: 14000 });
+        var omniBuilt = omni.playbackUrlForSong(song, { qualityParam: qualityParam });
+        data = await apiJson(
+          omniBuilt ? omniBuilt.url : '/api/song/url?id=' + encodeURIComponent(song.id || '') + neteasePlaybackMatchQuery(song) + qualityParam,
+          { timeoutMs: omniBuilt ? omniBuilt.timeoutMs : 14000 }
+        );
       }
       if (token !== trackSwitchToken) return;
       if (
