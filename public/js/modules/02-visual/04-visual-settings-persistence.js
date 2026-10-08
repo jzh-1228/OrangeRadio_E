@@ -440,7 +440,8 @@ function readSavedLyricLayout() {
       shelfCameraExitSpeed: clampRange(raw.shelfCameraExitSpeed == null ? fxDefaults.shelfCameraExitSpeed : Number(raw.shelfCameraExitSpeed), 0.2, 1.5),
       cam: /^(off|gesture)$/.test(String(raw.cam || '')) ? raw.cam : fxDefaults.cam,
       backgroundMode: (typeof raw.backgroundMode === 'string' && raw.backgroundMode) ? raw.backgroundMode : fxDefaults.backgroundMode,
-      themeMode: /^(auto|light|dark)$/.test(String(raw.themeMode || '')) ? raw.themeMode : fxDefaults.themeMode
+      themeMode: /^(auto|light|dark)$/.test(String(raw.themeMode || '')) ? raw.themeMode : fxDefaults.themeMode,
+      themePreset: (typeof raw.themePreset === 'string' && /^(cover|base|custom:)/.test(raw.themePreset)) ? raw.themePreset : fxDefaults.themePreset
     };
   } catch (e) {
     return readSavedLyricLayoutCriticalFallback(raw, e);
@@ -936,7 +937,8 @@ function saveLyricLayout(opts) {
       shelfCameraExitSpeed: clampRange(fx.shelfCameraExitSpeed == null ? fxDefaults.shelfCameraExitSpeed : Number(fx.shelfCameraExitSpeed), 0.2, 1.5),
       cam: /^(off|gesture)$/.test(String(fx.cam || '')) ? fx.cam : fxDefaults.cam,
       backgroundMode: (typeof fx.backgroundMode === 'string' && fx.backgroundMode) ? fx.backgroundMode : fxDefaults.backgroundMode,
-      themeMode: /^(auto|light|dark)$/.test(String(fx.themeMode || '')) ? fx.themeMode : fxDefaults.themeMode
+      themeMode: /^(auto|light|dark)$/.test(String(fx.themeMode || '')) ? fx.themeMode : fxDefaults.themeMode,
+      themePreset: (typeof fx.themePreset === 'string' && /^(cover|base|custom:)/.test(fx.themePreset)) ? fx.themePreset : fxDefaults.themePreset
     };
     autosavePayload = scopeCurrentFxAutosavePayload(autosavePayload, opts);
     if (shouldSkipCurrentFxAutosaveWrite(autosavePayload, opts)) return;

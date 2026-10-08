@@ -420,9 +420,18 @@
       <div class="fx-section-label">视觉预设</div>
       <div class="preset-grid" id="preset-grid"></div>
       <div class="fx-section-label">主题</div>
-      <div class="fx-seg theme-mode-seg" id="theme-mode-seg" role="group" aria-label="主题模式"
+      <div class="fx-seg theme-preset-seg" id="theme-preset-seg" role="group" aria-label="主题来源"
+        title="封面派生：每首歌按封面生成昼/夜双主题；墨染素白：Folia 基础预设对"></div>
+      <div class="fx-seg theme-mode-seg" id="theme-mode-seg" role="group" aria-label="昼房模式"
         title="封面派生双主题（Folia builtin 移植）：跟随昼夜自动切换白天/黑夜，或手动固定"></div>
       <div class="fx-theme-info" id="theme-info-line" title="当前主题（按封面取色生成）">等待封面取色</div>
+      <div class="theme-library" id="theme-library">
+        <div class="theme-lib-save-row">
+          <input id="theme-library-name" class="theme-lib-input" type="text" maxlength="24" placeholder="主题名（留空用当前主题名）">
+          <button type="button" id="theme-library-save" class="theme-lib-btn is-save" title="把当前生效的昼/夜双主题存进我的主题库">保存当前</button>
+        </div>
+        <div id="theme-library-list" class="theme-lib-list"></div>
+      </div>
       <div class="fx-section-label">背景</div>
       <div class="fx-seg background-mode-seg" id="background-mode-seg" role="group" aria-label="背景选择"
         title="与前景视觉自由组合的背景层：不改变歌词模式、覆盖层与数值预设"></div>

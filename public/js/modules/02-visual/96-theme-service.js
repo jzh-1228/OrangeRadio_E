@@ -530,6 +530,130 @@ function themeGenerateBuiltinDualTheme(coverColors, random) {
 
 /* ---------- §6 宿主：昼房切换 / 缓存 / 消费端 ---------- */
 
+/* 基础预设对（Folia baseThemes.ts 逐字段移植）：
+   墨染（Midnight Default，zinc 系暗夜）与素白（Daylight Default，stone 系日光，
+   强调色 orange-600）。这是"保存自定义或应用生成主题之前用户看到的那对主题"，
+   也是无封面时的回退。 */
+var THEME_BASE_DUAL = {
+  light: {
+    name: '素白 Default',
+    backgroundColor: '#f5f5f4',
+    primaryColor: '#1c1917',
+    accentColor: '#ea580c',
+    secondaryColor: '#44403c',
+    fontStyle: 'sans',
+    animationIntensity: 'normal',
+    provider: 'Built-in'
+  },
+  dark: {
+    name: '墨染 Default',
+    backgroundColor: '#09090b',
+    primaryColor: '#f4f4f5',
+    accentColor: '#f4f4f5',
+    secondaryColor: '#71717a',
+    fontStyle: 'sans',
+    animationIntensity: 'normal',
+    provider: 'Built-in'
+  }
+};
+
+/* ---------- 我的主题库（Theme Park 的保存主题等价：localStorage 双主题清单） ---------- */
+
+var THEME_LIBRARY_KEY = 'orangesea-theme-library-v1';
+
+function themeLibraryRead() {
+  try {
+    var raw = JSON.parse(localStorage.getItem(THEME_LIBRARY_KEY) || '[]');
+    if (!Array.isArray(raw)) return [];
+    var out = [];
+    for (var i = 0; i < raw.length; i++) {
+      var e = raw[i];
+      if (e && e.id && e.light && e.dark
+        && e.light.backgroundColor && e.light.primaryColor && e.light.accentColor
+        && e.dark.backgroundColor && e.dark.primaryColor && e.dark.accentColor) {
+        out.push(e);
+      }
+    }
+    return out;
+  } catch (err) {
+    return [];
+  }
+}
+
+function themeLibraryWrite(list) {
+  try { localStorage.setItem(THEME_LIBRARY_KEY, JSON.stringify(list || [])); } catch (err) { }
+}
+
+function themeSanitizeSavedSide(side) {
+  return {
+    name: String(side.name || '我的主题').slice(0, 40),
+    description: String(side.description || '').slice(0, 60),
+    backgroundColor: themeParseColor(side.backgroundColor) ? side.backgroundColor : '#09090b',
+    primaryColor: themeParseColor(side.primaryColor) ? side.primaryColor : '#f4f4f5',
+    accentColor: themeParseColor(side.accentColor) ? side.accentColor : '#f4f4f5',
+    secondaryColor: themeParseColor(side.secondaryColor) ? side.secondaryColor : '#71717a',
+    fontStyle: 'sans',
+    animationIntensity: 'normal',
+    provider: 'Custom'
+  };
+}
+
+/* 把当前生效的双主题（封面派生结果或基础对）存进库；返回条目或 null */
+function themeLibrarySaveCurrent(name) {
+  var dual = null;
+  var generated = themeCurrentDualTheme();
+  dual = generated || THEME_BASE_DUAL;
+  var entry = {
+    id: 'th-' + Date.now().toString(36) + '-' + Math.floor(Math.random() * 1e6).toString(36),
+    name: String(name || '').trim().slice(0, 24) || (dual.dark && dual.dark.name ? String(dual.dark.name).replace(/ Built-in$/, '') : '我的主题'),
+    createdAt: Date.now(),
+    light: null,
+    dark: null
+  };
+  /* 两侧统一用用户起的名字（应用后主题名/描述行读得到） */
+  entry.light = themeSanitizeSavedSide(dual.light);
+  entry.dark = themeSanitizeSavedSide(dual.dark);
+  entry.light.name = entry.name;
+  entry.dark.name = entry.name;
+  var list = themeLibraryRead();
+  list.push(entry);
+  themeLibraryWrite(list);
+  return entry;
+}
+
+function themeLibraryDelete(id) {
+  var list = themeLibraryRead();
+  var next = [];
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].id !== id) next.push(list[i]);
+  }
+  themeLibraryWrite(next);
+  /* 若删的是正在用的：回到封面派生 */
+  if (String((typeof fx !== 'undefined' && fx && fx.themePreset) || '').indexOf('custom:') === 0) {
+    var currentId = String(fx.themePreset).slice(7);
+    if (currentId === id && typeof fx !== 'undefined' && fx) {
+      fx.themePreset = 'cover';
+      if (typeof saveLyricLayout === 'function') saveLyricLayout({ user: true, reason: 'themePreset' });
+    }
+  }
+}
+
+/* ---------- 主题来源解析（fx.themePreset：cover 派生 / base 墨染素白 / custom:<id>） ---------- */
+
+function themeCurrentPresetSetting() {
+  var raw = (typeof fx !== 'undefined' && fx && fx.themePreset) || 'cover';
+  if (raw === 'base') return 'base';
+  if (String(raw).indexOf('custom:') === 0) {
+    var id = String(raw).slice(7);
+    var list = themeLibraryRead();
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === id) return list[i];
+    }
+    return 'cover';   /* 库里已不存在 → 回退派生 */
+  }
+  return 'cover';
+}
+
 var duoThemeState = {
   dual: null,
   cacheKey: '',
@@ -592,10 +716,19 @@ function themeCurrentDualTheme() {
   return duoThemeState.dual;
 }
 
-/* 当前生效主题（Folia Theme 形状）；无封面派生时回退 null（消费端各自兜底） */
+/* 当前生效主题（Folia Theme 形状）。来源解析：
+   cover = 封面派生（无取色回退墨染/素白，与 Folia"保存前看到的那对"一致）；
+   base = 墨染/素白；custom:<id> = 我的主题库条目。昼房由 fx.themeMode 决定。 */
 function themeServiceActiveTheme() {
-  var dual = themeCurrentDualTheme();
-  if (!dual) return null;
+  var preset = themeCurrentPresetSetting();
+  var dual = null;
+  if (preset === 'base') {
+    dual = THEME_BASE_DUAL;
+  } else if (preset && typeof preset === 'object') {
+    dual = preset;
+  } else {
+    dual = themeCurrentDualTheme() || THEME_BASE_DUAL;
+  }
   return dual[themeResolveActiveMode()] || dual.dark;
 }
 
@@ -635,7 +768,7 @@ function themeServiceLoop() {
   tick();
 }
 
-/* ---------- §7 DIY 控制台「外观」：主题模式 seg + 主题信息行 ---------- */
+/* ---------- §7 DIY 控制台「外观」：主题来源/昼夜 seg + 主题库 + 信息行 ---------- */
 
 function themeRenderInfoLine(active) {
   var el = document.getElementById('theme-info-line');
@@ -644,6 +777,93 @@ function themeRenderInfoLine(active) {
   el.textContent = active
     ? active.name + ' · ' + (active.description || '') + ' · ' + mode
     : '等待封面取色 · 播放后生成主题 · ' + mode;
+}
+
+/* 来源 seg：封面派生 / 墨染素白（库主题在库列表里单选） */
+function themeRenderPresetSeg() {
+  var seg = document.getElementById('theme-preset-seg');
+  if (!seg || seg._themeBound) return;
+  seg._themeBound = true;
+  seg.innerHTML =
+    '<button type="button" data-theme-preset="cover" title="每首歌按封面取色生成昼/夜双主题">封面派生</button>' +
+    '<button type="button" data-theme-preset="base" title="Folia 基础预设：墨染（夜）+ 素白（昼）">墨染素白</button>';
+  seg.addEventListener('click', function (e) {
+    var btn = e.target && e.target.closest ? e.target.closest('[data-theme-preset]') : null;
+    if (!btn) return;
+    if (typeof fx !== 'undefined' && fx) fx.themePreset = btn.getAttribute('data-theme-preset');
+    if (typeof saveLyricLayout === 'function') saveLyricLayout({ user: true, reason: 'themePreset' });
+    themeSyncPresetSeg();
+    themeRenderLibrary();
+    themeServiceApply();
+  });
+  themeSyncPresetSeg();
+}
+
+function themeSyncPresetSeg() {
+  var seg = document.getElementById('theme-preset-seg');
+  if (!seg) return;
+  var current = themeCurrentPresetSetting();
+  var currentKey = current === 'base' ? 'base' : 'cover';
+  var buttons = seg.querySelectorAll('[data-theme-preset]');
+  for (var i = 0; i < buttons.length; i++) {
+    buttons[i].classList.toggle('active', buttons[i].getAttribute('data-theme-preset') === currentKey);
+  }
+}
+
+/* 我的主题库：保存当前双主题（派生结果或基础对）→ 列表应用/删除 */
+function themeRenderLibrary() {
+  var box = document.getElementById('theme-library');
+  if (!box) return;
+  if (!box._themeLibBound) {
+    box._themeLibBound = true;
+    box.addEventListener('click', function (e) {
+      var actBtn = e.target && e.target.closest ? e.target.closest('[data-theme-lib-act]') : null;
+      if (!actBtn) return;
+      var act = actBtn.getAttribute('data-theme-lib-act');
+      var id = actBtn.getAttribute('data-lib-id');
+      if (act === 'apply' && typeof fx !== 'undefined' && fx) {
+        fx.themePreset = 'custom:' + id;
+        if (typeof saveLyricLayout === 'function') saveLyricLayout({ user: true, reason: 'themePreset' });
+        themeSyncPresetSeg();
+        themeRenderLibrary();
+        themeServiceApply();
+      } else if (act === 'del') {
+        themeLibraryDelete(id);
+        themeSyncPresetSeg();
+        themeRenderLibrary();
+        themeServiceApply();
+      }
+    });
+    var saveBtn = document.getElementById('theme-library-save');
+    if (saveBtn) {
+      saveBtn.addEventListener('click', function () {
+        var input = document.getElementById('theme-library-name');
+        var name = input ? input.value : '';
+        var entry = themeLibrarySaveCurrent(name);
+        if (input) input.value = '';
+        if (typeof showToast === 'function') showToast('已保存主题「' + entry.name + '」');
+        themeRenderLibrary();
+      });
+    }
+  }
+  var list = themeLibraryRead();
+  var current = themeCurrentPresetSetting();
+  var currentId = (current && typeof current === 'object') ? current.id : '';
+  var html = '';
+  for (var i = 0; i < list.length; i++) {
+    var e = list[i];
+    var active = e.id === currentId;
+    html += '<div class="theme-lib-row' + (active ? ' is-active' : '') + '" data-lib-id="' + e.id + '">' +
+      '<span class="theme-lib-swatch" style="background:linear-gradient(135deg,' + e.light.backgroundColor + ' 50%,' + e.dark.backgroundColor + ' 50%)"></span>' +
+      '<span class="theme-lib-name" title="' + e.name.replace(/"/g, '') + '">' + e.name + '</span>' +
+      '<button type="button" class="theme-lib-btn" data-theme-lib-act="apply" data-lib-id="' + e.id + '">' + (active ? '使用中' : '应用') + '</button>' +
+      '<button type="button" class="theme-lib-btn is-del" data-theme-lib-act="del" data-lib-id="' + e.id + '" title="删除">✕</button>' +
+      '</div>';
+  }
+  var listEl = document.getElementById('theme-library-list');
+  if (listEl) {
+    listEl.innerHTML = html || '<div class="theme-lib-empty">还没有保存的主题——封面派生出喜欢的配色后点「保存当前」</div>';
+  }
 }
 
 function themeRenderModeSeg() {
@@ -678,6 +898,8 @@ function themeSyncModeSeg() {
 
 function initThemeService() {
   themeRenderModeSeg();
+  themeRenderPresetSeg();
+  themeRenderLibrary();
   themeServiceApply();
   themeServiceLoop();
 }

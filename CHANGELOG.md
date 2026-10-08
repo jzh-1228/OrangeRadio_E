@@ -2,6 +2,7 @@
 
 ## 未发布
 
+- 主题系统补全 folia 三源：新增**基础预设对「墨染/素白」**（baseThemes.ts 逐字段：夜 zinc 系 / 昼 stone 系 + orange-600 强调，无封面与"保存前"的默认观感）与**我的主题库**（Theme Park 保存主题等价：一键把当前生效双主题存进 localStorage，列表应用/删除，悬空回退封面派生）；`fx.themePreset` 三源选择（封面派生/墨染素白/custom:\<id\>）持久化。
 - 新增**封面派生双主题系统**（Folia builtinTheme 全链移植，DIY 控制台「主题」组）：每首歌按封面取色 + 和声方案（duotone/analogous/complementary/split/triadic/monochrome）实时生成**昼/夜一对主题**——背景基调三档（素墨/轻染/浓彩）、primary/secondary/accent 沿亮度轴解 WCAG 对比度地板（9:1/4.5:1/3.2:1，保色相不退化为黑白）、诗意见证名（色相桶前缀"绯色/琥珀/鎏金/新柳/潮汐/紫烟…" × 昼"破晓/晨光/微光…"/夜"子夜/夜色/深潭…" + Built-in 尾标）与同色系第一人称氛围描述；`fx.themeMode` 跟随昼夜（7-19 点为昼）或手动固定，持久化。消费端：正交背景层主题色、烟纸纸面文字与底色（亮主题=亮纸暗墨，整版自动重排）、`:root` 的 `--theme-*` CSS 变量。随机源按歌曲 key 播种（同歌同主题跨会话稳定）；色板键连续两拍一致才重生成（防取色分步写入翻主题）。详见 `docs/THEMES.md`，测试基线 46 → 47。
 - 新增 **Web 版部署**：`npm run web`（= `node server.js`，PORT 可环境变量覆盖）+ `deploy/web/`（Dockerfile + docker-compose，凭据经 `COOKIE_FILE*` 环境变量入 `/app/data` 卷）。前端对 `window.electron` 桥全量护栏（修复 automix 模型进度订阅在纯浏览器崩溃），无桩浏览器启动零报错、烟纸/队列拼贴/流光/雨夜四模式实测可用；桌面专属能力（本地库导入/Automix ONNX/桌面歌词等）自动降级。详见 `docs/DEPLOY_WEB.md`。
 - 新增 **Android APK 打包设置**：`npm run android:sync`（生成 WebView 壳启动页 + `capacitor.config.json`，`--url` 可烧录服务地址）+ Capacitor 打包全流程文档（SDK/JDK 前置、cap add/sync、明文流量许可、签名发布、已知边界）。APK = 壳 × Web 服务，业务代码全在服务端同源加载，服务升级免重打包。详见 `docs/ANDROID.md`。

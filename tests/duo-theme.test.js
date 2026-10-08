@@ -14,10 +14,16 @@ const sandbox = {
     getElementById() { return null; },
     documentElement: { style: { setProperty() { } } },
   },
-  fx: { themeMode: 'auto' },
+  fx: { themeMode: 'auto', themePreset: 'cover' },
   stageLyrics: null,
   scheduleUiWarmTask() { return 0; },
   setTimeout() { return 0; },
+};
+const storage = new Map();
+sandbox.localStorage = {
+  getItem: (k) => (storage.has(k) ? storage.get(k) : null),
+  setItem: (k, v) => storage.set(k, String(v)),
+  removeItem: (k) => storage.delete(k),
 };
 vm.createContext(sandbox);
 vm.runInContext(fs.readFileSync(modulePath, 'utf8'), sandbox, { filename: modulePath });
@@ -28,6 +34,8 @@ const {
   themeAdjustLightnessForContrast,
   themeAnalyzeCoverPalette, themeGenerateBuiltinDualTheme, themeMulberry32, themeHashSeed,
   themeResolveActiveMode, themeCurrentModeSetting,
+  THEME_BASE_DUAL, themeLibraryRead, themeLibraryWrite,
+  themeLibrarySaveCurrent, themeLibraryDelete, themeCurrentPresetSetting, themeServiceActiveTheme,
 } = sandbox;
 
 const HEX = /^#[0-9a-f]{6}$/i;
@@ -109,6 +117,49 @@ const HEX = /^#[0-9a-f]{6}$/i;
   assert.ok(['light', 'dark'].includes(themeResolveActiveMode()));
   sandbox.fx.themeMode = 'garbage';
   assert.equal(themeCurrentModeSetting(), 'auto');
+}
+
+/* ---------- 基础预设对（墨染/素白，baseThemes.ts 逐字段） ---------- */
+{
+  assert.equal(THEME_BASE_DUAL.dark.name, '墨染 Default');
+  assert.equal(THEME_BASE_DUAL.dark.backgroundColor, '#09090b');       // zinc-950
+  assert.equal(THEME_BASE_DUAL.dark.primaryColor, '#f4f4f5');          // zinc-100
+  assert.equal(THEME_BASE_DUAL.light.name, '素白 Default');
+  assert.equal(THEME_BASE_DUAL.light.backgroundColor, '#f5f5f4');      // stone-100
+  assert.equal(THEME_BASE_DUAL.light.accentColor, '#ea580c');          // orange-600
+}
+
+/* ---------- 我的主题库：存/列/应用/删 + 三源解析 ---------- */
+{
+  sandbox.fx.themePreset = 'cover';
+  assert.equal(themeCurrentPresetSetting(), 'cover');
+  sandbox.fx.themePreset = 'base';
+  assert.equal(themeCurrentPresetSetting(), 'base');
+  assert.equal(themeServiceActiveTheme().backgroundColor, '#09090b');  // base·夜（沙箱无取色）
+  sandbox.fx.themeMode = 'light';
+  assert.equal(themeServiceActiveTheme().backgroundColor, '#f5f5f4'); // base·昼
+  sandbox.fx.themeMode = 'auto';
+
+  // 保存当前（cover 无取色 → 存的是基础对的颜色）
+  const entry = themeLibrarySaveCurrent('我的夜航');
+  assert.ok(entry.id && entry.name === '我的夜航');
+  assert.equal(themeLibraryRead().length, 1);
+  // 应用库主题
+  sandbox.fx.themePreset = 'custom:' + entry.id;
+  const resolved = themeCurrentPresetSetting();
+  assert.equal(typeof resolved, 'object');
+  assert.equal(resolved.name, entry.name);
+  assert.equal(themeServiceActiveTheme().name, entry.name);
+  // 删除 → 回退 cover
+  themeLibraryDelete(entry.id);
+  assert.equal(themeLibraryRead().length, 0);
+  assert.equal(themeCurrentPresetSetting(), 'cover');
+  // 悬空 custom 引用回退 cover
+  sandbox.fx.themePreset = 'custom:ghost';
+  assert.equal(themeCurrentPresetSetting(), 'cover');
+  // 存储损坏兜底
+  storage.set('orangesea-theme-library-v1', '{broken');
+  assert.equal(themeLibraryRead().length, 0);
 }
 
 console.log('duo-theme.test.js: all assertions passed');

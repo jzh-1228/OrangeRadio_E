@@ -202,6 +202,7 @@ var fxDefaults = {
   cam: 'off',
   backgroundMode: 'ambient',  // 正交背景层（95-background-runtime）：ambient=氛围底（body 背景体系）
   themeMode: 'auto',          // 封面派生双主题（96-theme-service）：auto=跟随昼夜 / light / dark
+  themePreset: 'cover',       // 主题来源：cover=封面派生 / base=墨染素白 / custom:<库id>
 };
 function normalizeForegroundFpsMode(value) {
   var mode = String(value || '').trim().toLowerCase();

@@ -27,6 +27,8 @@ var FX_CONSOLE_LAYOUT = [
       ] },
       { key: 'background', title: '背景', hint: '与前景视觉自由组合的背景层（不改变歌词模式与覆盖层）', open: true, items: [
         fxConsoleItem('theme-mode-seg', '主题', '主题模式 跟随昼夜 白天 黑夜 封面派生双主题'),
+        fxConsoleItem('theme-preset-seg', '主题来源', '封面派生 墨染素白 基础预设'),
+        fxConsoleItem('theme-library', '我的主题库', '保存主题 应用主题 删除主题 昼夜双主题'),
         fxConsoleItem('theme-info-line', '主题名', '当前主题名与描述 封面取色生成'),
         fxConsoleItem('background-mode-seg', '背景', '背景模式 氛围底 流体封面 纯色渐变 几何律动 星河 封面模糊 底图')
       ] },
