@@ -112,8 +112,79 @@ function applyFetchedLyricResponse(song, token, response, options) {
   setOriginalLyricsState(state.lines, state.hasNativeKaraoke, state.timingSource, state.translationLines, state.translationSource);
   applyPreferredLyricsForCurrent(true);
   scheduleNeteaseLyricTranslationFallback(song, token, state);
+  hydrateNeteaseChorus(song, token, state, mergedResponse);
   if (state.usableLyric && options.persist !== false) writePersistentLyricCache(song, mergedResponse);
   return state;
+}
+
+/* ---------- 副歌元数据（Folia chorusResolver 链路：网易区间优先，重复行文本回退） ----------
+   烟纸（Fume）用 isChorus 决定 hero 特大块落点；打标异步完成后 bump lyricsMetaVersion，
+   烟纸的歌词轮询按版本号感知并重排。其余歌词消费方（舞台/涂鸦/流光）不读该字段。 */
+var lyricsMetaVersion = 0;
+var lyricsChorusCache = { key: '', ranges: null };
+
+function detectChorusTextsFromLines(lines) {
+  var counts = new Map();
+  for (var i = 0; i < lines.length; i++) {
+    var text = String((lines[i] && lines[i].text) || '').trim();
+    if (!text || text === '......' || text.length < 2) continue;
+    counts.set(text, (counts.get(text) || 0) + 1);
+  }
+  var maxCount = 0;
+  counts.forEach(function (c) { if (c > maxCount) maxCount = c; });
+  if (maxCount <= 1) return [];
+  var out = [];
+  counts.forEach(function (c, text) { if (c === maxCount) out.push(text); });
+  return out;
+}
+
+function markChorusOnCurrentLyrics(token, ranges, chorusTexts) {
+  if (token !== trackSwitchToken) return;
+  var stateLines = (originalLyricsState && originalLyricsState.lines) || [];
+  if (!stateLines.length) return;
+  var marked = false;
+  for (var i = 0; i < stateLines.length; i++) {
+    var line = stateLines[i];
+    if (!line || line.isChorus) continue;
+    var start = Number(line.t) || 0;
+    var end = start + (Number(line.duration) > 0 ? Number(line.duration) : 2.4);
+    var hit = false;
+    if (ranges && ranges.length) {
+      for (var r = 0; r < ranges.length; r++) {
+        if (start < ranges[r].endTime && end > ranges[r].startTime) { hit = true; break; }
+      }
+    } else if (chorusTexts && chorusTexts.length) {
+      hit = chorusTexts.indexOf(String(line.text || '').trim()) >= 0;
+    }
+    if (hit) { line.isChorus = true; marked = true; }
+  }
+  if (!marked) return;
+  applyPreferredLyricsForCurrent(true);
+  lyricsMetaVersion++;
+}
+
+function hydrateNeteaseChorus(song, token, state, mergedResponse) {
+  if (!song || typeof song !== 'object') return;
+  if (song.type === 'local' || song.source === 'local' || song.localKey || song.type === 'podcast') return;
+  var provider = song.provider || song.source;
+  if (provider !== 'netease') return;
+  var id = song.id || song.mediaId;
+  if (!id) return;
+  var key = String(id);
+  if (lyricsChorusCache.key === key && lyricsChorusCache.ranges) {
+    markChorusOnCurrentLyrics(token, lyricsChorusCache.ranges.length ? lyricsChorusCache.ranges : null,
+      lyricsChorusCache.ranges.length ? null : detectChorusTextsFromLines(state.lines || []));
+    return;
+  }
+  apiJson('/api/song/chorus?id=' + encodeURIComponent(key)).then(function (j) {
+    var ranges = (j && Array.isArray(j.ranges)) ? j.ranges : [];
+    lyricsChorusCache = { key: key, ranges: ranges };
+    markChorusOnCurrentLyrics(token, ranges.length ? ranges : null,
+      ranges.length ? null : detectChorusTextsFromLines(state.lines || []));
+  }).catch(function () {
+    lyricsChorusCache = { key: key, ranges: [] };
+    markChorusOnCurrentLyrics(token, null, detectChorusTextsFromLines(state.lines || []));
+  });
 }
 
 function refreshPersistentLyricCache(song) {

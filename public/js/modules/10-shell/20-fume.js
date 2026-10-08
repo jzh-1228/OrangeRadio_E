@@ -2339,7 +2339,7 @@ function fumeBuildAdapterLines() {
       endTime: endTime,
       fullText: String(raw.text || ''),
       words: words,
-      isChorus: false,
+      isChorus: !!raw.isChorus,
       renderHints: null
     };
     line.renderHints = fumeBuildLineRenderHints(line);
@@ -2363,7 +2363,9 @@ function fumeComputeLinesKey() {
   var len = (typeof lyricsLines !== 'undefined' && lyricsLines) ? lyricsLines.length : 0;
   var first = len ? Number(lyricsLines[0] && lyricsLines[0].t) || 0 : 0;
   var last = len ? Number(lyricsLines[len - 1] && lyricsLines[len - 1].t) || 0 : 0;
-  return len + '|' + first + '|' + last;
+  /* lyricsMetaVersion：副歌打标等歌词元数据异步就位后递增，驱动纸面重排 */
+  var meta = (typeof lyricsMetaVersion !== 'undefined') ? lyricsMetaVersion : 0;
+  return len + '|' + first + '|' + last + '|' + meta;
 }
 
 function fumeResolveOverviewStartTime(lines) {

@@ -33,6 +33,7 @@ const {
   artist_detail,
   artist_songs,
   artist_top_song,
+  song_chorus,
 } = require('NeteaseCloudMusicApi');
 const { sendJSON, readRequestBody, normalizeApiCode, normalizeApiMessage, parseCookieString } = require('../utils');
 const { getUserCookie, saveCookie, normalizeCookieHeader } = require('../context');
@@ -537,6 +538,28 @@ async function handle(req, res, url) {
     } catch (err) {
       console.error('[Lyric]', err);
       sendJSON(res, { error: err.message, lyric: '' }, 500);
+    }
+    return true;
+  }
+
+  // ---------- 歌曲副歌区间（毫秒→秒；烟纸 hero 特大块落点；无数据时前端走重复行回退） ----------
+  if (pn === '/api/song/chorus') {
+    try {
+      const id = url.searchParams.get('id');
+      if (!id) { sendJSON(res, { error: 'Missing song id', ranges: [] }, 400); return true; }
+      const r = await song_chorus({ id, cookie: userCookie, timestamp: Date.now() });
+      const body = r.body || {};
+      const raw = Array.isArray(body.chorus) ? body.chorus : (Array.isArray(body.data) ? body.data : []);
+      const ranges = raw
+        .map((item) => ({
+          startTime: (Number(item && item.startTime) || 0) / 1000,
+          endTime: (Number(item && item.endTime) || 0) / 1000,
+        }))
+        .filter((rg) => Number.isFinite(rg.startTime) && Number.isFinite(rg.endTime) && rg.endTime > rg.startTime);
+      sendJSON(res, { ranges, source: 'netease' });
+    } catch (err) {
+      // 副歌是增强数据：失败静默降级为空区间（前端用重复行文本回退），不打断歌词链路
+      sendJSON(res, { ranges: [], error: err.message });
     }
     return true;
   }

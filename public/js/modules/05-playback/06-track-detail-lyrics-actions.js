@@ -796,6 +796,7 @@ function lyricLineSignaturePart(line) {
     String(line.text || ''),
     line.fallback ? 1 : 0,
     String(line.source || ''),
+    line.isChorus ? 1 : 0,
     words.length,
     Math.round((Number(firstWord.t) || 0) * 1000),
     Math.round((Number(firstWord.d) || 0) * 1000),
