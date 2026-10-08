@@ -81,3 +81,4 @@ scripts/concert-screenshot.png
 .video_agent/
 
 __pycache__/
+android/

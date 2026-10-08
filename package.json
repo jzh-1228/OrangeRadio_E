@@ -9,6 +9,8 @@
   "private": true,
   "scripts": {
     "start": "electron .",
+    "web": "node server.js",
+    "android:sync": "node scripts/android-sync.js",
     "build:win": "electron-builder --win nsis --publish never",
     "build:win:dir": "electron-builder --win dir",
     "build:win:internal-beta": "electron-builder --config electron-builder.internal-beta.json --win nsis --publish never",

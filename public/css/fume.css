@@ -25,9 +25,9 @@
   z-index: 5;
   display: none;
   overflow: hidden;
-  background:
-    radial-gradient(ellipse at 50% 38%, rgba(58, 38, 24, 0.55) 0%, rgba(23, 16, 9, 0) 62%),
-    linear-gradient(180deg, #191108 0%, #171009 34%, #140e08 78%, #100b07 100%);
+  background-color: var(--theme-bg, #171009);   /* 96-theme-service 封面派生主题的纸面底色 */
+  background-image:
+    radial-gradient(ellipse at 50% 38%, rgba(58, 38, 24, 0.55) 0%, rgba(0, 0, 0, 0) 62%);
   pointer-events: none;          /* 默认不拦截，切到本模式时由 body.fume 打开 */
 }
 

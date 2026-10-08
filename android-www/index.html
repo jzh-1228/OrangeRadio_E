@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OrangeSea</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 18px;
+    background: linear-gradient(180deg, #191108, #0d0a08 60%, #090706);
+    font-family: system-ui, sans-serif; color: #f2e6d4; padding: 24px;
+  }
+  .logo { font-size: 26px; font-weight: 700; letter-spacing: 0.06em; }
+  .logo b { color: #ff9c6e; }
+  .hint { font-size: 13px; color: rgba(242,230,212,0.6); text-align: center; line-height: 1.7; }
+  input {
+    width: min(360px, 80vw); padding: 12px 14px; font-size: 15px;
+    border-radius: 12px; border: 1px solid rgba(255,156,110,0.35);
+    background: rgba(24,17,12,0.9); color: #f2e6d4; outline: none; text-align: center;
+  }
+  button {
+    padding: 12px 34px; font-size: 15px; border: none; border-radius: 999px;
+    background: #ff9c6e; color: #221208; font-weight: 700; cursor: pointer;
+  }
+  code { color: #ff9c6e; font-size: 12px; user-select: all; }
+</style>
+</head>
+<body>
+  <div class="logo">Orange<b>Sea</b></div>
+  <div class="hint">Web 版服务地址（电脑或 NAS 上运行 <code>npm run web</code> 或 Docker 部署）<br>需与手机在同一网络；地址只会在本机保存一次</div>
+  <input id="url" placeholder="http://198.18.0.1:3000" value="http://198.18.0.1:3000" enterkeyhint="go">
+  <button id="go">进入橘子海</button>
+  <div class="hint" id="err" style="color:#ff8f6e"></div>
+<script>
+  (function () {
+    var saved = null;
+    try { saved = localStorage.getItem('orangesea-server'); } catch (e) {}
+    function normalize(v) { v = String(v || '').trim().replace(/\/+$/, ''); return /^https?:\/\//.test(v) ? v : ''; }
+    function enter(v) {
+      var url = normalize(v);
+      if (!url) { document.getElementById('err').textContent = '地址要以 http:// 或 https:// 开头'; return; }
+      try { localStorage.setItem('orangesea-server', url); } catch (e) {}
+      location.replace(url + '/');
+    }
+    if (saved && normalize(saved)) { location.replace(normalize(saved) + '/'); return; }
+    document.getElementById('go').addEventListener('click', function () { enter(document.getElementById('url').value); });
+    document.getElementById('url').addEventListener('keydown', function (e) { if (e.key === 'Enter') enter(this.value); });
+  })();
+</script>
+</body>
+</html>

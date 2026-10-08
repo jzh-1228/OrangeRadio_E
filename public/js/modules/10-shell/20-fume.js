@@ -2258,7 +2258,9 @@ function fumeReadAudioLevels() {
   return fumeAudioLevels;
 }
 
-/* 主题：MineRadio 日落暖色协调版（Folia Theme 结构） */
+/* 主题：MineRadio 日落暖色协调版（Folia Theme 结构）。
+   96-theme-service 的封面派生双主题就绪后由 fumeSyncTheme 覆写颜色与名字
+   （排版缓存键含 theme.name → 主题变化自动整版重排）；字体栈保持用户设置。 */
 var fumeTheme = {
   name: 'mineradio-sunset',
   backgroundColor: '#171009',
@@ -2269,6 +2271,22 @@ var fumeTheme = {
   fontFamilyStack: '"PingFang SC", "HarmonyOS Sans SC", "MiSans", "Microsoft YaHei UI", "Source Han Sans SC", system-ui, sans-serif'
 };
 
+function fumeSyncTheme() {
+  if (typeof themeServiceActiveTheme !== 'function') return;
+  var active = null;
+  try { active = themeServiceActiveTheme(); } catch (e) { return; }
+  if (!active || active.name === fumeTheme.name) return;
+  var keepFont = fumeTheme.fontFamilyStack;
+  fumeTheme.name = active.name;
+  fumeTheme.backgroundColor = active.backgroundColor;
+  fumeTheme.primaryColor = active.primaryColor;
+  fumeTheme.accentColor = active.accentColor;
+  fumeTheme.secondaryColor = active.secondaryColor;
+  fumeTheme.animationIntensity = active.animationIntensity || 'normal';
+  fumeTheme.fontFamilyStack = keepFont;
+  fumeRequestLayout();   /* 主题色变了 → 纸面重排重绘 */
+}
+
 function fumeFontStack() {
   var fontKey = (typeof fx !== 'undefined' && fx && fx.lyricFont) ? fx.lyricFont : '';
   var stack = (fontKey && typeof lyricFontStackForKey === 'function')
@@ -2278,12 +2296,19 @@ function fumeFontStack() {
   return stack;
 }
 
+var fumeLastThemeSync = 0;
 function fumeCheckFontChange() {
   var fontKey = (typeof fx !== 'undefined' && fx && fx.lyricFont) ? fx.lyricFont : '';
   if (fumeLastFontKey !== fontKey) {
     fumeLastFontKey = fontKey;
     fumeFontStack();
     fumeRequestLayout();     /* 字体几何变化 → 整版重排 */
+  }
+  /* 主题服务轮询的低频影子检查（封面派生主题就位/昼夜切换时换色重排） */
+  var nowMs = performance.now();
+  if (nowMs - fumeLastThemeSync > 1500) {
+    fumeLastThemeSync = nowMs;
+    fumeSyncTheme();
   }
 }
 
@@ -2755,6 +2780,7 @@ function toggleFumeMode() {
 function startFume() {
   fumeEnsureCanvas();
   fumeFontStack();
+  fumeSyncTheme();
   fumeLastFontKey = (typeof fx !== 'undefined' && fx && fx.lyricFont) ? fx.lyricFont : '';
   syncFumeBadge();
   syncFumeCover();

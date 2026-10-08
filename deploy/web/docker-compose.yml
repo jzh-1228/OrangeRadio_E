@@ -1,0 +1,20 @@
+# OrangeSea Web 版一键部署（docker compose up -d --build）
+# 访问：http://<主机IP>:3000
+services:
+  orangesea-web:
+    build:
+      context: ../..
+      dockerfile: deploy/web/Dockerfile
+    image: orangesea-web
+    container_name: orangesea-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - orangesea-data:/app/data
+    environment:
+      - TZ=Asia/Shanghai
+      # 如需反代/自定义端口再覆盖：
+      # - PORT=3000
+volumes:
+  orangesea-data:

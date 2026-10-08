@@ -18071,3 +18071,16 @@ body.desktop-shell #desktop-titlebar #feedback-entry:hover .feedback-bubble {
 
 .automix-model-manual a { color: #ff9562; text-decoration: none; }
 .automix-model-manual a:hover { text-decoration: underline; }
+
+/* 主题信息行（96-theme-service：当前封面派生主题名/描述/昼房） */
+.fx-theme-info {
+  margin-top: 8px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--fx-subtle, rgba(240, 236, 230, 0.55));
+  opacity: 0.9;
+  word-break: break-all;
+}
+.theme-mode-seg button.active {
+  box-shadow: 0 0 0 1px rgba(255, 156, 110, 0.45) inset;
+}

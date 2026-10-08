@@ -1,0 +1,8 @@
+{
+  "appId": "com.orangesea.app",
+  "appName": "OrangeSea",
+  "webDir": "android-www",
+  "android": {
+    "allowMixedContent": false
+  }
+}

@@ -53,6 +53,7 @@
     'js/modules/02-visual/93-three-resource-tiers.js',
     'js/modules/02-visual/94-background-presets.js',
     'js/modules/02-visual/95-background-runtime.js',
+    'js/modules/02-visual/96-theme-service.js',
     'sonic-topography-preset.js',
     'js/modules/03-beat/00-tempo-worker-cache-prefetch.js',
     'js/modules/03-beat/01-audio-beat-analysis.js',

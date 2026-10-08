@@ -49,9 +49,11 @@ function buildAccentPalette() {
 }
 
 /* Folia Theme 形状（backgroundColor/primaryColor/secondaryColor/accentColor）。
-   30fps context 供给下按取色源引用 + tint 配置缓存输出对象（零分配纪律）。 */
+   优先走 96-theme-service 的封面派生双主题（昼/夜）；未生成时回退取色直通。 */
 var VBG_PALETTE_CACHE = { pal: null, tintKey: '', out: null };
 function currentCoverPalette() {
+  var themed = (typeof themeServiceActiveTheme === 'function') ? themeServiceActiveTheme() : null;
+  if (themed) return themed;
   var pal = (typeof stageLyrics !== 'undefined' && stageLyrics) ? (stageLyrics.coverPalette || stageLyrics.palette) : null;
   var tint = (typeof fx !== 'undefined' && fx && fx.visualTintMode === 'custom' && fx.visualTintColor) ? fx.visualTintColor : '';
   if (pal === VBG_PALETTE_CACHE.pal && tint === VBG_PALETTE_CACHE.tintKey && VBG_PALETTE_CACHE.out) {

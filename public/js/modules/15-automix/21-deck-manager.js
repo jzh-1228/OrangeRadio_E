@@ -440,7 +440,7 @@ function automixBindModelPanel() {
     if (action === 'cancel') window.electron.cancelAutomixModelDownload(name);
     else window.electron.downloadAutomixModel(name);
   });
-  if (!automixModelProgressSubscribed && typeof window.electron.onAutomixModelProgress === 'function') {
+  if (!automixModelProgressSubscribed && typeof window !== 'undefined' && window.electron && typeof window.electron.onAutomixModelProgress === 'function') {
     automixModelProgressSubscribed = true;
     window.electron.onAutomixModelProgress(function (p) {
       if (p && p.name && Number(p.total) > 0) {
