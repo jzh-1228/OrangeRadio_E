@@ -2481,7 +2481,7 @@ function fumeTick(now) {
       context.translate(viewportCenterX, viewportCenterY);
       context.translate(-backgroundScene.width * 0.5, -backgroundScene.height * 0.5);
       fumeDrawBackground(context, backgroundScene, theme, time + now * 0.00018, audioLevels,
-        fumeTuning.backgroundObjectOpacity * 2);
+        null, fumeTuning.backgroundObjectOpacity * 2);
       context.restore();
     }
     return;
@@ -2522,7 +2522,7 @@ function fumeTick(now) {
     fumeBgParallax.originX = bgView.backgroundCenterX;
     fumeBgParallax.originY = bgView.backgroundCenterY;
     fumeDrawBackground(context, backgroundScene, theme, time, audioLevels,
-      fumeTuning.backgroundObjectOpacity * 2, fumeBgParallax);
+      fumeBgParallax, fumeTuning.backgroundObjectOpacity * 2);
     context.restore();
   }
 
@@ -2623,10 +2623,15 @@ function startFumeLoop() {
   fumeLastFrameAt = null;
   function frame(now) {
     if (!fumeMode) return;
-    if (now - fumeLastTick > 33) {
-      fumeLastTick = now;
-      fumeCheckFontChange();
-      fumeTick(now);
+    try {
+      if (now - fumeLastTick > 33) {
+        fumeLastTick = now;
+        fumeCheckFontChange();
+        fumeTick(now);
+      }
+    } catch (e) {
+      /* 单帧异常只丢帧不丢循环：首帧抛错会让模式永久黑屏 */
+      console.warn('[Fume] tick error:', e && e.message);
     }
     fumeRafId = requestAnimationFrame(frame);
   }
