@@ -627,6 +627,11 @@ function reorderQueueForShufflePlaybackOrder(startIdx, opts) {
 }
 function nextTrack(userInitiated) {
   if (!playQueue.length) return;
+  // 私人 FM 队列：顺序推进 + 近尾（剩 ≤2 首）自动补拉，不走循环/随机分支
+  if (fmQueueActive && playQueue[currentIdx] && playQueue[currentIdx].fmRadio && typeof refillFmQueueForNext === 'function') {
+    refillFmQueueForNext(userInitiated);
+    return;
+  }
   playToggleBusy = false;
   forcePlaybackControlsInteractive();
   if (currentIdx >= playQueue.length - 1 && queueHydrationState && queueHydrationState.queueRef === playQueue && (queueHydrationState.active || queueHydrationState.loading) && !queueHydrationState.error) {

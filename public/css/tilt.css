@@ -1,0 +1,194 @@
+/* =========================================================================
+   OrangeSea · 斜排（Tilt · 概率拆行双字模歌词）
+   Portions Copyright (c) 2025 chthollyphile and Folia contributors
+   — adapted from folia-major (AGPL-3.0):
+     src/components/visualizer/tilt/VisualizerTilt.tsx 的 motion 动画
+     全部落成 CSS transition（评估路径 dom）。
+
+   body.tilt 命名空间，与 index.css / aurora-flow.css / rainy-cab.css 完全
+   隔离。交互范式与流光/雨窗一致：DIY 控制台卡片切换，保留底部控制栏，
+   选择其他预设自动退出。
+
+   动效结构（Folia 数值照搬，缓动 cubic-bezier(.25,.46,.45,.94)）：
+     · 行块 .tilt-block —— 整行切换：旧块 .leaving 0.45s ease-in-out 淡出；
+     · 段落 .tilt-seg —— normal 0.55s 上移入场 / is-tilt 0.6s 缩放上移；
+     · 字符 .tilt-char 外层 —— opacity 0.5s + tilt 段 ±yOffset 交错，
+       逐字 delay（normal 0.04s/字 · tilt 0.05s/字，仅进入时生效）；
+     · 字符 .tilt-char-in 内层 —— 逐字脉冲 scale（JS 30fps 直写，
+       0.06s ease-out 过渡平滑，等价 framer-motion MotionValue）。
+   ========================================================================= */
+
+#tilt-overlay {
+  --tl-font: "Noto Sans SC", "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei UI", "Source Han Sans SC", system-ui, sans-serif;
+  --tl-normal: #f7ede0;               /* 水平段：日落暖白 */
+  --tl-tilt: #ff8a4d;                 /* 大斜体段：日落橙（--home-accent 协调） */
+  --tl-idle: rgba(247, 237, 224, 0.34);
+  --tl-ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;                          /* 铺满全屏，#bottom-bar(z-index:6) 悬浮其上 */
+  z-index: 5;
+  display: none;
+  overflow: hidden;
+  background: #0b0806;                /* 不透明暖夜基底（Electron 下 backdrop-filter 不可靠） */
+  pointer-events: none;               /* 默认不拦截，切到本模式时由 body.tilt 打开 */
+  font-family: var(--tl-font);
+}
+
+body.tilt #tilt-overlay {
+  display: block;
+  animation: tiltOverlayIn 0.7s ease;
+}
+
+body.tilt #empty-home {
+  display: none;
+}
+
+@keyframes tiltOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ---------- L0 · 暖夜背景（纯 CSS 渐变，无 canvas：本模式无音频反应） ---------- */
+.tilt-backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 90% at 50% 32%, rgba(58, 36, 22, 0.85) 0%, rgba(30, 19, 13, 0.55) 42%, rgba(11, 8, 6, 0) 74%),
+    radial-gradient(70% 45% at 82% 88%, rgba(66, 34, 18, 0.30) 0%, rgba(11, 8, 6, 0) 70%),
+    linear-gradient(180deg, rgba(8, 6, 4, 0.65) 0%, rgba(8, 6, 4, 0) 18%, rgba(8, 6, 4, 0) 72%, rgba(6, 4, 3, 0.78) 100%);
+}
+
+/* ---------- L1 · 歌词舞台（70vh 居中区，Folia h-[70vh] 等价） ---------- */
+.tilt-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 15vh clamp(24px, 7vw, 110px) 15vh clamp(24px, 7vw, 110px);
+  z-index: 2;
+}
+
+/* 行块：1-4 段纵排居中（Folia flex-col gap-y-3 sm:gap-y-4） */
+.tilt-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(12px, 1.6vh, 16px);
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.tilt-block.leaving {
+  opacity: 0;
+  transition: opacity 0.45s ease-in-out;   /* AnimatePresence exit 0.45s easeInOut */
+}
+
+/* ---------- 段落（双字模） ---------- */
+.tilt-seg {
+  white-space: nowrap;
+  max-width: 100%;
+  color: var(--tl-normal);
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  line-height: 1.35;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.55s var(--tl-ease), transform 0.55s var(--tl-ease);
+}
+
+.tilt-seg.is-tilt {
+  color: var(--tl-tilt);
+  font-style: italic;
+  font-weight: 300;
+  letter-spacing: 0.15em;
+  line-height: 1.25;
+  transform: translateY(24px) scale(0.92);
+  transition-duration: 0.6s;
+}
+
+.tilt-seg.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.tilt-seg.is-tilt.visible {
+  transform: translateY(0) scale(1);
+}
+
+/* 整行退出：段落上飘淡出（Folia exit y:-12 / tilt y:-16 scale .95；
+   delay 清零——行级退出不再逐字 stagger） */
+.tilt-block.leaving .tilt-seg {
+  opacity: 0;
+  transform: translateY(-12px);
+  transition: opacity 0.45s ease-in-out, transform 0.45s ease-in-out;
+}
+
+.tilt-block.leaving .tilt-seg.is-tilt {
+  transform: translateY(-16px) scale(0.95);
+}
+
+/* ---------- 字符外层：入场 opacity + tilt 段 ±yOffset 交错 ---------- */
+.tilt-char {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(var(--ty0, 0px));
+  transition: opacity 0.5s var(--tl-ease), transform 0.5s var(--tl-ease);
+  /* 退出（visible 移除）delay 归 0，与 Folia delay: visible ? ci*step : 0 同义 */
+}
+
+.tilt-seg.visible .tilt-char {
+  opacity: 1;
+  transform: translateY(var(--ty1, 0px));
+  transition-delay: var(--td, 0s);
+}
+
+/* 空格占位：折叠为固定词距（Folia minWidth 0.25em / tilt 0.35em） */
+.tilt-char.space {
+  min-width: 0.25em;
+}
+
+.tilt-seg.is-tilt .tilt-char.space {
+  min-width: 0.35em;
+}
+
+/* ---------- 字符内层：逐字脉冲 scale（JS 30fps 直写 transform） ---------- */
+.tilt-char-in {
+  display: inline-block;
+  transition: transform 0.06s ease-out;   /* Folia transition: transform .06s ease-out */
+  will-change: transform;
+}
+
+/* ---------- 空闲态（无歌词 / 未播放） ---------- */
+.tilt-idle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.5rem;
+  letter-spacing: 0.3em;
+  color: var(--tl-idle);
+  opacity: 0;
+  transition: opacity 0.8s ease;
+  pointer-events: none;
+}
+
+.tilt-idle.show {
+  opacity: 1;
+}
+
+/* 弱化动效偏好：脉冲与交错退化为纯淡入淡出 */
+@media (prefers-reduced-motion: reduce) {
+  .tilt-seg,
+  .tilt-char,
+  .tilt-char-in,
+  .tilt-block.leaving,
+  .tilt-block.leaving .tilt-seg {
+    transition-duration: 0.01s;
+  }
+}

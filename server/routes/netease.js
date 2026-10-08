@@ -2,9 +2,9 @@
    OrangeSea · 网易云核心路由（netease）
    -------------------------------------------------------------------------
    /api/album/detail、/api/album/subscribe(/check)、/api/playlist/subscribe、
-   /api/song/url、/api/login/*、/api/logout、/api/user/playlists、
-   /api/song/like(/check)、/api/playlist/create(/add-song)、/api/lyric、
-   /api/song/comments(/like)、/api/artist/detail、/api/playlist/tracks。
+   /api/song/url、/api/login/*、/api/logout、/api/personal_fm、
+   /api/user/playlists、/api/song/like(/check)、/api/playlist/create(/add-song)、
+   /api/lyric、/api/song/comments(/like)、/api/artist/detail、/api/playlist/tracks。
    ========================================================================= */
 'use strict';
 
@@ -24,6 +24,7 @@ const {
   playlist_create,
   playlist_tracks,
   playlist_track_add,
+  personal_fm,
   comment,
   comment_music,
   comment_like,
@@ -312,6 +313,31 @@ async function handle(req, res, url) {
     try { await logout({ cookie: userCookie }); } catch (e) {}
     saveCookie('');
     sendJSON(res, { ok: true });
+    return true;
+  }
+
+  // ---------- 私人 FM（Folia netease.ts getPersonalFm 对应端） ----------
+  // 上游 /personal_fm 每次固定返回约 3 首（实测忽略 limit），
+  // 队列的持续供给由前端近尾补拉负责（见 05-playback FM 队列控制）。
+  if (pn === '/api/personal_fm') {
+    try {
+      const info = await requireLogin(res);
+      if (!info) return true;
+      const r = await personal_fm({ cookie: userCookie, timestamp: Date.now() });
+      const body = r.body || r || {};
+      const raw = Array.isArray(body.data) ? body.data : [];
+      const songs = raw.map(mapSongRecord).filter(s => s && s.id && s.name);
+      sendJSON(res, {
+        provider: 'netease',
+        loggedIn: true,
+        code: normalizeApiCode(r),
+        songs,
+        total: songs.length,
+      });
+    } catch (err) {
+      console.error('[PersonalFm]', err);
+      sendJSON(res, { provider: 'netease', loggedIn: true, error: err.message, songs: [] }, 500);
+    }
     return true;
   }
 

@@ -216,6 +216,82 @@ async function playHomeDaily() {
   forcePlaybackControlsInteractive();
   playQueueAt(0).catch(function (e) { console.warn('[HomeDailyPlay]', e); });
 }
+/* =========================================================================
+   私人 FM 队列（home-fm）
+   -------------------------------------------------------------------------
+   真建队 + 近尾自动补拉，移植自 Folia usePlaybackQueueController 的
+   handleNextTrack 近尾分支（剩 ≤2 首时 getPersonalFm 追加再前进）与
+   Grid3D「点击 Personal FM 直接建队」的入口。
+   FM 队列成员带 fmRadio:true 标记；每次 playQueueAt 播放前按「即将播放
+   的歌是否带标」重算 fmQueueActive（对应 Folia playSong 的 setIsFmMode）。
+   ========================================================================= */
+var fmQueueActive = false;
+var fmQueueRefillPromise = null;
+var fmQueueRefillBackoffUntil = 0;
+var FM_QUEUE_REFILL_BACKOFF_MS = 15000;
+async function fetchPersonalFmSongs() {
+  var data = await apiJson('/api/personal_fm?t=' + Date.now());
+  var songs = data && Array.isArray(data.songs) ? data.songs : [];
+  return songs
+    .map(function (song) { var s = cloneSong(song); if (s) s.fmRadio = true; return s; })
+    .filter(function (s) { return s && s.id; });
+}
+function syncFmQueueFlagForPlayback(idx) {
+  var song = idx >= 0 && idx < playQueue.length ? playQueue[idx] : null;
+  fmQueueActive = !!(song && song.fmRadio);
+}
+function fmQueueTailOpts(userInitiated) {
+  var opts = userInitiated
+    ? { manual: true, suppressPlayFailureNotice: true, skipShuffleOrder: true }
+    : { suppressPlayFailureNotice: true, skipShuffleOrder: true };
+  return opts;
+}
+function refillFmQueueForNext(userInitiated) {
+  playToggleBusy = false;
+  forcePlaybackControlsInteractive();
+  var fromIdx = currentIdx;
+  function fmContextStillCurrent() {
+    return fmQueueActive && currentIdx === fromIdx && playQueue[fromIdx] && playQueue[fromIdx].fmRadio;
+  }
+  function proceedAfterRefill() {
+    var nextIdx = fromIdx + 1;
+    if (nextIdx >= playQueue.length) {
+      showToast('私人 FM 暂时拉不到新歌，稍后再切一次');
+      forcePlaybackControlsInteractive();
+      return;
+    }
+    Promise.resolve(playQueueAt(nextIdx, fmQueueTailOpts(userInitiated))).finally(forcePlaybackControlsInteractive);
+  }
+  if (fromIdx < playQueue.length - 2) {
+    Promise.resolve(playQueueAt(fromIdx + 1, fmQueueTailOpts(userInitiated))).finally(forcePlaybackControlsInteractive);
+    return;
+  }
+  if (fmQueueRefillPromise) {
+    fmQueueRefillPromise.then(function () { if (fmContextStillCurrent()) proceedAfterRefill(); });
+    return;
+  }
+  if (Date.now() < fmQueueRefillBackoffUntil) {
+    proceedAfterRefill();
+    return;
+  }
+  fmQueueRefillPromise = fetchPersonalFmSongs()
+    .then(function (songs) {
+      if (!(songs && songs.length)) {
+        fmQueueRefillBackoffUntil = Date.now() + FM_QUEUE_REFILL_BACKOFF_MS;
+        return;
+      }
+      for (var i = 0; i < songs.length; i++) playQueue.push(songs[i]);
+      safeRenderQueuePanel('fm-refill');
+    })
+    .catch(function (e) {
+      fmQueueRefillBackoffUntil = Date.now() + FM_QUEUE_REFILL_BACKOFF_MS;
+      console.warn('[FmRefill]', e);
+    })
+    .then(function () {
+      fmQueueRefillPromise = null;
+      if (fmContextStillCurrent()) proceedAfterRefill();
+    });
+}
 async function playHomePrivateRadio() {
   homeForcedOpen = false;
   homeSuppressed = false;
@@ -224,6 +300,29 @@ async function playHomePrivateRadio() {
     showLoginModal({ source: 'home-private' });
     return;
   }
+  var fmSongs = [];
+  try {
+    fmSongs = await fetchPersonalFmSongs();
+  } catch (e) {
+    console.warn('[HomePrivateFm]', e);
+  }
+  if (fmSongs.length) {
+    fmQueueActive = true;
+    playQueue = fmSongs;
+    currentIdx = 0;
+    safeRenderQueuePanel('home-private-radio');
+    safeShelfRebuild('home-private-radio', true);
+    forcePlaybackControlsInteractive();
+    showToast('私人 FM 电台已开启');
+    playQueueAt(0, {
+      manual: true,
+      skipShuffleOrder: true,
+      context: { type: 'personal-fm', playlistName: '私人 FM' },
+    }).catch(function (e) { console.warn('[HomePrivatePlay]', e); });
+    return;
+  }
+  // FM 接口不可用（未登录网易云 / 接口失败）时退回原有行为：用今日推荐接续
+  fmQueueActive = false;
   await waitForHomeDiscoverIdle();
   if (!homeDiscoverState.loaded || ((!homeDiscoverState.playlists.length && !homeDiscoverState.songs.length) && !homeDiscoverState.loading)) {
     await loadHomeDiscover(true);

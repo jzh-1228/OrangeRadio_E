@@ -1,0 +1,362 @@
+/* =========================================================================
+   OrangeSea · 流萤辉光（Classic Luminous · Folia classic 移植）
+   Portions Copyright (c) 2025 chthollyphile and Folia contributors
+   — adapted from folia-major (AGPL-3.0)：词级三态 + 随机布局 + 逐字辉光。
+   body.classic 命名空间，与 index.css / film-radio.css / graffiti-lyrics.css /
+   aurora-flow.css / rainy-cab.css 完全隔离。交互范式与流光一致：DIY 预设
+   卡片切换，保留底部控制栏，选择其他预设自动退出。
+
+   framer-motion → CSS 移植对应关系：
+     · 词布局三态 → 独立变换属性 translate/scale/rotate + 状态类过渡
+       （Chromium 104+，与涂鸦墙同款；spring(200,20) 以
+       cubic-bezier(.3,1.12,.32,1) 拟合，过冲 ~4% 与 framer 一致）；
+     · 逐字辉光 → drop-shadow 滤镜关键帧动画（wordGlow.ts 的免字形缓存
+       泄漏路径，半径 = text-shadow 半径 × 0.4，内层 alpha 0.7）；
+     · 行进出 → 关键帧动画双槽并存（.is-exit 播完由 JS 移除）；
+     · 整行呼吸浮动 → clBreathe 关键帧（7s，位移 [0,-14,0,6.3,0]）。
+   配色跟本项目日落暖色：暖象牙底字 + 琥珀点亮（--cl-active 由 JS 同步）。
+   ========================================================================= */
+
+#classic-overlay {
+  --cl-base: #f6e9d8;             /* 暖象牙底字（Folia primaryColor 角色） */
+  --cl-active: #ffb27a;           /* 点亮色（JS 按用户视觉染色同步覆盖） */
+  --cl-active-inner: rgba(255, 178, 122, 0.7);  /* 内层辉光 alpha 0.7 */
+  --cl-idle: rgba(240, 224, 205, 0.4);
+  --cl-font: "PingFang SC", "HarmonyOS Sans SC", "MiSans", "Microsoft YaHei UI", "Source Han Sans SC", system-ui, sans-serif;
+  --cl-fs: clamp(2.25rem, 6vw, 4.5rem);   /* Folia mainFontSize 原值 */
+
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;                      /* 铺满全屏，#bottom-bar(z-index:6) 悬浮其上 */
+  z-index: 5;
+  display: none;
+  overflow: hidden;
+  background:
+    radial-gradient(1200px 800px at 22% 14%, rgba(255, 145, 84, 0.10), transparent 62%),
+    radial-gradient(1000px 720px at 80% 82%, rgba(255, 110, 70, 0.07), transparent 60%),
+    radial-gradient(900px 600px at 68% 24%, rgba(255, 190, 130, 0.05), transparent 58%),
+    #0e0906;                      /* 不透明日落暖夜基底（Electron 下不依赖 backdrop-filter） */
+  pointer-events: none;           /* 默认不拦截，切到本模式时由 body.classic 打开 */
+}
+
+body.classic #classic-overlay {
+  display: block;
+  animation: clOverlayIn 0.7s ease;
+}
+
+body.classic #empty-home {
+  display: none;
+}
+
+@keyframes clOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ---------- L0.5 · 暗角（压边聚焦 + 底部向控制栏过渡） ---------- */
+.classic-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 42%, rgba(8, 5, 3, 0) 40%, rgba(7, 4, 2, 0.5) 100%),
+    linear-gradient(180deg, rgba(10, 6, 4, 0.32) 0%, rgba(10, 6, 4, 0) 20%, rgba(10, 6, 4, 0) 64%, rgba(7, 4, 2, 0.6) 100%);
+  z-index: 1;
+}
+
+/* ---------- L1 · 歌词舞台（70vh 居中区 + 整行呼吸浮动） ---------- */
+.classic-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;                  /* p-8 */
+  z-index: 2;
+}
+
+/* 呼吸浮动（Folia lyricContainerFloat，normal 档 distance 14 / duration 7）：
+   y [0,-14,0,6.3,0]、scale [1,1.01,1,0.995,1]，关键帧均分 5 段 */
+.classic-float {
+  width: 100%;
+  height: 70vh;                   /* h-[70vh] */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: clBreathe 7s ease-in-out infinite;
+  will-change: translate;
+}
+
+@keyframes clBreathe {
+  0% { translate: 0 0px; scale: 1; }
+  25% { translate: 0 -14px; scale: 1.01; }
+  50% { translate: 0 0px; scale: 1; }
+  75% { translate: 0 6.3px; scale: 0.995; }
+  100% { translate: 0 0px; scale: 1; }
+}
+
+/* 行槽：双槽并存（当前行 + 退出行各占一层，AnimatePresence popLayout 等价） */
+.classic-lines {
+  position: relative;
+  width: 100%;
+  max-width: 72rem;               /* max-w-6xl */
+  height: 100%;
+}
+
+/* ---------- L2 · 行容器（flex-wrap + 随机 justify/align + 透视） ---------- */
+.cl-line {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  min-height: 300px;
+  will-change: transform, opacity, filter;
+}
+
+.cl-line[data-justify="start"] { justify-content: flex-start; }
+.cl-line[data-justify="center"] { justify-content: center; }
+.cl-line[data-justify="end"] { justify-content: flex-end; }
+.cl-line[data-justify="around"] { justify-content: space-around; }
+.cl-line[data-justify="between"] { justify-content: space-between; }
+.cl-line[data-align="start"] { align-items: flex-start; }
+.cl-line[data-align="center"] { align-items: center; }
+.cl-line[data-align="end"] { align-items: flex-end; }
+
+/* 行入场（getClassicLineContainerMotion.initial→animate）：
+   normal：opacity 0→1 / scale .9→1 / blur 10→0，0.3s easeOut（framer 默认档）
+   fast：opacity .35→1 / scale .96→1 / blur 4→0，0.16s easeOut
+   none：无入场动画 */
+.cl-line[data-lmode="normal"] { animation: clLineInNormal 0.3s ease-out both; }
+.cl-line[data-lmode="fast"] { animation: clLineInFast 0.16s ease-out both; }
+.cl-line[data-lmode="none"] { animation: none; }
+
+@keyframes clLineInNormal {
+  from { opacity: 0; transform: scale(0.9); filter: blur(10px); }
+  to { opacity: 1; transform: scale(1); filter: blur(0px); }
+}
+
+@keyframes clLineInFast {
+  from { opacity: 0.35; transform: scale(0.96); filter: blur(4px); }
+  to { opacity: 1; transform: scale(1); filter: blur(0px); }
+}
+
+/* 行退场（exit 槽，播完由 JS 移除节点）：
+   normal：scale 1.1 / blur 20，0.3s；fast：scale 1.04 / blur 10，0.16s easeInOut；
+   none：scale 1.02 / blur 6，0.12s */
+.cl-line.is-exit { pointer-events: none; }
+.cl-line.is-exit[data-lmode="normal"] { animation: clLineOutNormal 0.3s ease-out forwards; }
+.cl-line.is-exit[data-lmode="fast"] { animation: clLineOutFast 0.16s ease-in-out forwards; }
+.cl-line.is-exit[data-lmode="none"] { animation: clLineOutNone 0.12s ease-out forwards; }
+
+@keyframes clLineOutNormal {
+  from { opacity: 1; transform: scale(1); filter: blur(0px); }
+  to { opacity: 0; transform: scale(1.1); filter: blur(20px); }
+}
+
+@keyframes clLineOutFast {
+  from { opacity: 1; transform: scale(1); filter: blur(0px); }
+  to { opacity: 0; transform: scale(1.04); filter: blur(10px); }
+}
+
+@keyframes clLineOutNone {
+  from { opacity: 1; transform: scale(1); filter: blur(0px); }
+  to { opacity: 0; transform: scale(1.02); filter: blur(6px); }
+}
+
+/* ---------- L3 · 词（布局三态：waiting / active / passed） ----------
+   布局常量由 JS 写入 CSS 变量（--cl-tx/--cl-ty/--cl-rot/--cl-scale/--cl-prot/
+   --cl-wx/--cl-wy/--cl-wrot/--cl-mr/--cl-wdur）。 */
+
+.cl-word {
+  position: relative;
+  display: inline-block;
+  transform-origin: center;
+  white-space: nowrap;            /* 防意外换行（Folia whitespace-nowrap） */
+  margin-right: var(--cl-mr, 0.8rem);
+  font-family: var(--cl-font);
+  font-size: var(--cl-fs);
+  font-weight: 700;
+  line-height: 1.22;
+  will-change: transform, opacity;
+}
+
+/* waiting：预入场位（低透明 + 偏移 + 待场旋转），0.4s 缓动 */
+.cl-word.is-waiting {
+  translate: var(--cl-wx) var(--cl-wy);
+  scale: 0.5;
+  rotate: var(--cl-wrot);
+  opacity: 0;
+  transition:
+    translate 0.4s ease-out,
+    scale 0.4s ease-out,
+    rotate 0.4s ease-out,
+    opacity 0.4s ease-out;
+}
+
+/* active：弹簧归位放大（spring 200/20 拟合贝塞尔），透明度 0.1s 快速点亮 */
+.cl-word.is-active {
+  translate: var(--cl-tx) var(--cl-ty);
+  scale: calc(var(--cl-scale, 1) * 1.4);
+  rotate: var(--cl-rot, 0deg);
+  opacity: 1;
+  transition:
+    translate 0.5s cubic-bezier(0.3, 1.12, 0.32, 1),
+    scale 0.5s cubic-bezier(0.3, 1.12, 0.32, 1),
+    rotate 0.5s cubic-bezier(0.3, 1.12, 0.32, 1),
+    opacity 0.1s linear;
+}
+
+/* passed：余晖定格 + 5s 线性缓慢旋转漂移（Folia passedRotate 过渡原值） */
+.cl-word.is-passed {
+  translate: var(--cl-tx) var(--cl-ty);
+  scale: var(--cl-scale, 1);
+  rotate: calc(var(--cl-rot, 0deg) + var(--cl-prot, 0deg));
+  opacity: 0.82;                  /* normal 档（chaotic 才 0.9） */
+  transition:
+    translate 0.5s ease-out,
+    scale 0.5s ease-out,
+    rotate 5s linear,
+    opacity 0.5s ease-out;
+}
+
+/* ---------- 词身（颜色/模糊层，独立于辉光层保证字形可读） ---------- */
+.cl-body {
+  position: relative;
+  z-index: 10;
+  display: block;
+  color: var(--cl-base);
+  filter: blur(10px);
+  transition: color 0.4s ease-out, filter 0.4s ease-out;
+}
+
+/* active：点亮 + 去模糊；颜色按词演唱时长线性过渡（--cl-wdur） */
+.cl-word.is-active .cl-body {
+  color: var(--cl-active);
+  filter: none;
+  transition: color var(--cl-wdur, 0.2s) linear, filter 0.2s ease-out;
+}
+
+/* passed：回落底色 + 保持清晰；normal 档 color 0.8s / filter 0.5s */
+.cl-word.is-passed .cl-body {
+  color: var(--cl-base);
+  filter: blur(0px);
+  transition: color 0.8s ease-in-out, filter 0.5s ease-out;
+}
+
+/* 快速/瞬时揭示档的时长覆盖（wordRevealMode fast / instant） */
+.cl-line[data-reveal="fast"] .cl-word.is-active .cl-body {
+  transition: color var(--cl-wdur, 0.2s) linear, filter 0.12s ease-out;
+}
+.cl-line[data-reveal="fast"] .cl-word.is-passed .cl-body {
+  transition: color 0.24s ease-in-out, filter 0.2s ease-out;
+}
+.cl-line[data-reveal="instant"] .cl-word.is-active .cl-body {
+  transition: color var(--cl-wdur, 0.2s) linear, filter 0.08s ease-out;
+}
+.cl-line[data-reveal="instant"] .cl-word.is-passed .cl-body {
+  transition: color 0.12s ease-in-out, filter 0.12s ease-out;
+}
+
+/* ---------- L4 · 逐字辉光层（绝对定位垫底，drop-shadow 滤镜路径） ----------
+   文字本身带色、以 opacity 承载光强（drop-shadow 只投影已绘制内容），
+   垫在词身正下方故字形本身永不被看见——wordGlow.ts 免泄漏方案。 */
+.cl-glow {
+  position: absolute;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+
+.cl-gc {
+  opacity: 0;                     /* waiting：透明，无过渡（Folia duration 0） */
+}
+
+/* 逐字扫光（normal 档多字词）：半径 text-shadow 20/40 × 0.4 = 8/16px，
+   峰值时刻 30%（Folia times [0,0.3,1]） */
+.cl-word.is-active .cl-gc--sweep {
+  animation: clGlowSweep var(--cl-char-dur, 0.5s) ease-in-out var(--cl-char-delay, 0s) both;
+}
+
+/* 单字/CJK 持续辉光：峰值持续到词尾（times [0,0.9,1]，尾段仍满亮） */
+.cl-word.is-active .cl-gc--sustain {
+  animation: clGlowSustain var(--cl-char-dur, 0.5s) ease-in-out var(--cl-char-delay, 0s) both;
+}
+
+/* 快速档：18/32 → 7.2/12.8px，峰值 40%；瞬时档：14/24 → 5.6/9.6px，峰值 35% */
+.cl-word.is-active .cl-gc--fast {
+  animation: clGlowFast var(--cl-char-dur, 0.2s) ease-in-out 0s both;
+}
+.cl-word.is-active .cl-gc--instant {
+  animation: clGlowInstant var(--cl-char-dur, 0.12s) ease-out 0s both;
+}
+
+@keyframes clGlowSweep {
+  0% { opacity: 0; filter: drop-shadow(0 0 0px var(--cl-active)) drop-shadow(0 0 0px var(--cl-active)); }
+  30% { opacity: 1; filter: drop-shadow(0 0 8px var(--cl-active-inner)) drop-shadow(0 0 16px var(--cl-active)); }
+  100% { opacity: 0; filter: drop-shadow(0 0 0px var(--cl-active)) drop-shadow(0 0 0px var(--cl-active)); }
+}
+
+@keyframes clGlowSustain {
+  0% { opacity: 0; filter: drop-shadow(0 0 0px var(--cl-active)) drop-shadow(0 0 0px var(--cl-active)); }
+  90% { opacity: 1; filter: drop-shadow(0 0 8px var(--cl-active-inner)) drop-shadow(0 0 16px var(--cl-active)); }
+  100% { opacity: 1; filter: drop-shadow(0 0 8px var(--cl-active-inner)) drop-shadow(0 0 16px var(--cl-active)); }
+}
+
+@keyframes clGlowFast {
+  0% { opacity: 0; filter: drop-shadow(0 0 0px var(--cl-active)) drop-shadow(0 0 0px var(--cl-active)); }
+  40% { opacity: 1; filter: drop-shadow(0 0 7.2px var(--cl-active-inner)) drop-shadow(0 0 12.8px var(--cl-active)); }
+  100% { opacity: 0; filter: drop-shadow(0 0 0px var(--cl-active)) drop-shadow(0 0 0px var(--cl-active)); }
+}
+
+@keyframes clGlowInstant {
+  0% { opacity: 0; filter: drop-shadow(0 0 0px var(--cl-active)) drop-shadow(0 0 0px var(--cl-active)); }
+  35% { opacity: 1; filter: drop-shadow(0 0 5.6px var(--cl-active-inner)) drop-shadow(0 0 9.6px var(--cl-active)); }
+  100% { opacity: 0; filter: drop-shadow(0 0 0px var(--cl-active)) drop-shadow(0 0 0px var(--cl-active)); }
+}
+
+/* passed 辉光余晖衰减（wordGlow passed：normal 0.9s / fast 0.22s / instant 0.12s easeOut） */
+.cl-line { --cl-pass-dur: 0.9s; }
+.cl-line[data-reveal="fast"] { --cl-pass-dur: 0.22s; }
+.cl-line[data-reveal="instant"] { --cl-pass-dur: 0.12s; }
+
+.cl-word.is-passed .cl-gc {
+  animation: clGlowFade var(--cl-pass-dur, 0.9s) ease-out both;
+}
+
+@keyframes clGlowFade {
+  from { opacity: 1; filter: drop-shadow(0 0 8px var(--cl-active-inner)) drop-shadow(0 0 16px var(--cl-active)); }
+  to { opacity: 0; filter: drop-shadow(0 0 0px var(--cl-active)) drop-shadow(0 0 0px var(--cl-active)); }
+}
+
+/* ---------- 空闲态（无行可唱） ---------- */
+.classic-idle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  font-family: var(--cl-font);
+  font-size: clamp(1.5rem, 3.5vw, 2.25rem);   /* Folia emptyFontSize 原值 */
+  letter-spacing: 0.18em;
+  color: var(--cl-idle);
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.classic-idle.show {
+  opacity: 0.5;
+}
+
+/* ---------- 小屏适配 ---------- */
+@media (max-width: 760px) {
+  .classic-stage {
+    padding: 18px;
+  }
+  .cl-line {
+    min-height: 200px;
+  }
+}

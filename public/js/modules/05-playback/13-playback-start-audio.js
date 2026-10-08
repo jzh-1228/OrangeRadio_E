@@ -845,6 +845,8 @@ async function playQueueAt(idx, opts) {
   opts = opts || {};
   if (typeof beginSourceFallbackPlaybackInvocation === 'function' && !beginSourceFallbackPlaybackInvocation(opts)) return false;
   if (idx < 0 || idx >= playQueue.length) return false;
+  // 私人 FM 队列标志按「即将播放的歌是否带 fmRadio 标」重算（对应 Folia playSong 的 setIsFmMode）
+  if (typeof syncFmQueueFlagForPlayback === 'function') syncFmQueueFlagForPlayback(idx);
   if (typeof ensurePlaylistQueueHydratedAhead === 'function') ensurePlaylistQueueHydratedAhead(idx);
   var albumGaplessHandoff = !!(opts.albumGaplessHandoff && opts.preloadedAudio && opts.preloadedData);
   var albumGaplessMixed = !!(albumGaplessHandoff && opts.albumGaplessMixed);

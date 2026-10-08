@@ -19,8 +19,15 @@ for (const file of ['00-state/12-motion-signals.js', '02-visual/90-visualizer-re
 
 /* ---------- 前景注册表 ---------- */
 {
-  assert.equal(JSON.stringify(sandbox.listVisualizerOverlayModes().map((m) => m.id)),
+  // 基础四模式顺序稳定（order 90~93）；后续移植模式（still/claddagh/tilt/fume/
+  // classic/pendolo/partita/cadenza...）按 order 追加，不写死全等列表以免每加
+  // 一个模式就打破本测试——只验证前缀顺序 + 已注册成员存在。
+  const overlayIds = sandbox.listVisualizerOverlayModes().map((m) => m.id);
+  assert.equal(JSON.stringify(overlayIds.slice(0, 4)),
     JSON.stringify(['film-radio', 'graffiti', 'aurora', 'rainy']));
+  for (const known of ['partita', 'pendolo', 'classic']) {
+    assert.ok(overlayIds.includes(known), 'overlay registry should include ' + known);
+  }
   // window 全局布尔 → 激活判定
   sandbox.filmRadioMode = true;
   assert.equal(sandbox.activeVisualizerOverlay().id, 'film-radio');

@@ -19,7 +19,7 @@ function buildPresetGrid() {
       '<div class="pc-name">' + name + '</div>' +
       '<div class="pc-desc">' + desc + '</div>' +
       '</div>';
-  }).join('') + buildFilmRadioPresetCard() + buildGraffitiPresetCard() + buildAuroraPresetCard() + buildRainyPresetCard();
+  }).join('') + buildFilmRadioPresetCard() + buildGraffitiPresetCard() + buildAuroraPresetCard() + buildRainyPresetCard() + buildStillPresetCard() + buildCladdaghPresetCard() + buildTiltPresetCard() + buildFumePresetCard() + buildClassicPresetCard() + buildPendoloPresetCard() + buildPartitaPresetCard() + buildCadenzaPresetCard();
   refreshPresetGrid();
 }
 
@@ -59,6 +59,78 @@ function buildRainyPresetCard() {
     '</div>';
 }
 
+/* 静止：独立于数值预设之外的特殊卡片，静态三行歌词 · 径向暗角（移植自 Folia still 模式） */
+function buildStillPresetCard() {
+  return '<div class="preset-card still-card" data-still="1" onclick="toggleStillMode()" title="静止">' +
+    '<div class="pc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 7h9" opacity=".4"/><path d="M4 12h16"/><path d="M7.5 17h9" opacity=".4"/></svg></div>' +
+    '<div class="pc-name">静止</div>' +
+    '<div class="pc-desc">静态三行 · 暗角夜色</div>' +
+    '</div>';
+}
+
+/* 环歌：独立于数值预设之外的特殊卡片，斜置椭圆环上逐字流转歌词（移植自 Folia claddagh 模式） */
+function buildCladdaghPresetCard() {
+  return '<div class="preset-card claddagh-card" data-claddagh="1" onclick="toggleCladdaghMode()" title="环歌">' +
+    '<div class="pc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="14.2" rx="8.4" ry="3.5"/><path d="M12 9.4c.9-1.5 3.2-1.2 3.2.6 0 1.2-1.4 2.2-3.2 3.4-1.8-1.2-3.2-2.2-3.2-3.4 0-1.8 2.3-2.1 3.2-.6z"/><path d="M9.7 6.9l.7-1.2.9.9.7-1.3.7 1.3.9-.9.7 1.2"/></svg></div>' +
+    '<div class="pc-name">环歌</div>' +
+    '<div class="pc-desc">椭圆环 · 逐字流转</div>' +
+    '</div>';
+}
+
+/* 斜排：独立于数值预设之外的特殊卡片，概率拆行 · 双字模交错（移植自 Folia tilt 模式） */
+function buildTiltPresetCard() {
+  return '<div class="preset-card tilt-card" data-tilt="1" onclick="toggleTiltMode()" title="斜排">' +
+    '<div class="pc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 5.5l14-1.6" opacity=".45"/><path d="M4 12l16-1.8"/><path d="M5 18.5l11-1.2" opacity=".45"/><path d="M18.6 16.9l1.8-1" opacity=".45"/></svg></div>' +
+    '<div class="pc-name">斜排</div>' +
+    '<div class="pc-desc">概率拆行 · 大字交错</div>' +
+    '</div>';
+}
+
+/* 烟纸：独立于数值预设之外的特殊卡片，歌词排成文章 · 相机逐句飞近（移植自 Folia fume 模式） */
+function buildFumePresetCard() {
+  return '<div class="preset-card fume-card" data-fume="1" onclick="toggleFumeMode()" title="烟纸">' +
+    '<div class="pc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 4h14" opacity=".45"/><path d="M4 8.5h9" opacity=".8"/><path d="M4 12.5h13" opacity=".55"/><path d="M4 16.5h8" opacity=".8"/><path d="M16.5 14.5l3.2 5.5M19.7 14.5l-3.2 5.5"/></svg></div>' +
+    '<div class="pc-name">烟纸</div>' +
+    '<div class="pc-desc">排版歌词 · 相机逐句</div>' +
+    '</div>';
+}
+
+/* 流萤辉光：独立于数值预设之外的特殊卡片，词间飞散 · 逐字辉光（移植自 Folia classic 模式） */
+function buildClassicPresetCard() {
+  return '<div class="preset-card classic-card" data-classic="1" onclick="toggleClassicMode()" title="流萤辉光">' +
+    '<div class="pc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.7 5L19 9.7l-5.3 1.7L12 16.5l-1.7-5.1L5 9.7l5.3-1.7z"/><path d="M18.8 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg></div>' +
+    '<div class="pc-name">流萤辉光</div>' +
+    '<div class="pc-desc">词间飞散 · 逐字辉光</div>' +
+    '</div>';
+}
+
+/* 钟摆：独立于数值预设之外的特殊卡片，擒纵钟表机械 · 弧形歌词环（移植自 Folia pendolo 模式） */
+function buildPendoloPresetCard() {
+  return '<div class="preset-card pendolo-card" data-pendolo="1" onclick="togglePendoloMode()" title="钟摆">' +
+    '<div class="pc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4.6" r="2.1"/><path d="M12 6.7v8.2"/><path d="M12 14.9l-3.4 4.6"/><path d="M12 14.9l3.4 4.6"/><circle cx="12" cy="4.6" r="0.4" fill="currentColor"/></svg></div>' +
+    '<div class="pc-name">钟摆</div>' +
+    '<div class="pc-desc">钟表机械 · 弧形歌词</div>' +
+    '</div>';
+}
+
+/* 云阶：独立于数值预设之外的特殊卡片，竖列错落词阶 · 逐字流光（移植自 Folia partita 模式） */
+function buildPartitaPresetCard() {
+  return '<div class="preset-card partita-card" data-partita="1" onclick="togglePartitaMode()" title="云阶">' +
+    '<div class="pc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3.5" y="15" width="4.4" height="5" rx="1"/><rect x="9.8" y="10" width="4.4" height="10" rx="1"/><rect x="16.1" y="5" width="4.4" height="15" rx="1"/></svg></div>' +
+    '<div class="pc-name">云阶</div>' +
+    '<div class="pc-desc">竖列错落 · 逐字流光</div>' +
+    '</div>';
+}
+
+/* 心象：独立于数值预设之外的特殊卡片，词云散布 · 三态漂移辉光（移植自 Folia cadenza 模式） */
+function buildCadenzaPresetCard() {
+  return '<div class="preset-card cadenza-card" data-cadenza="1" onclick="toggleCadenzaMode()" title="心象">' +
+    '<div class="pc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.4v2.2"/><path d="M12 18.4v2.2"/><path d="M3.4 12h2.2"/><path d="M18.4 12h2.2"/><path d="M5.9 5.9l1.6 1.6"/><path d="M16.5 16.5l1.6 1.6"/><path d="M18.1 5.9l-1.6 1.6"/><path d="M7.5 16.5l-1.6 1.6"/></svg></div>' +
+    '<div class="pc-name">心象</div>' +
+    '<div class="pc-desc">词云散布 · 三态辉光</div>' +
+    '</div>';
+}
+
 function refreshPresetGrid() {
   // 覆盖层模式激活时，常规预设卡片不再显示激活态（经视觉模式注册表）
   var specialActive = !!(typeof activeVisualizerOverlay === 'function' && activeVisualizerOverlay());
@@ -81,6 +153,46 @@ function refreshPresetGrid() {
     var rainy = el.getAttribute('data-rainy');
     if (rainy) {
       el.classList.toggle('active', !!(typeof overlayModeIsActive === 'function' && getVisualizerOverlayMode('rainy') && overlayModeIsActive(getVisualizerOverlayMode('rainy'))));
+      return;
+    }
+    var still = el.getAttribute('data-still');
+    if (still) {
+      el.classList.toggle('active', !!(typeof overlayModeIsActive === 'function' && getVisualizerOverlayMode('still') && overlayModeIsActive(getVisualizerOverlayMode('still'))));
+      return;
+    }
+    var claddagh = el.getAttribute('data-claddagh');
+    if (claddagh) {
+      el.classList.toggle('active', !!(typeof overlayModeIsActive === 'function' && getVisualizerOverlayMode('claddagh') && overlayModeIsActive(getVisualizerOverlayMode('claddagh'))));
+      return;
+    }
+    var tiltAttr = el.getAttribute('data-tilt');
+    if (tiltAttr) {
+      el.classList.toggle('active', !!(typeof overlayModeIsActive === 'function' && getVisualizerOverlayMode('tilt') && overlayModeIsActive(getVisualizerOverlayMode('tilt'))));
+      return;
+    }
+    var fumeAttr = el.getAttribute('data-fume');
+    if (fumeAttr) {
+      el.classList.toggle('active', !!(typeof overlayModeIsActive === 'function' && getVisualizerOverlayMode('fume') && overlayModeIsActive(getVisualizerOverlayMode('fume'))));
+      return;
+    }
+    var classicAttr = el.getAttribute('data-classic');
+    if (classicAttr) {
+      el.classList.toggle('active', !!(typeof overlayModeIsActive === 'function' && getVisualizerOverlayMode('classic') && overlayModeIsActive(getVisualizerOverlayMode('classic'))));
+      return;
+    }
+    var pendoloAttr = el.getAttribute('data-pendolo');
+    if (pendoloAttr) {
+      el.classList.toggle('active', !!(typeof overlayModeIsActive === 'function' && getVisualizerOverlayMode('pendolo') && overlayModeIsActive(getVisualizerOverlayMode('pendolo'))));
+      return;
+    }
+    var partitaAttr = el.getAttribute('data-partita');
+    if (partitaAttr) {
+      el.classList.toggle('active', !!(typeof overlayModeIsActive === 'function' && getVisualizerOverlayMode('partita') && overlayModeIsActive(getVisualizerOverlayMode('partita'))));
+      return;
+    }
+    var cadenzaAttr = el.getAttribute('data-cadenza');
+    if (cadenzaAttr) {
+      el.classList.toggle('active', !!(typeof overlayModeIsActive === 'function' && getVisualizerOverlayMode('cadenza') && overlayModeIsActive(getVisualizerOverlayMode('cadenza'))));
       return;
     }
     el.classList.toggle('active', !specialActive && Number(el.dataset.preset) === fx.preset);

@@ -17,7 +17,15 @@ var VISUALIZER_OVERLAY_MODES = [
   { id: 'film-radio', label: '胶片电台', stateVar: 'filmRadioMode', applyFn: 'applyFilmRadioMode', order: 90 },
   { id: 'graffiti', label: '涂鸦墙', stateVar: 'graffitiMode', applyFn: 'applyGraffitiMode', order: 91 },
   { id: 'aurora', label: '流光', stateVar: 'auroraMode', applyFn: 'applyAuroraMode', order: 92 },
-  { id: 'rainy', label: '雨夜车窗', stateVar: 'rainyMode', applyFn: 'applyRainyMode', order: 93 }
+  { id: 'rainy', label: '雨夜车窗', stateVar: 'rainyMode', applyFn: 'applyRainyMode', order: 93 },
+  { id: 'still', label: '静止', stateVar: 'stillMode', applyFn: 'applyStillMode', order: 95 },
+  { id: 'claddagh', label: '环歌', stateVar: 'claddaghMode', applyFn: 'applyCladdaghMode', order: 96 },
+  { id: 'tilt', label: '斜排', stateVar: 'tiltMode', applyFn: 'applyTiltMode', order: 97 },
+  { id: 'fume', label: '烟纸', stateVar: 'fumeMode', applyFn: 'applyFumeMode', order: 98 },
+  { id: 'classic', label: '流萤辉光', stateVar: 'classicMode', applyFn: 'applyClassicMode', order: 94 },
+  { id: 'pendolo', label: '钟摆', stateVar: 'pendoloMode', applyFn: 'applyPendoloMode', order: 99 },
+  { id: 'partita', label: '云阶', stateVar: 'partitaMode', applyFn: 'applyPartitaMode', order: 100 },
+  { id: 'cadenza', label: '心象', stateVar: 'cadenzaMode', applyFn: 'applyCadenzaMode', order: 101 }
 ];
 
 function registerVisualizerOverlayMode(entry) {

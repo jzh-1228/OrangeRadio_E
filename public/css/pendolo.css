@@ -1,0 +1,195 @@
+/* =========================================================================
+   OrangeSea · 钟摆（Pendolo · 擒纵钟表机械歌词）
+   Portions Copyright (c) 2025 chthollyphile and Folia contributors
+   — adapted from folia-major (AGPL-3.0): VisualizerPendolo 的 DOM 样式层。
+
+   body.pendolo 命名空间，与 index.css / aurora-flow.css / rainy-cab.css
+   完全隔离。交互范式与流光/雨夜一致：DIY 控制台卡片切换，保留底部
+   控制栏，选择其他预设自动退出（经视觉模式注册表互斥）。
+
+   分层：L0 机械 canvas（齿轮/游丝/刻度，JS 定位到机械包围盒）/
+   L1 摆轮装饰星标 / L2 弧形歌词环（#pendolo-wheel 绕轮心旋转，
+   行槽 absolute 定位在轮缘，内容反旋修正保持可读）。
+   配色：日落暖色（#f6ead8 暖白 / #ff7a3d 落日橙 / #c9b393 暖灰）。
+   ========================================================================= */
+
+#pendolo-overlay {
+  --pd-primary: #f6ead8;
+  --pd-accent: #ff7a3d;
+  --pd-secondary: #c9b393;
+  --pd-idle: rgba(246, 234, 216, 0.75);          /* 非焦点行（Folia 0.75） */
+  --pd-base: rgba(246, 234, 216, 0.52);          /* 焦点行未唱底字（0.52） */
+  --pd-tr-idle: rgba(201, 179, 147, 0.60);       /* 非焦点翻译（0.6） */
+  --pd-fill-c: rgb(249, 198, 166);               /* 已唱填充色（JS 预计算写入覆盖此兜底） */
+  --pd-fill-chorus: rgb(251, 169, 126);          /* 副歌态填充色（JS 预计算写入覆盖此兜底） */
+  --pd-font: Inter, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+  --pd-weight: 700;
+  --pd-halo: 0;                                  /* 副歌光晕强度（JS 每帧） */
+
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 5;
+  display: none;
+  overflow: hidden;
+  background: #100b07;                            /* 暖夜基底（中心渐变由 canvas 叠加） */
+  pointer-events: none;
+}
+
+body.pendolo #pendolo-overlay {
+  display: block;
+  animation: pendoloOverlayIn 0.7s ease;
+}
+
+body.pendolo #empty-home {
+  display: none;
+}
+
+@keyframes pendoloOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ---------- L0 · 机械 canvas（JS 按 contentBox 定位尺寸） ---------- */
+#pendolo-canvas {
+  position: absolute;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ---------- L1 · 摆轮装饰星标（Folia BalanceIcon 的内联星形等价） ---------- */
+.pendolo-balance-icon {
+  position: absolute;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+  color: rgba(255, 122, 61, 0.62);                 /* colorWithAlpha(accent, 0.62) */
+  pointer-events: none;
+  line-height: 1;
+}
+.pendolo-balance-icon svg {
+  width: 1em;
+  height: 1em;
+  display: block;
+}
+
+/* ---------- L2 · 弧形歌词环 ---------- */
+#pendolo-wheel {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;                            /* 切到本模式时由 body.pendolo 打开（滚轮/触摸/点击） */
+  will-change: transform;                          /* 轮转强制 GPU 层（Folia translateZ(0) 等价） */
+}
+
+body.pendolo #pendolo-wheel {
+  pointer-events: auto;
+}
+
+/* 行槽：定位在轮缘坐标，透明度由 JS 每帧写（弧可见门控） */
+.pd-line {
+  position: absolute;
+  transform-origin: left center;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* 反旋修正层：rotate(-0.65×轮转 + 0.35×行角) scale(行缩放)（JS 每帧写） */
+.pd-line-tilt {
+  transform-origin: left center;
+  will-change: transform;
+}
+
+/* 行体：translateY(-50%) 使行块垂直居中于弧点 */
+.pd-line-body {
+  position: relative;
+  transform: translateY(-50%);
+  transform-origin: left center;
+}
+
+/* 副歌光晕（Folia chorus halo 的能量闸门等价，强度由 --pd-halo 驱动） */
+.pd-line-halo {
+  position: absolute;
+  inset: -0.7em -1.1em;
+  border-radius: 1rem;
+  pointer-events: none;
+  z-index: -1;
+  opacity: var(--pd-halo, 0);
+  background: radial-gradient(circle at 42% 50%,
+    rgba(255, 122, 61, 0.14) 0%,
+    rgba(255, 122, 61, 0.035) 55%,
+    transparent 82%);
+  filter: blur(10px);
+  transition: opacity 0.42s ease-out;
+}
+
+/* 主歌词行 */
+.pd-line-main {
+  font-family: var(--pd-font);
+  font-weight: var(--pd-weight);
+  color: var(--pd-idle);
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  white-space: pre;
+}
+
+/* 焦点行扫光（双层：底字 + 已唱填充，mask 按 --pd-fill 揭示） */
+.pd-row {
+  position: relative;
+  white-space: pre;
+}
+.pd-sweep-row .pd-row-base {
+  position: relative;
+  color: var(--pd-base);
+}
+.pd-row-fill {
+  position: absolute;
+  inset: 0;
+  color: var(--pd-fill-c);
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(90deg,
+    #000 0px,
+    #000 calc(var(--pd-fill, 0px) - var(--pd-soft, 11px)),
+    rgba(0, 0, 0, 0.84) var(--pd-fill, 0px),
+    transparent calc(var(--pd-fill, 0px) + var(--pd-soft, 11px)));
+  mask-image: linear-gradient(90deg,
+    #000 0px,
+    #000 calc(var(--pd-fill, 0px) - var(--pd-soft, 11px)),
+    rgba(0, 0, 0, 0.84) var(--pd-fill, 0px),
+    transparent calc(var(--pd-fill, 0px) + var(--pd-soft, 11px)));
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* 副歌态：填充色加深混入 + 发光（accentMix 0.58 / chorusGlow 的 CSS 等价） */
+.pd-line-body.is-chorus {
+  --pd-fill-c: var(--pd-fill-chorus);
+}
+.pd-line-body.is-chorus .pd-row-fill {
+  filter: drop-shadow(0 0 8px rgba(255, 138, 85, 0.72))
+    drop-shadow(0 0 17px rgba(255, 122, 61, 0.28));
+}
+
+/* 翻译字幕轨（focal 16px / idle 12px，JS 写 fontSize；gap 0.25em） */
+.pd-line-tr {
+  font-family: var(--pd-font);
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+  margin-top: 0.25em;
+  color: var(--pd-secondary);
+  white-space: pre;
+}
+.pd-line-body:not(.is-focal) .pd-line-tr {
+  color: var(--pd-tr-idle);
+}
+
+/* 小屏：轮径随 min(w,h) 收缩，字号微降保持弧上密度 */
+@media (max-width: 760px) {
+  .pd-line-main {
+    letter-spacing: 0;
+  }
+}

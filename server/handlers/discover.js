@@ -10,6 +10,8 @@ const {
   personalized,
   recommend_resource,
   recommend_songs,
+  history_recommend_songs,
+  history_recommend_songs_detail,
 } = require('NeteaseCloudMusicApi');
 const { getUserCookie } = require('../context');
 const { mapSongRecord, mapDiscoverPlaylist } = require('./netease-mappers');
@@ -80,7 +82,42 @@ async function handleDiscoverHome() {
   };
 }
 
+async function handleDiscoverDailyHistory(date) {
+  const userCookie = getUserCookie();
+  const info = await getLoginInfo();
+  const loggedIn = !!(info && info.loggedIn);
+  const activeDate = String(date || '').trim();
+  const base = { loggedIn, date: activeDate, dates: [], songs: [], songTotal: 0, updatedAt: Date.now() };
+  if (!loggedIn) return Object.assign(base, { error: 'LOGIN_REQUIRED' });
+  try {
+    if (activeDate) {
+      const detail = await history_recommend_songs_detail({ date: activeDate, cookie: userCookie, timestamp: Date.now() });
+      const body = (detail && detail.body) || {};
+      const raw = (body.data && Array.isArray(body.data) && body.data)
+        || (body.data && body.data.dailySongs)
+        || body.dailySongs
+        || [];
+      const songs = mapDailyRecommendationSongs(raw);
+      return Object.assign(base, { songs, songTotal: songs.length });
+    }
+    const recent = await history_recommend_songs({ cookie: userCookie, timestamp: Date.now() });
+    const body = (recent && recent.body) || {};
+    const rawDates = body.data || [];
+    const dates = (Array.isArray(rawDates) ? rawDates : [])
+      .map(item => {
+        if (typeof item === 'string') return item.trim();
+        return String((item && (item.date || item.day)) || '').trim();
+      })
+      .filter(Boolean);
+    return Object.assign(base, { dates });
+  } catch (err) {
+    console.error('[DiscoverDailyHistory]', err);
+    return Object.assign(base, { error: (err && err.message) ? String(err.message) : 'DAILY_HISTORY_FAILED' });
+  }
+}
+
 module.exports = {
   mapDailyRecommendationSongs,
   handleDiscoverHome,
+  handleDiscoverDailyHistory,
 };

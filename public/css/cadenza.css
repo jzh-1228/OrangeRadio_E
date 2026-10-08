@@ -1,0 +1,134 @@
+/* =========================================================================
+   OrangeSea · 心象（Cadenza · Mindscape）— 词云散布歌词模式
+   Portions Copyright (c) 2025 chthollyphile and Folia contributors
+   — adapted from folia-major (AGPL-3.0): cadenza 视觉模式的层结构与
+   VisualizerShell 空场概念（暗色空场 + DOM 词层 + 涟漪 canvas）。
+   body.cadenza 命名空间，与 index.css / film-radio.css / graffiti-lyrics.css /
+   aurora-flow.css / rainy-cab.css 完全隔离。交互范式与其它覆盖层一致：
+   预设网格卡片切换，选择其它预设经注册表自动退出。
+   ========================================================================= */
+
+#cadenza-overlay {
+  /* 日落暖夜空场：深暮底 + 暖橙微光心（与 --visual-tint 协调） */
+  --cz-bg-a: #140d12;
+  --cz-bg-b: #0b080d;
+  --cz-glow: rgba(255, 156, 110, 0.055);
+  --cz-empty: #c8a488;
+
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 5;
+  display: none;
+  overflow: hidden;
+  pointer-events: none;
+  background: radial-gradient(120% 90% at 50% 38%, var(--cz-bg-a) 0%, var(--cz-bg-b) 68%, #060409 100%);
+}
+
+body.cadenza #cadenza-overlay {
+  display: block;
+  animation: cadenzaOverlayIn 0.9s ease;
+}
+
+@keyframes cadenzaOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* 空场微光心：极轻的暖色呼吸（纯 CSS，一次渐变无动画重绘压力） */
+.cadenza-backdrop {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background:
+    radial-gradient(46% 34% at 50% 42%, var(--cz-glow) 0%, rgba(0, 0, 0, 0) 72%),
+    radial-gradient(70% 46% at 50% 108%, rgba(244, 210, 138, 0.045) 0%, rgba(0, 0, 0, 0) 70%);
+}
+
+/* 舞台（词层 + 涟漪 + 空态文字的公共容器） */
+.cadenza-stage {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+}
+
+/* 行层：整行入场/离场（opacity / filter blur / scale 逐帧直写；
+   transformOrigin 50% 42% 与透视常量对齐 Folia lineLayer 内联样式） */
+.cadenza-layer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  opacity: 0;
+  transform: scale(1);
+  transform-origin: 50% 42%;
+  perspective: 1000px;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* DOM 词池（word 节点由 JS 创建并直写 transform） */
+.cadenza-words {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+/* 涟漪 canvas（Canvas2D 唯一职责：副歌涟漪描线） */
+.cadenza-canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* 词节点骨架（布局/变换全由 JS 直写，此处只兜底定位上下文） */
+.cadenza-word {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+
+/* 空态文字（Folia AnimatePresence「等待音乐」→ CSS 过渡淡入淡出） */
+.cadenza-empty {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 42%;
+  transform: translateY(-50%);
+  text-align: center;
+  font-size: clamp(1.5rem, 3.5vw, 2.25rem);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: var(--cz-empty);
+  opacity: 0;
+  transition: opacity 0.7s ease;
+  pointer-events: none;
+}
+
+.cadenza-empty.show {
+  opacity: 0.55;
+}
+
+/* 深浅色主题钩子（可选微调，默认与暗夜空场协调） */
+@media (prefers-reduced-motion: reduce) {
+  body.cadenza #cadenza-overlay {
+    animation: none;
+  }
+  .cadenza-empty {
+    transition: none;
+  }
+}

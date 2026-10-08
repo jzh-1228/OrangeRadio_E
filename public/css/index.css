@@ -16091,7 +16091,7 @@ body.panel-reordering .mini-queue-item.is-reordering {
 #empty-home .home-grid.home-quick-grid {
   grid-column: 2;
   grid-row: 1;
-  grid-template-columns: minmax(320px, 1.75fr) repeat(3, minmax(145px, 1fr));
+  grid-template-columns: minmax(320px, 1.75fr) repeat(4, minmax(136px, 1fr));
   grid-auto-flow: row;
   align-items: stretch;
   gap: 13px;
@@ -16147,6 +16147,18 @@ body.panel-reordering .mini-queue-item.is-reordering {
   width: 70px;
   height: 70px;
   border-radius: 18px
+}
+
+#empty-home .home-grid.home-quick-grid .home-card-recommend .home-card-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-all
+}
+
+#empty-home .home-grid.home-quick-grid .home-card-recommend .home-card-art {
+  transform: rotate(-2deg)
 }
 
 #empty-home .home-insight-rail {
@@ -16621,7 +16633,7 @@ body.panel-reordering .mini-queue-item.is-reordering {
 
 @media (min-width:761px) and (max-width:1500px) {
   #empty-home .home-grid.home-quick-grid {
-    grid-template-columns: minmax(250px, 1.55fr) repeat(3, minmax(110px, 1fr))
+    grid-template-columns: minmax(250px, 1.55fr) repeat(4, minmax(104px, 1fr))
   }
 
   #empty-home .home-grid.home-quick-grid .home-card-featured {
@@ -16911,6 +16923,45 @@ body.panel-reordering .mini-queue-item.is-reordering {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px
+}
+
+.home-platform-daily-dates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px
+}
+
+.home-platform-daily-date {
+  padding: 5px 11px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .035);
+  color: rgba(255, 255, 255, .62);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  cursor: pointer;
+  transition: border-color .18s ease, background .18s ease, color .18s ease
+}
+
+.home-platform-daily-date:hover {
+  border-color: rgba(var(--fc-accent-rgb), .38);
+  color: #fff
+}
+
+.home-platform-daily-date.active {
+  border-color: rgba(var(--fc-accent-rgb), .55);
+  background: rgba(var(--fc-accent-rgb), .14);
+  color: #fff
+}
+
+.home-platform-daily-dates-note {
+  color: rgba(255, 255, 255, .38);
+  font-size: 9.5px;
+  letter-spacing: .03em
 }
 
 .home-platform-recommend-card {

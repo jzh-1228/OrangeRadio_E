@@ -110,6 +110,7 @@ function renderHomeDiscover() {
   var playlistItem = homeDiscoverState.playlists[0] || null;
   var podcastItem = homeDiscoverState.podcasts[0] || null;
   var summary = homeListenSummary();
+  var weatherArtPick = typeof homeRecommendPlaylistPick === 'function' ? homeRecommendPlaylistPick() : null;
   var weatherCardTitle = document.getElementById('home-weather-card-title');
   var weatherCardSub = document.getElementById('home-weather-card-sub');
   var dailyTitle = document.getElementById('home-daily-title');
@@ -122,9 +123,10 @@ function renderHomeDiscover() {
   var profileSub = document.getElementById('home-profile-sub');
   var libTitle = document.getElementById('home-library-title');
   var libSub = document.getElementById('home-library-sub');
-  if (weatherCardTitle) weatherCardTitle.textContent = '我的歌单';
+  if (weatherCardTitle) weatherCardTitle.textContent = '推荐歌单';
   if (weatherCardSub) {
-    weatherCardSub.textContent = playlistItem ? (((playlistItem.trackCount || 0) ? playlistItem.trackCount + ' 首 · ' : '') + (playlistItem.creator || '打开左侧歌单库')) : '打开左侧歌单库';
+    var recommendPick = typeof homeRecommendPlaylistPick === 'function' ? homeRecommendPlaylistPick() : null;
+    weatherCardSub.textContent = recommendPick ? homeRecommendPlaylistSub(recommendPick) : '打开左侧歌单库';
   }
   if (continueTitle) continueTitle.textContent = summary.recent ? summary.recent.name : '继续听';
   if (continueSub) continueSub.textContent = summary.recent ? (summary.recent.artist || summary.recent.source || '最近播放') : '最近播放会出现在这里';
@@ -144,15 +146,18 @@ function renderHomeDiscover() {
     setHomeArt('home-profile-art', summary.topSong && summary.topSong.cover || summary.recent && summary.recent.cover, 280);
     setHomeArt('home-library-art', '', 280);
   } else {
+    var fmLead = (homeDiscoverState.fmSongs || [])[0] || null;
     if (dailyTitle) dailyTitle.textContent = daily ? daily.name : '每日推荐';
-    if (dailySub) dailySub.textContent = daily ? ((daily.artist || songSourceLabel(daily) || '今日歌曲') + ' · 点击播放今日队列') : '同步你的今日歌曲';
-    if (privateTitle) privateTitle.textContent = cardSongB ? cardSongB.name : '私人雷达';
-    if (privateSub) privateSub.textContent = cardSongB ? (cardSongB.artist || songSourceLabel(cardSongB) || '推荐歌曲') : (homeDiscoverState.songs.length + ' 首 · 根据今日推荐与常听偏好');
+    if (dailySub) dailySub.textContent = daily ? ('共 ' + homeDiscoverState.songs.length + ' 首 · ' + (daily.artist || songSourceLabel(daily) || '今日歌曲') + ' · 点击播放今日队列') : '同步你的今日歌曲';
+    if (privateTitle) privateTitle.textContent = fmLead ? fmLead.name : (cardSongB ? cardSongB.name : '私人雷达');
+    if (privateSub) privateSub.textContent = fmLead
+      ? ((fmLead.artist || '私人 FM') + ' · 私人 FM 电台 · 近尾自动补拉')
+      : (cardSongB ? (cardSongB.artist || songSourceLabel(cardSongB) || '推荐歌曲') : (homeDiscoverState.songs.length + ' 首 · 根据今日推荐与常听偏好'));
     if (libTitle) libTitle.textContent = cardSongC ? cardSongC.name : (summary.topArtist ? summary.topArtist.name : '更多歌曲');
     if (libSub) libSub.textContent = cardSongC ? (cardSongC.artist || songSourceLabel(cardSongC) || '推荐歌曲') : (summary.topArtist ? ('歌手偏好 · ' + summary.topArtist.plays + ' 次') : '播放几首后生成你的偏好');
-    setHomeArt('home-weather-art', (userPlaylists[0] && userPlaylists[0].cover) || (playlistItem && playlistItem.cover) || daily && daily.cover, 280);
+    setHomeArt('home-weather-art', weatherArtPick && weatherArtPick.item && weatherArtPick.item.cover || (playlistItem && playlistItem.cover) || daily && daily.cover, 280);
     setHomeArt('home-daily-art', daily && daily.cover, 280);
-    setHomeArt('home-private-art', cardSongB && cardSongB.cover || daily && daily.cover || summary.recent && summary.recent.cover || playlistItem && playlistItem.cover, 280);
+    setHomeArt('home-private-art', fmLead && fmLead.cover || cardSongB && cardSongB.cover || daily && daily.cover || summary.recent && summary.recent.cover || playlistItem && playlistItem.cover, 280);
     setHomeArt('home-continue-art', summary.recent && summary.recent.cover || playlistItem && playlistItem.cover, 280);
     setHomeArt('home-profile-art', summary.topSong && summary.topSong.cover || podcastItem && podcastItem.cover, 280);
     setHomeArt('home-library-art', cardSongC && cardSongC.cover || summary.topSong && summary.topSong.cover || summary.recent && summary.recent.cover || podcastItem && podcastItem.cover, 280);
@@ -176,6 +181,7 @@ async function loadHomeDiscover(force) {
     homeDiscoverState.podcasts = homeDiscoverState.loggedIn ? (data && data.podcasts || []) : [];
     homeDiscoverState.updatedAt = Number(data && data.updatedAt) || Date.now();
     homeDiscoverState.loaded = true;
+    scheduleHomeFmPreview();
   } catch (e) {
     console.warn('home discover failed:', e);
     if (token === homeDiscoverToken) homeDiscoverState.error = 'DISCOVER_FAILED';
@@ -185,4 +191,21 @@ async function loadHomeDiscover(force) {
       renderHomeDiscover();
     }
   }
+}
+/* 私人 FM 首曲预取（home-fm）：仅用于「私人雷达」hero 卡展示，
+   播放入口 playHomePrivateRadio 每次都会重新拉取最新一批。 */
+var homeFmPreviewFetchedAt = 0;
+var HOME_FM_PREVIEW_TTL_MS = 10 * 60 * 1000;
+function scheduleHomeFmPreview(force) {
+  if (!homeDiscoverState.loggedIn) return;
+  if (typeof fetchPersonalFmSongs !== 'function') return;
+  var now = Date.now();
+  if (!force && homeFmPreviewFetchedAt && now - homeFmPreviewFetchedAt < HOME_FM_PREVIEW_TTL_MS) return;
+  homeFmPreviewFetchedAt = now;
+  fetchPersonalFmSongs().then(function (songs) {
+    homeDiscoverState.fmSongs = songs && songs.length ? songs : homeDiscoverState.fmSongs;
+    if (emptyHomeActive) renderHomeDiscover();
+  }).catch(function () {
+    homeFmPreviewFetchedAt = 0;
+  });
 }

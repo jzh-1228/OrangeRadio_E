@@ -200,6 +200,7 @@ var fxDefaults = {
   memorySafetyRevision: 3,
   liveBackgroundKeep: false,
   cam: 'off',
+  backgroundMode: 'ambient',  // 正交背景层（95-background-runtime）：ambient=氛围底（body 背景体系）
 };
 function normalizeForegroundFpsMode(value) {
   var mode = String(value || '').trim().toLowerCase();

@@ -1,12 +1,12 @@
 /* =========================================================================
    OrangeSea · 发现页 / 天气路由（discover）
    -------------------------------------------------------------------------
-   /api/discover/home、/api/weather/radio、/api/weather/ip-location。
+   /api/discover/home、/api/discover/daily-history、/api/weather/radio、/api/weather/ip-location。
    ========================================================================= */
 'use strict';
 
 const { sendJSON } = require('../utils');
-const { handleDiscoverHome } = require('../handlers/discover');
+const { handleDiscoverHome, handleDiscoverDailyHistory } = require('../handlers/discover');
 const { buildWeatherRadio, fetchIpWeatherLocation } = require('../handlers/weather');
 
 async function handle(req, res, url) {
@@ -18,6 +18,16 @@ async function handle(req, res, url) {
     } catch (err) {
       console.error('[DiscoverHome]', err);
       sendJSON(res, { error: err.message, loggedIn: false, dailySongs: [], playlists: [], podcasts: [] }, 500);
+    }
+    return true;
+  }
+
+  if (pn === '/api/discover/daily-history') {
+    try {
+      sendJSON(res, await handleDiscoverDailyHistory(url.searchParams.get('date') || ''));
+    } catch (err) {
+      console.error('[DiscoverDailyHistoryRoute]', err);
+      sendJSON(res, { loggedIn: false, date: '', dates: [], songs: [], error: err.message }, 500);
     }
     return true;
   }

@@ -28,6 +28,15 @@
   <link rel="stylesheet" href="css/graffiti-lyrics.css?v=20260813-multilang-anim">
   <link rel="stylesheet" href="css/aurora-flow.css?v=20260910-aurora-flow">
   <link rel="stylesheet" href="css/rainy-cab.css?v=20260910-rainy-cab">
+  <link rel="stylesheet" href="css/still.css?v=20261008-still">
+  <link rel="stylesheet" href="css/claddagh.css?v=20261008-claddagh">
+  <link rel="stylesheet" href="css/tilt.css?v=20261008-tilt">
+  <link rel="stylesheet" href="css/fume.css?v=20261008-fume">
+  <link rel="stylesheet" href="css/pendolo.css?v=20261008-pendolo">
+  <link rel="stylesheet" href="css/classic.css?v=20261008-classic">
+  <link rel="stylesheet" href="css/partita.css?v=20261008-partita">
+    <link rel="stylesheet" href="css/cadenza.css?v=20261008-cadenza">
+    <link rel="stylesheet" href="css/visualizer-background.css?v=20261008-bg-switcher">
 </head>
 
 <body>
@@ -100,6 +109,10 @@
     </div>
     <div id="album-bg"></div>
     <div id="album-bg-next" aria-hidden="true"></div>
+    <!-- 正交背景宿主层：盖住 body 背景体系(z-index:0)、垫在 WebGL 主场景
+         (#canvas-container z-index:1，DOM 靠后)之下；由 95-background-runtime
+         按 fx.backgroundMode 挂载 94-background-presets 的实现 -->
+    <div id="visualizer-bg-layer" aria-hidden="true"></div>
     <div id="canvas-container"></div>
     <canvas id="idle-guide-canvas" aria-hidden="true"></canvas>
 
@@ -405,6 +418,9 @@
 
       <div class="fx-section-label">视觉预设</div>
       <div class="preset-grid" id="preset-grid"></div>
+      <div class="fx-section-label">背景</div>
+      <div class="fx-seg background-mode-seg" id="background-mode-seg" role="group" aria-label="背景选择"
+        title="与前景视觉自由组合的背景层：不改变歌词模式、覆盖层与数值预设"></div>
       <div class="fx-section-label">用户存档</div>
       <div class="user-archive-grid" id="user-archive-grid"></div>
       <div class="fx-section-label">自定义颜色</div>
@@ -1638,6 +1654,115 @@
         <div class="rainy-lyric" id="rainy-lyric"></div>
       </div>
       <div class="rainy-dash" aria-hidden="true"></div>
+    </div>
+
+    <!-- 烟纸覆盖层（Fume · 排版相机歌词）：整首歌词排成多栏文章，相机沿演唱进度逐句飞近，
+         未唱淡影 / 演唱逐字打印 + 落章光斑 / 唱过退成铅灰余温，播完拉远看整张纸 -->
+    <div id="fume-overlay" aria-hidden="true">
+      <div class="fume-paper" aria-hidden="true"></div>
+      <canvas class="fume-canvas" id="fume-canvas"></canvas>
+      <div class="fume-badge" aria-hidden="true">
+        <div class="fume-badge-cover cover-empty" id="fume-badge-cover"></div>
+        <div class="fume-badge-meta">
+          <div class="fume-badge-title" id="fume-badge-title">未在播放</div>
+          <div class="fume-badge-artist" id="fume-badge-artist"></div>
+        </div>
+      </div>
+      <div class="fume-pending" id="fume-pending" aria-hidden="true">
+        <div class="fume-pending-bar b1"></div>
+        <div class="fume-pending-bar b2"></div>
+        <div class="fume-pending-bar b3"></div>
+      </div>
+      <div class="fume-aria" id="fume-aria-line" aria-live="polite"></div>
+    </div>
+
+    <!-- 静止歌词覆盖层（Still · 移植自 Folia still 模式）：纯静态三行歌词 + 中心径向暗角，零 canvas 零动画 -->
+    <div id="still-overlay" aria-hidden="true">
+      <div class="still-vignette" aria-hidden="true"></div>
+      <div class="still-stage">
+        <div class="still-slot" id="still-slot-prev">
+          <div class="still-text" id="still-text-prev"></div>
+          <div class="still-tr" id="still-tr-prev"></div>
+        </div>
+        <div class="still-slot is-current" id="still-slot-main">
+          <div class="still-text" id="still-text-main"></div>
+          <div class="still-tr" id="still-tr-main"></div>
+        </div>
+        <div class="still-slot" id="still-slot-next">
+          <div class="still-text" id="still-text-next"></div>
+          <div class="still-tr" id="still-tr-next"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 环歌覆盖层（Claddagh Ring · 椭圆环逐字歌词）：斜置椭圆环上按字排布流转，
+         中心轴线随节拍呼吸（源自 Folia claddagh 模式，AGPL-3.0，见 NOTICE.md） -->
+    <div id="claddagh-overlay" aria-hidden="true">
+      <div class="claddagh-backdrop" aria-hidden="true"></div>
+      <div class="claddagh-axis" id="claddagh-axis" aria-hidden="true"></div>
+      <div class="claddagh-ring-stage" id="claddagh-ring-stage"></div>
+    </div>
+
+    <!-- 斜排覆盖层（Tilt · 移植自 Folia tilt 模式）：概率性 1-4 行拆行，
+         水平/大斜体双字模交错，逐行时间序 reveal + 逐字脉冲（AGPL-3.0，见 NOTICE.md） -->
+    <div id="tilt-overlay" aria-hidden="true">
+      <div class="tilt-backdrop" aria-hidden="true"></div>
+      <div class="tilt-stage" id="tilt-stage">
+        <div class="tilt-idle" id="tilt-idle">♪</div>
+      </div>
+    </div>
+
+    <!-- 流萤辉光覆盖层（Classic Luminous · 移植自 Folia classic 模式）：词级三态随机布局
+         + 逐字辉光歌词（AGPL-3.0，见 NOTICE.md） -->
+    <div id="classic-overlay" aria-hidden="true">
+      <div class="classic-bg" aria-hidden="true"></div>
+      <div class="classic-stage">
+        <div class="classic-float">
+          <div class="classic-lines" id="classic-lines"></div>
+        </div>
+      </div>
+      <div class="classic-idle" id="classic-idle">等待音乐 · · ·</div>
+    </div>
+
+    <!-- 钟摆覆盖层（Pendolo · 移植自 Folia pendolo 模式）：擒纵钟表机械齿轮群
+         + 弧形歌词环 + 当前行逐字扫光（AGPL-3.0，见 NOTICE.md） -->
+    <div id="pendolo-overlay" aria-hidden="true">
+      <canvas id="pendolo-canvas"></canvas>
+      <div class="pendolo-balance-icon" id="pendolo-balance-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <path d="M12 2.5l2.4 6.2 6.6.5-5.1 4.3 1.6 6.4L12 16.4l-5.5 3.5 1.6-6.4-5.1-4.3 6.6-.5z"
+            stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="pendolo-wheel" id="pendolo-wheel"></div>
+    </div>
+
+    <!-- 云阶覆盖层（Partita · 移植自 Folia partita 模式）：日落夜空 + 竖列错落
+         词阶 + 逐字流光 + 副歌涟漪（AGPL-3.0，见 NOTICE.md） -->
+    <div id="partita-overlay" aria-hidden="true">
+      <div class="partita-sky" aria-hidden="true"></div>
+      <div class="partita-glow" aria-hidden="true"></div>
+      <div class="partita-vignette" aria-hidden="true"></div>
+      <div class="partita-stage">
+        <div class="pt-float" id="partita-float">
+          <div class="pt-empty" id="partita-empty">等待音乐 · ♪</div>
+          <!-- .pt-line 行元素由 13-partita.js 动态插入 -->
+        </div>
+      </div>
+    </div>
+
+    <!-- 心象覆盖层（Cadenza · Mindscape，移植自 Folia cadenza 模式）：暗色空场上
+         词云散布（pretext 换行 + 避碰布局），waiting/active/passed 三态漂移，
+         逐字辉光 textShadow + 副歌能量闸门涟漪（AGPL-3.0，见 NOTICE.md） -->
+    <div id="cadenza-overlay" aria-hidden="true">
+      <div class="cadenza-backdrop" aria-hidden="true"></div>
+      <div class="cadenza-stage">
+        <div class="cadenza-layer" id="cadenza-layer">
+          <div class="cadenza-words" id="cadenza-words"></div>
+          <canvas class="cadenza-canvas" id="cadenza-canvas"></canvas>
+        </div>
+        <div class="cadenza-empty" id="cadenza-empty"></div>
+      </div>
     </div>
 
     <input type="file" id="file-input"

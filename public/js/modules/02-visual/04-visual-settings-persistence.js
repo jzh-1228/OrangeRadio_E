@@ -438,7 +438,8 @@ function readSavedLyricLayout() {
       shelfSummonParallax: clampRange(raw.shelfSummonParallax == null ? fxDefaults.shelfSummonParallax : Number(raw.shelfSummonParallax), 0, 2.5),
       shelfCameraEnterSpeed: clampRange(raw.shelfCameraEnterSpeed == null ? fxDefaults.shelfCameraEnterSpeed : Number(raw.shelfCameraEnterSpeed), 0.2, 1.5),
       shelfCameraExitSpeed: clampRange(raw.shelfCameraExitSpeed == null ? fxDefaults.shelfCameraExitSpeed : Number(raw.shelfCameraExitSpeed), 0.2, 1.5),
-      cam: /^(off|gesture)$/.test(String(raw.cam || '')) ? raw.cam : fxDefaults.cam
+      cam: /^(off|gesture)$/.test(String(raw.cam || '')) ? raw.cam : fxDefaults.cam,
+      backgroundMode: (typeof raw.backgroundMode === 'string' && raw.backgroundMode) ? raw.backgroundMode : fxDefaults.backgroundMode
     };
   } catch (e) {
     return readSavedLyricLayoutCriticalFallback(raw, e);
@@ -932,7 +933,8 @@ function saveLyricLayout(opts) {
       shelfSummonParallax: clampRange(fx.shelfSummonParallax == null ? fxDefaults.shelfSummonParallax : Number(fx.shelfSummonParallax), 0, 2.5),
       shelfCameraEnterSpeed: clampRange(fx.shelfCameraEnterSpeed == null ? fxDefaults.shelfCameraEnterSpeed : Number(fx.shelfCameraEnterSpeed), 0.2, 1.5),
       shelfCameraExitSpeed: clampRange(fx.shelfCameraExitSpeed == null ? fxDefaults.shelfCameraExitSpeed : Number(fx.shelfCameraExitSpeed), 0.2, 1.5),
-      cam: /^(off|gesture)$/.test(String(fx.cam || '')) ? fx.cam : fxDefaults.cam
+      cam: /^(off|gesture)$/.test(String(fx.cam || '')) ? fx.cam : fxDefaults.cam,
+      backgroundMode: (typeof fx.backgroundMode === 'string' && fx.backgroundMode) ? fx.backgroundMode : fxDefaults.backgroundMode
     };
     autosavePayload = scopeCurrentFxAutosavePayload(autosavePayload, opts);
     if (shouldSkipCurrentFxAutosaveWrite(autosavePayload, opts)) return;

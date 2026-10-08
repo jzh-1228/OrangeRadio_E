@@ -26,6 +26,7 @@ var homePlatformRecommendationState = {
   source: 'netease',
   previousFocus: null,
   neteaseLoading: false,
+  dailyHistory: { loading: false, loadedDates: false, dates: [], activeDate: '', songs: [], error: '' },
   feeds: {
     qishui: { loading: false, loaded: false, songs: [], error: '', message: '', mode: '', source: '', fallback: false, provenance: '' },
     kugou: { loading: false, loaded: false, songs: [], error: '', message: '', mode: '', source: '', fallback: false, provenance: '' },
@@ -112,6 +113,51 @@ function homeDashboardSelectedReview() {
   if (!reviews.length) return { text: '让今天的声音，从你喜欢的地方开始。', source: 'OrangeSea' };
   var index = ((homeDashboardDayNumber() + homeDashboardReviewOffset) % reviews.length + reviews.length) % reviews.length;
   return reviews[index];
+}
+
+function homeRecommendPlaylistIndex(total) {
+  total = Math.max(0, Number(total) || 0);
+  if (!total) return 0;
+  return ((homeDashboardDayNumber() % total) + total) % total;
+}
+
+function homeRecommendPlaylistPick() {
+  var stateLists = homeDiscoverState && Array.isArray(homeDiscoverState.playlists) ? homeDiscoverState.playlists : [];
+  stateLists = stateLists.filter(function (item) { return item && item.id; });
+  if (stateLists.length) {
+    var index = homeRecommendPlaylistIndex(stateLists.length);
+    return { item: stateLists[index], index: index, total: stateLists.length, fromState: true };
+  }
+  var ownLists = Array.isArray(userPlaylists) ? userPlaylists.filter(function (item) { return item && item.id; }) : [];
+  if (ownLists.length) {
+    var ownIndex = homeRecommendPlaylistIndex(ownLists.length);
+    return { item: ownLists[ownIndex], index: ownIndex, total: ownLists.length, fromState: false };
+  }
+  return null;
+}
+
+function homeRecommendPlaylistSub(pick) {
+  if (!pick || !pick.item) return '登录后同步每日推荐歌单';
+  var item = pick.item;
+  var parts = [];
+  if (item.trackCount) parts.push(item.trackCount + ' 首');
+  else if (item.creator) parts.push(item.creator);
+  if (item.playCount) parts.push(compactHomeCount(item.playCount) + ' 播放');
+  parts.push('每日轮换 · 第 ' + (pick.index + 1) + '/' + pick.total + ' 张');
+  return parts.join(' · ');
+}
+
+function homeRecommendPlaylistLabel(item) {
+  return item && item.tag === '私人推荐' ? '私人雷达' : '推荐歌单';
+}
+
+function openHomeDashboardRecommendPlaylist() {
+  var pick = homeRecommendPlaylistPick();
+  if (pick && pick.fromState && typeof openHomePlaylist === 'function') {
+    openHomePlaylist(pick.index);
+    return;
+  }
+  if (typeof openHomeLibrary === 'function') openHomeLibrary();
 }
 
 function homeDashboardUpdateClock() {
@@ -537,12 +583,14 @@ function renderHomeDashboardQuickCards() {
   var recent = summary && summary.recent || null;
   var current = homeDashboardCurrentSong();
   var daily = homeDiscoverState && homeDiscoverState.songs && homeDiscoverState.songs[0] || null;
+  var dailyCount = homeDiscoverState && Array.isArray(homeDiscoverState.songs) ? homeDiscoverState.songs.length : 0;
   var continueItem = current || recent;
   var localSongs = homeDashboardLocalSongs();
   var localCount = localSongs.length;
   var accountPlaylistCount = homeDiscoverState && Array.isArray(homeDiscoverState.playlists) ? homeDiscoverState.playlists.length : 0;
   var ownPlaylistCount = Array.isArray(userPlaylists) ? userPlaylists.length : 0;
   var libraryCount = localCount + accountPlaylistCount + ownPlaylistCount;
+  var recommendPick = homeRecommendPlaylistPick();
   var cards = [
     {
       label: 'CONTINUE',
@@ -564,8 +612,10 @@ function renderHomeDashboardQuickCards() {
     },
     {
       label: 'DAILY MIX',
-      title: '每日推荐',
-      sub: daily ? ((daily.name || daily.title || '今日歌曲') + (homeDashboardSubtitle(daily) ? ' · ' + homeDashboardSubtitle(daily) : '')) : '使用当前 OrangeSea 推荐数据',
+      title: daily ? (daily.name || daily.title || '每日推荐') : '每日推荐',
+      sub: daily
+        ? ('共 ' + dailyCount + ' 首 · ' + (homeDashboardSubtitle(daily) || '点击播放今日队列'))
+        : '使用当前 OrangeSea 推荐数据',
       cover: homeDashboardSongCover(daily, 260),
       action: 'playHomeDaily()',
       tone: 'mix',
@@ -579,6 +629,15 @@ function renderHomeDashboardQuickCards() {
       action: 'playHomeRecent()',
       tone: 'playlist',
       className: 'home-card-quick',
+    },
+    {
+      label: 'FOR YOU',
+      title: recommendPick && recommendPick.item && recommendPick.item.name || '推荐歌单',
+      sub: homeRecommendPlaylistSub(recommendPick),
+      cover: recommendPick && recommendPick.item && recommendPick.item.cover || '',
+      action: 'openHomeDashboardRecommendPlaylist()',
+      tone: 'playlist',
+      className: 'home-card-quick home-card-recommend',
     },
   ];
   var fingerprint = cards.map(function (card) {
@@ -896,8 +955,11 @@ function homePlatformRecommendationCard(kind, index, item, label) {
   item = item || {};
   var title = item.name || item.title || '未命名内容';
   var sub = '';
-  if (kind === 'netease-playlist') sub = (item.trackCount ? item.trackCount + ' 首' : '推荐歌单') + (item.playCount ? ' · ' + compactHomeCount(item.playCount) + ' 播放' : '');
-  else sub = homeDashboardSubtitle(item) || label;
+  if (kind === 'netease-playlist') {
+    sub = item.trackCount ? item.trackCount + ' 首' : '推荐歌单';
+    if (item.creator) sub += ' · ' + item.creator;
+    if (item.playCount) sub += ' · ' + compactHomeCount(item.playCount) + ' 播放';
+  } else sub = homeDashboardSubtitle(item) || label;
   var cover = item.cover || item.picUrl || homeDashboardSongCover(item, 180) || '';
   var coverStyle = cover ? ' style="background-image:url(&quot;' + escHtml(cssImageUrl(cover)) + '&quot;)"' : '';
   return '<button class="home-platform-recommend-card" type="button" data-home-recommend-kind="' + kind + '" data-home-recommend-index="' + index + '">' +
@@ -945,12 +1007,123 @@ function homePlatformRecommendationSpacer(rows, position) {
     '" aria-hidden="true" style="grid-column:1/-1;height:' + height + 'px"></span>';
 }
 
+function homeDailyHistoryState() {
+  return homePlatformRecommendationState.dailyHistory
+    || (homePlatformRecommendationState.dailyHistory = { loading: false, loadedDates: false, dates: [], activeDate: '', songs: [], error: '' });
+}
+function homeDailyHistoryActive() {
+  var history = homeDailyHistoryState();
+  return !!(history && history.activeDate);
+}
+function homePlatformDailySongs() {
+  return homeDailyHistoryActive()
+    ? (homeDailyHistoryState().songs || [])
+    : (Array.isArray(homeDiscoverState.songs) ? homeDiscoverState.songs : []);
+}
+function formatHomeDailyDateLabel(date) {
+  var parts = String(date || '').split('-');
+  if (parts.length >= 3) return parts[1].replace(/^0+/, '') + '-' + parts[2].replace(/^0+/, '');
+  return String(date || '');
+}
+function renderHomePlatformDailyDates() {
+  var wrap = document.getElementById('home-platform-daily-dates');
+  if (!wrap) return;
+  var history = homeDailyHistoryState();
+  var activeDate = history.activeDate || '';
+  var html = ['<button type="button" class="home-platform-daily-date' + (activeDate ? '' : ' active') +
+    '" data-home-daily-date="" aria-selected="' + (activeDate ? 'false' : 'true') + '">今日</button>'];
+  (history.dates || []).forEach(function (date) {
+    var isActive = date === activeDate;
+    html.push('<button type="button" class="home-platform-daily-date' + (isActive ? ' active' : '') +
+      '" data-home-daily-date="' + escHtml(date) + '" aria-selected="' + (isActive ? 'true' : 'false') + '">' +
+      escHtml(formatHomeDailyDateLabel(date)) + '</button>');
+  });
+  if (!history.loadedDates) {
+    html.push('<span class="home-platform-daily-dates-note">' + (history.loading ? '日期读取中…' : '可回看历史日推') + '</span>');
+  } else if (!(history.dates || []).length) {
+    html.push('<span class="home-platform-daily-dates-note">' + escHtml(history.error ? '历史日期不可用' : '暂无历史日推') + '</span>');
+  }
+  wrap.innerHTML = html.join('');
+}
+async function loadHomePlatformDailyHistoryDates(force) {
+  var history = homeDailyHistoryState();
+  if (history.loading) return;
+  if (history.loadedDates && !force) {
+    renderHomePlatformDailyDates();
+    return;
+  }
+  history.loading = true;
+  renderHomePlatformDailyDates();
+  try {
+    var data = await apiJson('/api/discover/daily-history?t=' + Date.now(), { timeoutMs: 14000 });
+    history.dates = data && Array.isArray(data.dates) ? data.dates : [];
+    history.error = data && data.error ? String(data.error) : '';
+    history.loadedDates = true;
+  } catch (error) {
+    console.warn('[HomeDailyHistoryDates]', error);
+    history.error = String(error && error.message || 'DAILY_HISTORY_FAILED');
+    history.loadedDates = true;
+  } finally {
+    history.loading = false;
+    renderHomePlatformDailyDates();
+  }
+}
+async function selectHomePlatformDailyDate(date) {
+  var history = homeDailyHistoryState();
+  date = String(date || '');
+  if (!date) {
+    history.activeDate = '';
+    history.songs = [];
+    renderHomePlatformRecommendations();
+    return;
+  }
+  if (history.activeDate === date && history.songs.length) {
+    renderHomePlatformRecommendations();
+    return;
+  }
+  history.activeDate = date;
+  history.songs = [];
+  history.loading = true;
+  renderHomePlatformRecommendations();
+  try {
+    var data = await apiJson('/api/discover/daily-history?date=' + encodeURIComponent(date) + '&t=' + Date.now(), { timeoutMs: 14000 });
+    if (history.activeDate !== date) return;
+    history.songs = data && Array.isArray(data.songs) ? data.songs.map(cloneSong) : [];
+    history.error = data && data.error ? String(data.error) : '';
+  } catch (error) {
+    console.warn('[HomeDailyHistoryDetail]', error);
+    if (history.activeDate === date) history.error = String(error && error.message || 'DAILY_HISTORY_FAILED');
+  } finally {
+    if (history.activeDate === date) history.loading = false;
+    renderHomePlatformRecommendations();
+  }
+}
+function playHomeDailyHistorySong(index) {
+  var history = homeDailyHistoryState();
+  var songs = history && history.songs || [];
+  if (!songs.length) return;
+  homeForcedOpen = false;
+  homeSuppressed = false;
+  if (typeof setHomeControlsLocked === 'function') setHomeControlsLocked(false);
+  playQueue = songs.map(cloneSong);
+  currentIdx = Math.max(0, Math.min(playQueue.length - 1, Number(index) || 0));
+  if (typeof safeRenderQueuePanel === 'function') safeRenderQueuePanel('home-daily-history', { scrollCurrent: true });
+  if (typeof safeShelfRebuild === 'function') safeShelfRebuild('home-daily-history', true);
+  if (typeof forcePlaybackControlsInteractive === 'function') forcePlaybackControlsInteractive();
+  Promise.resolve(playQueueAt(currentIdx, {
+    manual: true,
+    context: { type: 'home-daily-history', playlistName: '历史日推 · ' + (history.activeDate || '') },
+  })).catch(function (error) { console.warn('[HomeDailyHistoryPlay]', error); });
+}
+
 function renderHomePlatformDailyWindow(force) {
   if (homePlatformRecommendationState.source !== 'netease') return;
   var list = document.getElementById('home-platform-recommend-list');
   var grid = document.getElementById('home-platform-daily-grid');
   if (!list || !grid) return;
-  var songs = Array.isArray(homeDiscoverState.songs) ? homeDiscoverState.songs : [];
+  var songs = homePlatformDailySongs();
+  var activeDate = homeDailyHistoryActive() ? homeDailyHistoryState().activeDate : '';
+  var cardLabel = activeDate ? ('历史日推 · ' + formatHomeDailyDateLabel(activeDate)) : '网易云每日推荐';
   var columns = homePlatformRecommendationGridColumns(grid);
   var range = homePlatformRecommendationDailyRange(
     songs.length,
@@ -959,20 +1132,38 @@ function renderHomePlatformDailyWindow(force) {
     list.clientHeight,
     grid.offsetTop
   );
-  var signature = songs.length + '|' + columns + '|' + range.start + '|' + range.end;
+  var signature = activeDate + '|' + songs.length + '|' + columns + '|' + range.start + '|' + range.end;
   if (!force && grid.getAttribute('data-render-window') === signature) return;
+  if (!songs.length) {
+    var history = homeDailyHistoryState();
+    var hint = activeDate
+      ? (history.loading
+        ? '正在读取 ' + activeDate + ' 的历史日推…'
+        : (history.error ? '该日期的历史日推读取失败，可换个日期或回到今日' : '该日期暂无历史日推'))
+      : '';
+    grid.innerHTML = hint
+      ? '<div class="home-platform-recommend-loading" style="grid-column:1/-1">' + escHtml(hint) + '</div>'
+      : '';
+    grid.setAttribute('data-render-window', signature);
+    grid.setAttribute('data-daily-date', activeDate);
+    grid.setAttribute('aria-label', '每日推荐');
+    var emptyCount = document.getElementById('home-platform-daily-count');
+    if (emptyCount) emptyCount.textContent = '';
+    return;
+  }
   var html = [homePlatformRecommendationSpacer(range.topRows, 'top')];
   for (var index = range.start; index < range.end; index += 1) {
-    html.push(homePlatformRecommendationCard('netease-song', index, songs[index], '网易云每日推荐'));
+    html.push(homePlatformRecommendationCard('netease-song', index, songs[index], cardLabel));
   }
   html.push(homePlatformRecommendationSpacer(range.bottomRows, 'bottom'));
   grid.innerHTML = html.join('');
   grid.setAttribute('data-render-window', signature);
-  grid.setAttribute('aria-label', '全部每日推荐，共 ' + songs.length + ' 首');
+  grid.setAttribute('data-daily-date', activeDate);
+  grid.setAttribute('aria-label', (activeDate ? '回看 ' + activeDate + ' 的每日推荐' : '全部每日推荐') + '，共 ' + songs.length + ' 首');
   var count = document.getElementById('home-platform-daily-count');
   if (count) {
     count.textContent = songs.length
-      ? ' · ' + (range.start + 1) + '–' + range.end + ' / ' + songs.length
+      ? (activeDate ? ' · 回看 ' + activeDate : '') + ' · ' + (range.start + 1) + '–' + range.end + ' / ' + songs.length
       : '';
   }
 }
@@ -1016,23 +1207,34 @@ function renderHomePlatformRecommendations() {
       return;
     }
     var sections = [];
-    var playlists = Array.isArray(homeDiscoverState.playlists) ? homeDiscoverState.playlists.slice(0, 6) : [];
+    var playlists = Array.isArray(homeDiscoverState.playlists) ? homeDiscoverState.playlists : [];
     var songs = Array.isArray(homeDiscoverState.songs) ? homeDiscoverState.songs : [];
     if (playlists.length) {
-      sections.push('<section><h3>推荐歌单</h3><div class="home-platform-recommend-grid">' + playlists.map(function (item, index) {
-        return homePlatformRecommendationCard('netease-playlist', index, item, '网易云推荐歌单');
+      sections.push('<section><h3>推荐歌单 · 私人雷达与平台精选（' + playlists.length + '）</h3><div class="home-platform-recommend-grid">' + playlists.map(function (item, index) {
+        return homePlatformRecommendationCard('netease-playlist', index, item, homeRecommendPlaylistLabel(item));
       }).join('') + '</div></section>');
     }
-    if (songs.length) {
+    if (songs.length || homeDailyHistoryActive()) {
       sections.push('<section><h3>每日推荐<span id="home-platform-daily-count"></span></h3>' +
+        '<div id="home-platform-daily-dates" class="home-platform-daily-dates" role="tablist" aria-label="每日推荐日期回看"></div>' +
         '<div id="home-platform-daily-grid" class="home-platform-recommend-grid" role="list" aria-label="全部每日推荐"></div></section>');
     }
     if (sections.length) {
-      status.textContent = songs.length
-        ? '已读取全部 ' + songs.length + ' 首每日推荐；滚动时仅渲染视窗附近歌曲'
-        : '来自网易云推荐歌单';
+      if (homeDailyHistoryActive()) {
+        var historyView = homeDailyHistoryState();
+        status.textContent = historyView.loading
+          ? '正在读取 ' + historyView.activeDate + ' 的历史日推…'
+          : (historyView.songs.length
+            ? '回看 ' + historyView.activeDate + ' · 共 ' + historyView.songs.length + ' 首历史日推；点击日期可切换'
+            : '该日期暂无历史日推，点击日期可切换');
+      } else {
+        status.textContent = songs.length
+          ? '已读取全部 ' + songs.length + ' 首每日推荐；滚动时仅渲染视窗附近歌曲，点日期可回看历史'
+          : '来自网易云推荐歌单';
+      }
       list.innerHTML = sections.join('');
-      if (songs.length) renderHomePlatformDailyWindow(true);
+      renderHomePlatformDailyDates();
+      if (songs.length || homeDailyHistoryActive()) renderHomePlatformDailyWindow(true);
     } else {
       status.textContent = homeDiscoverState.error ? '网易云推荐读取失败' : '网易云暂未返回推荐内容';
       status.classList.toggle('is-error', !!homeDiscoverState.error);
@@ -1107,6 +1309,7 @@ async function loadHomePlatformNeteaseRecommendations(force) {
   } finally {
     homePlatformRecommendationState.neteaseLoading = false;
     renderHomePlatformRecommendations();
+    loadHomePlatformDailyHistoryDates(!!force);
   }
 }
 
@@ -1209,13 +1412,25 @@ function bindHomePlatformRecommendationControls() {
     loadHomePlatformRecommendations(tab.getAttribute('data-home-recommend-source'), false);
   });
   if (list) list.addEventListener('click', function (event) {
+    var dateChip = event.target.closest('[data-home-daily-date]');
+    if (dateChip && list.contains(dateChip)) {
+      selectHomePlatformDailyDate(dateChip.getAttribute('data-home-daily-date') || '');
+      return;
+    }
     var card = event.target.closest('[data-home-recommend-kind]');
     if (!card || !list.contains(card)) return;
     var kind = card.getAttribute('data-home-recommend-kind');
     var index = Number(card.getAttribute('data-home-recommend-index')) || 0;
     closeHomePlatformRecommendations();
     if (kind === 'netease-playlist' && typeof openHomePlaylist === 'function') openHomePlaylist(index);
-    else if (kind === 'netease-song' && typeof playHomeSong === 'function') playHomeSong(index);
+    else if (kind === 'netease-song') {
+      var dailyGrid = card.closest ? card.closest('#home-platform-daily-grid') : null;
+      if (dailyGrid && dailyGrid.getAttribute('data-daily-date') && typeof playHomeDailyHistorySong === 'function') {
+        playHomeDailyHistorySong(index);
+      } else if (typeof playHomeSong === 'function') {
+        playHomeSong(index);
+      }
+    }
     else if (/^(qishui|kugou|spotify)-song$/.test(kind)) playHomePlatformFeedSong(kind.replace(/-song$/, ''), index);
   });
   if (list) list.addEventListener('scroll', scheduleHomePlatformDailyWindowRender, { passive: true });
