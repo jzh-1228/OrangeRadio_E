@@ -26,7 +26,9 @@ var VISUALIZER_OVERLAY_MODES = [
   { id: 'pendolo', label: '钟摆', stateVar: 'pendoloMode', applyFn: 'applyPendoloMode', order: 99 },
   { id: 'partita', label: '云阶', stateVar: 'partitaMode', applyFn: 'applyPartitaMode', order: 100 },
   { id: 'cadenza', label: '心象', stateVar: 'cadenzaMode', applyFn: 'applyCadenzaMode', order: 101 },
-  { id: 'lattice', label: '队列拼贴', stateVar: 'latticeMode', applyFn: 'applyLatticeMode', order: 102 }
+  { id: 'lattice', label: '队列拼贴', stateVar: 'latticeMode', applyFn: 'applyLatticeMode', order: 102 },
+  { id: 'cappella', label: '群唱', stateVar: 'cappellaMode', applyFn: 'applyCappellaMode', order: 103 },
+  { id: 'monet', label: '莫奈', stateVar: 'monetMode', applyFn: 'applyMonetMode', order: 104 }
 ];
 
 function registerVisualizerOverlayMode(entry) {

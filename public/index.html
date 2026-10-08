@@ -33,6 +33,8 @@
   <link rel="stylesheet" href="css/tilt.css?v=20261008-tilt">
   <link rel="stylesheet" href="css/fume.css?v=20261008-fume">
   <link rel="stylesheet" href="css/lattice.css?v=20261008-lattice">
+  <link rel="stylesheet" href="css/cappella.css?v=20261008-cappella">
+  <link rel="stylesheet" href="css/monet.css?v=20261008-monet">
   <link rel="stylesheet" href="css/pendolo.css?v=20261008-pendolo">
   <link rel="stylesheet" href="css/classic.css?v=20261008-classic">
   <link rel="stylesheet" href="css/partita.css?v=20261008-partita">
@@ -1794,6 +1796,30 @@
       <div class="lattice-empty" id="lattice-empty">
         <div class="lattice-empty-title">队列为空</div>
         <div>去搜索或打开一个歌单，把歌装进来</div>
+      </div>
+    </div>
+
+    <!-- 群唱覆盖层（Cappella · 聊天气泡歌词）：歌词变左右聊天消息，间奏变表情包，
+         当前句气泡放大发亮（源自 Folia cappella 模式，AGPL-3.0，见 NOTICE.md） -->
+    <div id="cappella-overlay" aria-hidden="true">
+      <div class="cappella-scroller" id="cappella-scroller">
+        <div class="cappella-list" id="cappella-list" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <!-- 莫奈覆盖层（Monet · 油画海报歌词）：封面水洗成印象派海报，右侧逐词歌词轨道
+         （源自 Folia monet 模式，AGPL-3.0，见 NOTICE.md） -->
+    <div id="monet-overlay" aria-hidden="true">
+      <div class="monet-poster" id="monet-poster"></div>
+      <div class="monet-decor d1" aria-hidden="true"></div>
+      <div class="monet-decor d2" aria-hidden="true"></div>
+      <div class="monet-decor d3" aria-hidden="true"></div>
+      <div class="monet-title-block" aria-hidden="true">
+        <div class="monet-title" id="monet-title"></div>
+        <div class="monet-artist" id="monet-artist"></div>
+      </div>
+      <div class="monet-rail-wrap">
+        <div class="monet-rail" id="monet-rail" aria-live="polite"></div>
       </div>
     </div>
 

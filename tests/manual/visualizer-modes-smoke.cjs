@@ -11,7 +11,7 @@ let chromium;
 try { chromium = require('playwright').chromium; }
 catch { chromium = require(path.join(process.env.npm_config_prefix || 'D:/nvm/nvm/node_global', 'node_modules/playwright')).chromium; }
 
-const MODES = ['classic', 'fume', 'still', 'cadenza', 'partita', 'pendolo', 'tilt', 'claddagh'];
+const MODES = ['classic', 'fume', 'still', 'cadenza', 'partita', 'pendolo', 'tilt', 'claddagh', 'cappella', 'monet'];
 
 (async () => {
   const browser = await chromium.launch();

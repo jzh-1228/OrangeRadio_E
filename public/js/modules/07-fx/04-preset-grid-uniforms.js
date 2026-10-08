@@ -19,7 +19,7 @@ function buildPresetGrid() {
       '<div class="pc-name">' + name + '</div>' +
       '<div class="pc-desc">' + desc + '</div>' +
       '</div>';
-  }).join('') + buildFilmRadioPresetCard() + buildGraffitiPresetCard() + buildAuroraPresetCard() + buildRainyPresetCard() + buildStillPresetCard() + buildCladdaghPresetCard() + buildTiltPresetCard() + buildFumePresetCard() + buildClassicPresetCard() + buildPendoloPresetCard() + buildPartitaPresetCard() + buildCadenzaPresetCard() + buildLatticePresetCard();
+  }).join('') + buildFilmRadioPresetCard() + buildGraffitiPresetCard() + buildAuroraPresetCard() + buildRainyPresetCard() + buildStillPresetCard() + buildCladdaghPresetCard() + buildTiltPresetCard() + buildFumePresetCard() + buildClassicPresetCard() + buildPendoloPresetCard() + buildPartitaPresetCard() + buildCadenzaPresetCard() + buildLatticePresetCard() + buildCappellaPresetCard() + buildMonetPresetCard();
   refreshPresetGrid();
 }
 
@@ -140,6 +140,24 @@ function buildLatticePresetCard() {
     '</div>';
 }
 
+/* 群唱：独立于数值预设之外的特殊卡片，聊天气泡歌词 · 表情包间奏（移植自 Folia cappella 模式） */
+function buildCappellaPresetCard() {
+  return '<div class="preset-card cappella-card" data-cappella="1" onclick="toggleCappellaMode()" title="群唱">' +
+    '<div class="pc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v9H9l-4 4v-4H4z"/><path d="M8 10.5h8" opacity=".5"/><path d="M8 13h5" opacity=".35"/></svg></div>' +
+    '<div class="pc-name">群唱</div>' +
+    '<div class="pc-desc">聊天歌词 · 表情包</div>' +
+    '</div>';
+}
+
+/* 莫奈：独立于数值预设之外的特殊卡片，封面水洗油画海报 · 逐词轨道（移植自 Folia monet 模式） */
+function buildMonetPresetCard() {
+  return '<div class="preset-card monet-card" data-monet="1" onclick="toggleMonetMode()" title="莫奈">' +
+    '<div class="pc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17c2.5-3 4.5-4.5 6-4.5s2.6 1.8 4 1.8 2.8-1.5 4.5-4.3"/><path d="M3.5 20.5l1.8-2M8 21l1.4-1.6" opacity=".45"/><circle cx="17.2" cy="7.2" r="2.4" opacity=".7"/></svg></div>' +
+    '<div class="pc-name">莫奈</div>' +
+    '<div class="pc-desc">油画海报 · 逐词轨道</div>' +
+    '</div>';
+}
+
 function refreshPresetGrid() {
   // 覆盖层模式激活时，常规预设卡片不再显示激活态（经视觉模式注册表）
   var specialActive = !!(typeof activeVisualizerOverlay === 'function' && activeVisualizerOverlay());
@@ -207,6 +225,16 @@ function refreshPresetGrid() {
     var latticeAttr = el.getAttribute('data-lattice');
     if (latticeAttr) {
       el.classList.toggle('active', !!(typeof overlayModeIsActive === 'function' && getVisualizerOverlayMode('lattice') && overlayModeIsActive(getVisualizerOverlayMode('lattice'))));
+      return;
+    }
+    var cappellaAttr = el.getAttribute('data-cappella');
+    if (cappellaAttr) {
+      el.classList.toggle('active', !!(typeof overlayModeIsActive === 'function' && getVisualizerOverlayMode('cappella') && overlayModeIsActive(getVisualizerOverlayMode('cappella'))));
+      return;
+    }
+    var monetAttr = el.getAttribute('data-monet');
+    if (monetAttr) {
+      el.classList.toggle('active', !!(typeof overlayModeIsActive === 'function' && getVisualizerOverlayMode('monet') && overlayModeIsActive(getVisualizerOverlayMode('monet'))));
       return;
     }
     el.classList.toggle('active', !specialActive && Number(el.dataset.preset) === fx.preset);
