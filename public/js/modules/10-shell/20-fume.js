@@ -38,9 +38,11 @@ var fumeLastFontKey = null;
 var fumeTrackTitle = '';
 var fumeTrackArtist = '';
 
-/* Folia DEFAULT_FUME_TUNING（无设置面板，取默认；textHoldRatio=1 → passed 恒标准亮度） */
+/* Folia DEFAULT_FUME_TUNING（无设置面板，取默认；textHoldRatio=1 → passed 恒标准亮度；
+   disableGeometricBackground 原版默认 true——几何纸面装饰默认关，观感与开销都对齐原版） */
 var fumeTuning = {
   hidePrintSymbols: false,
+  disableGeometricBackground: true,
   backgroundObjectOpacity: 0.5,
   textHoldRatio: 1,
   cameraTrackingMode: 'smooth',
@@ -196,26 +198,54 @@ function fumeSplitLayoutSegments(text) {
   return segs;
 }
 
-/* prepareWithSegments(text, fontSpec)：段宽度 + 段内逐字前进量 */
-function fumePrepareWithSegments(text, fontSpec) {
+/* prepareWithSegments：pretext 语义（prepare 一次测量、layout 纯算术）+ 尺寸线性缩放。
+   排版搜索会对每行做 4 列数 × 8 密度 × 8 字号 ≈ 256 次 prepare——段测量只在 100px
+   归一化字号做一次（canvas 文本宽度与字号成线性），其余字号的宽度/前进量全部乘
+   scale 得到，缓存跨全部排版尝试与重建复用（36 行歌从 9.7s 测量风暴降到毫秒级）。 */
+var FUME_MEASURE_REF_PX = 100;
+var fumePreparedRefCache = new Map();
+
+function fumePrepareRef(text, variant, fontFamily) {
+  var key = variant + '\u0000' + fontFamily + '\u0000' + text;
+  var cached = fumePreparedRefCache.get(key);
+  if (cached) return cached;
+  var refSpec = fumeBuildFontSpec(FUME_MEASURE_REF_PX, variant, fontFamily);
   var segments = fumeSplitLayoutSegments(text);
   var widths = new Array(segments.length);
   var advances = new Array(segments.length);
   for (var si = 0; si < segments.length; si++) {
     var seg = segments[si];
-    var total = fumeMeasureTextWidth(fontSpec, seg);
+    var total = fumeMeasureTextWidth(refSpec, seg);
     widths[si] = total;
     var gs = fumeSplitGraphemes(seg);
     var adv = new Array(gs.length);
     var acc = 0;
     for (var gi = 0; gi < gs.length; gi++) {
-      var prefixW = gs.length === 1 ? total : fumeMeasureTextWidth(fontSpec, gs.slice(0, gi + 1).join(''));
+      var prefixW = gs.length === 1 ? total : fumeMeasureTextWidth(refSpec, gs.slice(0, gi + 1).join(''));
       adv[gi] = Math.max(prefixW - acc, 0);
       acc = prefixW;
     }
     advances[si] = adv;
   }
-  return { segments: segments, widths: widths, breakableFitAdvances: advances };
+  var prepared = { segments: segments, widths: widths, breakableFitAdvances: advances };
+  if (fumePreparedRefCache.size > 2000) fumePreparedRefCache.clear();
+  fumePreparedRefCache.set(key, prepared);
+  return prepared;
+}
+
+function fumePrepareWithSegments(text, fontPx, variant, fontFamily) {
+  var ref = fumePrepareRef(text, variant, fontFamily);
+  var scale = fontPx / FUME_MEASURE_REF_PX;
+  var widths = new Array(ref.widths.length);
+  for (var i = 0; i < widths.length; i++) widths[i] = ref.widths[i] * scale;
+  var advances = new Array(ref.breakableFitAdvances.length);
+  for (var s = 0; s < advances.length; s++) {
+    var src = ref.breakableFitAdvances[s];
+    var dst = new Array(src.length);
+    for (var g = 0; g < src.length; g++) dst[g] = src[g] * scale;
+    advances[s] = dst;
+  }
+  return { segments: ref.segments, widths: widths, breakableFitAdvances: advances };
 }
 
 /* layoutWithLines(prepared, width)：贪心换行，行游标 { segmentIndex, graphemeIndex } 与
@@ -495,8 +525,7 @@ function fumeBuildPreparedSingleLine(text, fontFamily, width, variant, lyricsFon
   /* 尽量让大多数块保持单行：对字号做小二分，放不下再回退 */
   for (var iter = 0; iter < 8; iter++) {
     var candidateFontPx = ((low + high) / 2) * lyricsFontScale * densityScale * (variant === 'hero' ? heroScale : 1);
-    var fontSpec = fumeBuildFontSpec(candidateFontPx, variant, fontFamily);
-    var prepared = fumePrepareWithSegments(text, fontSpec);
+    var prepared = fumePrepareWithSegments(text, candidateFontPx, variant, fontFamily);
     var layout = fumeLayoutWithLines(prepared, width);
     if (layout.lineCount <= 1) {
       best = { fontPx: candidateFontPx, prepared: prepared, layout: layout };
@@ -507,8 +536,7 @@ function fumeBuildPreparedSingleLine(text, fontFamily, width, variant, lyricsFon
   }
   if (best) return best;
   var fallbackFontPx = (variant === 'hero' ? 18 : 10) * lyricsFontScale * densityScale * (variant === 'hero' ? heroScale : 1);
-  var spec = fumeBuildFontSpec(fallbackFontPx, variant, fontFamily);
-  var preparedFallback = fumePrepareWithSegments(text, spec);
+  var preparedFallback = fumePrepareWithSegments(text, fallbackFontPx, variant, fontFamily);
   return {
     fontPx: fallbackFontPx,
     prepared: preparedFallback,
@@ -2279,7 +2307,6 @@ var fumeLayoutRaf = 0;
 var fumeLayoutTimer = 0;
 var fumeLinesKey = '';
 var fumeLyricsPollToken = 0;
-var fumeLastTick = 0;
 var fumeLastFrameAt = null;
 
 /* 歌词数据适配：lyricsLines（{t,text,duration,words[{text,t,d,c0,c1}]}）→ Folia Line 结构 */
@@ -2376,7 +2403,7 @@ function fumeRebuildLayout() {
   fumeLastLayoutCache = { key: cacheKey, article: article };
   fumeHasResolvedArticle = article !== null;
   fumeState.article = article;
-  fumeState.backgroundScene = fumeBuildBackgroundScene(
+  fumeState.backgroundScene = fumeTuning.disableGeometricBackground ? null : fumeBuildBackgroundScene(
     vp,
     {
       width: article ? article.width : Math.max(vp.width * 1.8, vp.width),
@@ -2659,19 +2686,15 @@ function fumeUpdateAriaLine() {
   if (el.textContent !== text) el.textContent = text;
 }
 
-/* 30fps 主循环（rAF 节流，胶片/流光同款） */
+/* 满帧主循环（Folia 原版即全速 rAF；相机弹簧的飞行手感依赖 60fps，30fps 门控会顿一半） */
 function startFumeLoop() {
   stopFumeLoop();
-  fumeLastTick = 0;
   fumeLastFrameAt = null;
   function frame(now) {
     if (!fumeMode) return;
     try {
-      if (now - fumeLastTick > 33) {
-        fumeLastTick = now;
-        fumeCheckFontChange();
-        fumeTick(now);
-      }
+      fumeCheckFontChange();
+      fumeTick(now);
     } catch (e) {
       /* 单帧异常只丢帧不丢循环：首帧抛错会让模式永久黑屏 */
       console.warn('[Fume] tick error:', e && e.message);
