@@ -35,6 +35,8 @@ var fumeObserver = null;
 var fumeResizeTimer = 0;
 var fumeLastLineIdx = -99;
 var fumeLastFontKey = null;
+var fumeTrackTitle = '';
+var fumeTrackArtist = '';
 
 /* Folia DEFAULT_FUME_TUNING（无设置面板，取默认；textHoldRatio=1 → passed 恒标准亮度） */
 var fumeTuning = {
@@ -2441,6 +2443,45 @@ function fumeEnsureCanvas() {
   return canvas;
 }
 
+function fumeDrawNoLyricsPlaceholder(context, viewport, theme, now) {
+  var cx = viewport.width * 0.5;
+  var cy = viewport.height * 0.46;
+  var title = fumeTrackTitle || '烟纸';
+  var sub = fumeTrackArtist
+    ? (fumeState.lines.length ? fumeTrackArtist : fumeTrackArtist + ' · 暂无歌词')
+    : '暂无歌词';
+  var pulse = 0.55 + 0.45 * Math.sin(now * 0.0012);
+  context.save();
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  /* 主行：歌名大字（过长按 64px 上限截断显示宽度） */
+  var fontSize = Math.min(56, Math.max(30, viewport.width / 18));
+  context.font = '600 ' + fontSize + 'px ' + fumeFontStack();
+  var maxW = viewport.width * 0.72;
+  while (context.measureText(title).width > maxW && fontSize > 20) {
+    fontSize -= 2;
+    context.font = '600 ' + fontSize + 'px ' + fumeFontStack();
+  }
+  if (context.measureText(title).width > maxW) {
+    while (title.length > 4 && context.measureText(title + '…').width > maxW) title = title.slice(0, -1);
+    title += '…';
+  }
+  context.shadowColor = fumeColorWithAlpha(theme.accentColor, 0.32 * pulse);
+  context.shadowBlur = 24;
+  context.fillStyle = fumeColorWithAlpha(theme.primaryColor, 0.92);
+  context.fillText(title, cx, cy);
+  /* 副行：歌手 · 暂无歌词 */
+  context.shadowBlur = 0;
+  context.font = '400 ' + Math.round(fontSize * 0.42) + 'px ' + fumeFontStack();
+  context.fillStyle = fumeColorWithAlpha(theme.secondaryColor, 0.62);
+  context.fillText(sub, cx, cy + fontSize * 0.92);
+  /* 底部提示（呼吸） */
+  context.font = '400 ' + Math.round(fontSize * 0.3) + 'px ' + fumeFontStack();
+  context.fillStyle = fumeColorWithAlpha(theme.secondaryColor, 0.3 + 0.18 * pulse);
+  context.fillText('等待歌词抵达 · 纸面会自动排版', cx, viewport.height * 0.82);
+  context.restore();
+}
+
 function fumeTick(now) {
   var canvas = fumeEnsureCanvas();
   var context = fumeState.ctx;
@@ -2484,6 +2525,8 @@ function fumeTick(now) {
         null, fumeTuning.backgroundObjectOpacity * 2);
       context.restore();
     }
+    /* 无歌词占位：纯音乐/取词失败时纸面中央画歌名，不留给用户一块黑屏 */
+    fumeDrawNoLyricsPlaceholder(context, viewport, theme, now);
     return;
   }
 
@@ -2755,6 +2798,8 @@ function syncFumeBadge() {
   var artistEl = document.getElementById('control-artist');
   var bTitle = document.getElementById('fume-badge-title');
   var bArtist = document.getElementById('fume-badge-artist');
+  fumeTrackTitle = (titleEl && titleEl.textContent) ? titleEl.textContent : '';
+  fumeTrackArtist = (artistEl && artistEl.textContent) ? artistEl.textContent : '';
   if (bTitle && titleEl) bTitle.textContent = titleEl.textContent || '未在播放';
   if (bArtist && artistEl) bArtist.textContent = artistEl.textContent || '';
 }
