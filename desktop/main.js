@@ -5968,6 +5968,20 @@ async function createWindowOnce() {
     // 页面（重）加载后设置任务栏缩略图按钮
     thumbar.reapplyThumbar();
   });
+  // 渲染层 console → 主进程 stdout（error 全量；warn 按文案去重限流，避免覆盖层逐帧告警刷屏）
+  const rendererWarnCounts = new Map();
+  win.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+    const tag = `[Renderer ${win.webContents.id}]`;
+    if (level >= 3) {
+      console.error(tag, message, `(${sourceId}:${line})`);
+    } else if (level === 2) {
+      const count = (rendererWarnCounts.get(message) || 0) + 1;
+      rendererWarnCounts.set(message, count);
+      if (count === 1 || count === 60 || count % 600 === 0) {
+        console.warn(tag, message, `(${sourceId}:${line})`, count === 1 ? '' : `×${count}`);
+      }
+    }
+  });
   win.webContents.on('dom-ready', () => {
     showMainWindowSafely(win, 'dom-ready');
   });
