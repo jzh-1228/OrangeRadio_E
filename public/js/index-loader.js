@@ -161,6 +161,7 @@
     'js/modules/10-shell/20-pendolo.js',
     'js/modules/10-shell/20-partita.js',
     'js/modules/10-shell/21-cadenza.js',
+    'js/modules/10-shell/22-lattice.js',
     'js/modules/10-shell/10-support.js',
     'js/modules/10-shell/11-feedback.js',
     'js/modules/10-shell/12-taskbar-controls.js',

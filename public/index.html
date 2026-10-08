@@ -32,6 +32,7 @@
   <link rel="stylesheet" href="css/claddagh.css?v=20261008-claddagh">
   <link rel="stylesheet" href="css/tilt.css?v=20261008-tilt">
   <link rel="stylesheet" href="css/fume.css?v=20261008-fume">
+  <link rel="stylesheet" href="css/lattice.css?v=20261008-lattice">
   <link rel="stylesheet" href="css/pendolo.css?v=20261008-pendolo">
   <link rel="stylesheet" href="css/classic.css?v=20261008-classic">
   <link rel="stylesheet" href="css/partita.css?v=20261008-partita">
@@ -1763,6 +1764,55 @@
         </div>
         <div class="cadenza-empty" id="cadenza-empty"></div>
       </div>
+    </div>
+
+    <!-- 队列拼贴覆盖层（Lattice · 播放队列封面海报墙）：整个队列排成编号海报墙，
+         已播/在播/待播三态 + 当前播放自动居中；中央浮正在播放卡片（封面+原词翻译对照歌词+走带）。
+         （源自 Folia lattice 队列展示面，AGPL-3.0，见 NOTICE.md） -->
+    <div id="lattice-overlay" aria-hidden="true">
+      <div class="lattice-top">
+        <button class="lattice-back" id="lattice-back" title="返回标准模式">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+          返回
+        </button>
+        <div class="lattice-heading" id="lattice-heading">队列拼贴 · <b>正在播放的歌单</b></div>
+      </div>
+      <div class="lattice-wall" id="lattice-wall"></div>
+      <div class="lattice-empty" id="lattice-empty">
+        <div class="lattice-empty-title">队列为空</div>
+        <div>去搜索或打开一个歌单，把歌装进来</div>
+      </div>
+      <div class="lattice-card" id="lattice-card">
+        <button class="lattice-card-toggle" id="lattice-card-toggle" title="收起卡片">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="lattice-card-cover" id="lattice-card-cover"></div>
+        <div class="lattice-card-body">
+          <div class="lattice-card-title" id="lattice-card-title">未在播放</div>
+          <div class="lattice-card-artist" id="lattice-card-artist"></div>
+          <div class="lattice-card-lyric">
+            <div class="lattice-card-line is-empty" id="lattice-card-line">♪</div>
+            <div class="lattice-card-tr" id="lattice-card-tr"></div>
+          </div>
+          <div class="lattice-card-progress"><div class="lattice-card-progress-bar" id="lattice-card-progress-bar"></div></div>
+          <div class="lattice-card-controls">
+            <button class="lattice-ctrl" id="lattice-prev-btn" title="上一首">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5.2l9 6.8-9 6.8zM17 5h2v14h-2z"/></svg>
+            </button>
+            <button class="lattice-ctrl is-main" id="lattice-play-btn" title="播放/暂停">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path id="lattice-play-icon" data-state="play" d="M8 5.2l11 6.8-11 6.8z"/></svg>
+            </button>
+            <button class="lattice-ctrl" id="lattice-next-btn" title="下一首">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 5.2l-9 6.8 9 6.8zM5 5h2v14H5z"/></svg>
+            </button>
+            <span class="lattice-card-time" id="lattice-card-time">0:00 / 0:00</span>
+          </div>
+        </div>
+      </div>
+      <button class="lattice-card-restore" id="lattice-card-restore" title="展开正在播放卡片">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        正在播放卡片
+      </button>
     </div>
 
     <input type="file" id="file-input"

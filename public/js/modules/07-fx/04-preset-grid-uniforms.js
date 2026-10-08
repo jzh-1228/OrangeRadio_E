@@ -19,7 +19,7 @@ function buildPresetGrid() {
       '<div class="pc-name">' + name + '</div>' +
       '<div class="pc-desc">' + desc + '</div>' +
       '</div>';
-  }).join('') + buildFilmRadioPresetCard() + buildGraffitiPresetCard() + buildAuroraPresetCard() + buildRainyPresetCard() + buildStillPresetCard() + buildCladdaghPresetCard() + buildTiltPresetCard() + buildFumePresetCard() + buildClassicPresetCard() + buildPendoloPresetCard() + buildPartitaPresetCard() + buildCadenzaPresetCard();
+  }).join('') + buildFilmRadioPresetCard() + buildGraffitiPresetCard() + buildAuroraPresetCard() + buildRainyPresetCard() + buildStillPresetCard() + buildCladdaghPresetCard() + buildTiltPresetCard() + buildFumePresetCard() + buildClassicPresetCard() + buildPendoloPresetCard() + buildPartitaPresetCard() + buildCadenzaPresetCard() + buildLatticePresetCard();
   refreshPresetGrid();
 }
 
@@ -131,6 +131,15 @@ function buildCadenzaPresetCard() {
     '</div>';
 }
 
+/* 队列拼贴：独立于数值预设之外的特殊卡片，播放队列封面海报墙 + 正在播放卡片（移植自 Folia lattice） */
+function buildLatticePresetCard() {
+  return '<div class="preset-card lattice-card-icon" data-lattice="1" onclick="toggleLatticeMode()" title="队列拼贴">' +
+    '<div class="pc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="7" height="7" rx="1.4"/><rect x="13.5" y="4" width="7" height="7" rx="1.4" opacity=".55"/><rect x="3.5" y="13" width="7" height="7" rx="1.4" opacity=".55"/><rect x="13.5" y="13" width="7" height="7" rx="1.4"/></svg></div>' +
+    '<div class="pc-name">队列拼贴</div>' +
+    '<div class="pc-desc">封面海报墙 · 正在播放</div>' +
+    '</div>';
+}
+
 function refreshPresetGrid() {
   // 覆盖层模式激活时，常规预设卡片不再显示激活态（经视觉模式注册表）
   var specialActive = !!(typeof activeVisualizerOverlay === 'function' && activeVisualizerOverlay());
@@ -193,6 +202,11 @@ function refreshPresetGrid() {
     var cadenzaAttr = el.getAttribute('data-cadenza');
     if (cadenzaAttr) {
       el.classList.toggle('active', !!(typeof overlayModeIsActive === 'function' && getVisualizerOverlayMode('cadenza') && overlayModeIsActive(getVisualizerOverlayMode('cadenza'))));
+      return;
+    }
+    var latticeAttr = el.getAttribute('data-lattice');
+    if (latticeAttr) {
+      el.classList.toggle('active', !!(typeof overlayModeIsActive === 'function' && getVisualizerOverlayMode('lattice') && overlayModeIsActive(getVisualizerOverlayMode('lattice'))));
       return;
     }
     el.classList.toggle('active', !specialActive && Number(el.dataset.preset) === fx.preset);
