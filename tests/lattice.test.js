@@ -1,5 +1,5 @@
 'use strict';
-/* 队列拼贴（Lattice）：徽章/分区/兜底渐变/队列指纹/时间格式/歌词行解析
+/* 队列拼贴（Lattice）：徽章/分区/兜底渐变/队列指纹/时间格式/歌词索引/歌词集指纹
    被测模块是无模块的全局脚本，用 vm 沙箱加载（同 rainy-cab.test.js 风格）。 */
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -37,7 +37,7 @@ vm.runInContext(fs.readFileSync(modulePath, 'utf8'), sandbox, { filename: module
 
 const {
   latticeBadgeText, latticeSectionFor, latticeFallbackGradient,
-  latticeQueueKey, latticeFormatTime, latticeCurrentLyricLine,
+  latticeQueueKey, latticeFormatTime, latticeCurrentLyricIndex, latticeLyricsKey,
 } = sandbox;
 
 /* ---------- 徽章：1 起两位补零 ---------- */
@@ -96,28 +96,27 @@ const {
   assert.equal(latticeFormatTime(NaN), '0:00');
 }
 
-/* ---------- 当前句解析：歌词 + 翻译 / 空行跳过 ---------- */
+/* ---------- 当前句索引 / 歌词集指纹 ---------- */
 {
   sandbox.lyricsLines = [
-    { t: 0, text: '', translation: '' },                        // 空行 → 跳过
+    { t: 0, text: '', translation: '' },
     { t: 2, text: '夜に駆ける', translation: '奔向夜晚' },
     { t: 8, text: '繰り返す世界', translation: '' },
   ];
   sandbox.audio = { currentTime: 6 };
-  const l1 = latticeCurrentLyricLine();
-  assert.equal(l1.index, 1);
-  assert.equal(l1.text, '夜に駆ける');
-  assert.equal(l1.translation, '奔向夜晚');
-
+  assert.equal(latticeCurrentLyricIndex(), 1);
   sandbox.audio.currentTime = 12;
-  const l2 = latticeCurrentLyricLine();
-  assert.equal(l2.index, 2);
-  assert.equal(l2.translation, '');
-
-  sandbox.lyricsLines = [];
-  assert.equal(latticeCurrentLyricLine(), null);                // 无词
+  assert.equal(latticeCurrentLyricIndex(), 2);
   sandbox.audio = null;
-  assert.equal(latticeCurrentLyricLine(), null);                // 无 audio 兜底
+  assert.equal(latticeCurrentLyricIndex(), 0);                  // 无 audio：按 0 兜底
+
+  assert.equal(latticeLyricsKey([]), '0');
+  const k1 = latticeLyricsKey(sandbox.lyricsLines);
+  assert.equal(k1, latticeLyricsKey(sandbox.lyricsLines.slice()));
+  const changed = sandbox.lyricsLines.slice();
+  changed[2] = { t: 8, text: '別の世界', translation: '' };
+  assert.notEqual(k1, latticeLyricsKey(changed));
+  assert.notEqual(k1, latticeLyricsKey(changed.slice(0, 2)));
 }
 
 console.log('lattice.test.js: all assertions passed');
