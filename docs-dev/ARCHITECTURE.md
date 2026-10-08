@@ -179,6 +179,26 @@ server.js（73 行门面）
 
 `02-visual/90-visualizer-registry.js`：前景模式注册表（覆盖层四模式 + sonic 外挂清单），互斥/保温门控/预设网格激活态的单一 owner（entry 的 stateVar/applyFn 经 window 延迟解析）。`92-background-registry.js` 背景正交协议；`00-state/12-motion-signals.js` 每帧信号对象（主循环写、模式 rAF 读、值变化才唤醒）。详见 `docs/VISUALIZER_PLATFORM.md`。
 
+### 6.3b Folia 移植歌词模式（`10-shell/20-24`，11 个）
+
+移植自 folia-major 的歌词动画模式，全部照 film-radio 覆盖层范式（bodyClass + localStorage + eco 档 + 注册表互斥），与本项目自有模式（胶片/涂鸦/流光/雨夜/极光/雨窗）同池互斥：
+
+| 模块 | 模式 | 核心结构 |
+|---|---|---|
+| `20-still.js` | 静止 Still | 三行窗口静态歌词；字色/底色随主题服务，黑色径向暗角 0.65 罩层 |
+| `20-fume.js` | 烟纸 Fume | 多栏「报纸」排版 + 排版相机逐句飞行；归一化测量（100px 参考字号一次，线性缩放缓存）；副歌 hero 特大块 |
+| `20-classic.js` | 流光 Classic | 词级三态 + 随机布局 + 逐字辉光（drop-shadow 分离层）；active/base 双色随主题 |
+| `20-partita.js` | 云阶 Partita | 竖列错落词阶 + 逐字流光 + 副歌涟漪 |
+| `20-pendolo.js` | 时计 Pendolo | 钟表机械 canvas（齿轮/游丝/辐条轮/60 刻度）+ 弧形轮歌词布局 |
+| `20-tilt.js` | 斜排 Tilt | 行拆 1-4 段概率布局 + 大斜体 + 字符 ±yOffset 交错 |
+| `20-claddagh.js` | 环歌 Claddagh | 扁椭圆（0.09 短轴）45° 环排字符流 + 聚焦因子衰减 |
+| `21-cadenza.js` | 心象 Cadenza | 中轴单行 + 当前字放大呼吸 |
+| `22-lattice.js` | 队列拼贴 Lattice | 队列封面海报墙（平铺网格/墙不改队列/当前海报原位展开），详见 `docs/LATTICE.md` |
+| `23-cappella.js` | 群唱 Cappella | 聊天气泡歌词：圆形人物头像（`public/assets/cappella/` 15 张）+ 表情贴纸（9 张）+ getBubbleColors 配色公式 + 三档 motion CSS 变量 + 流光/时间戳/逐字 fade |
+| `24-monet.js` | 莫奈 Monet | 海报双栏（左：艺术家斜体/装饰线/大标题/歌词轨道/主题胶囊；右：竖幅相框封面+挂钉）；背景 = 封面水洗油画管线；轨道 = ±4 窗口 tone 曲线 + 双色逐词扫过 + 副歌光斑 |
+
+2026-10 视觉保真度对齐轮：启动 folia 原项目试验场逐模式实机截图对照 + 源码逐行核对，重写 still/monet/cappella 三个粗糙移植、修正 classic 主题跟随；其余模式确认结构已对齐。
+
 ### 6.4 主题系统
 
 CSS 变量集中在 `public/css/index.css` 多个 `:root` 块（灰阶/品牌色/玻璃材质/图标色）。主题切换 = 运行时改写 CSS 变量（`07-fx/02-accent-background-controls.js`），无预设皮肤机制。胶片电台独立样式在 `public/css/film-radio.css`（`body.film-radio` 命名空间，自带局部 token：`--fr-void` 暖黑底 / `--fr-paper` 相纸暖白 / `--fr-amber` 放映暖光 / `--fr-amber-hi` 强调金 / `--fr-leak` 漏光橙红）。

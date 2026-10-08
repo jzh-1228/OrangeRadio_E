@@ -1,11 +1,29 @@
 /* =========================================================================
    OrangeSea · 群唱（Cappella · 聊天气泡歌词）
    Portions Copyright (c) 2025 chthollyphile and Folia contributors
-   — adapted from folia-major (AGPL-3.0)
-   body.cappella 命名空间。聊天流右下对齐，最新消息贴底。
+   — adapted from folia-major (AGPL-3.0): src/components/visualizer/cappella/
+   VisualizerCappella.tsx（气泡 rounded-3xl+尾角 / 圆形图片头像 / 流光 /
+   时间戳 / 表情 wiggle / 逐字 fade / 三档 motion CSS 变量直译）
+   body.cappella 命名空间。聊天流底部对齐，最新消息贴底。
    ========================================================================= */
 
 #cappella-overlay {
+  --cp-active-scale: 1.12;
+  --cp-passed-scale: 0.92;
+  --cp-passed-opacity: 0.82;
+  --cp-active-font: 24.1px;        /* 18 × activeFontMultiplier 1.34 */
+  --cp-inactive-font: 16.9px;      /* 18 × inactiveFontMultiplier 0.94 */
+  --cp-active-pad-x: 20px;
+  --cp-active-pad-y: 16px;
+  --cp-inactive-pad-x: 16px;
+  --cp-inactive-pad-y: 12px;
+  --cp-active-min-h: 64px;
+  --cp-inactive-min-h: 44px;
+  --cp-glow-opacity: 0.4;
+  --cp-glow-alpha: 0.34;
+  --cp-emo-active: 160px;
+  --cp-emo-inactive: 110px;
+  --cp-enter-y: 22px;
   position: fixed;
   inset: 0;
   z-index: 5;
@@ -19,97 +37,181 @@ body.cappella #cappella-overlay { display: block; animation: cappellaIn 0.5s eas
 body.cappella #empty-home { display: none; }
 @keyframes cappellaIn { from { opacity: 0; } to { opacity: 1; } }
 
+/* 聊天面板：Folia px-4/8/14 · pb-36/40 · pt-12/16/20 · max-w-4xl 居中 */
 .cappella-scroller {
   position: absolute;
   inset: 0;
-  padding: 96px min(24vw, 340px) 150px 26px;
+  padding: 80px clamp(24px, 6vw, 72px) 150px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  gap: 12px;
   scrollbar-width: none;
   scroll-behavior: smooth;
 }
 .cappella-scroller::-webkit-scrollbar { display: none; }
 
+.cappella-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;                        /* Folia gap-3 */
+  width: 100%;
+  max-width: 896px;                 /* max-w-4xl */
+  margin: 0 auto;
+}
+
+/* ---------- 行（Folia: flex w-full items-end gap-3 · 行内气泡组 max-w 78%） ---------- */
 .cappella-row {
   display: flex;
   align-items: flex-end;
-  gap: 10px;
-  max-width: min(560px, 78%);
+  gap: 12px;
+  width: 100%;
   opacity: 0;
-  transform: translateY(16px) scale(0.985);
-  animation: cappellaRowIn 0.3s ease forwards;
+  transform: translateY(var(--cp-enter-y)) scale(0.98);
+  animation: cappellaRowIn 0.32s ease-out forwards;
 }
 @keyframes cappellaRowIn { to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .cappella-row { animation: none; opacity: 1; transform: none; }
+}
 
 .cappella-row.is-right { margin-left: auto; flex-direction: row-reverse; }
+.cappella-row.is-emo-row { padding-top: 24px; }   /* Folia: emo 行 pt-12 */
 
+/* ---------- 头像（Folia: h-10 w-10 圆形 + 白描边 + 图片） ---------- */
 .cappella-avatar {
-  flex: 0 0 38px;
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(255, 255, 255, 0.92);
-  font-size: 16px;
-  font-weight: 700;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
-  transition: transform 0.35s cubic-bezier(0.34, 1.4, 0.5, 1);
+  flex: 0 0 40px;                   /* h-10 w-10 */
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: var(--theme-secondary, #e6c9a6);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
 }
+.cappella-row.is-active .cappella-avatar { transform: scale(1.06); }
+.cappella-row.is-passed .cappella-avatar { opacity: 0.85; }
 
+/* ---------- 气泡（Folia: rounded-3xl + 尾角 rounded-br/bl-md） ---------- */
 .cappella-bubble {
   position: relative;
-  padding: 12px 16px;
-  border-radius: 16px;
-  font-size: 15px;
-  line-height: 1.55;
-  color: var(--theme-primary, #f2e6d4);
-  background: rgba(30, 32, 40, 0.86);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.32);
-  backdrop-filter: blur(8px);
-  transition: transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
-  word-break: break-word;
+  border-radius: 24px;              /* rounded-3xl = 1.5rem */
+  border: 1px solid;
+  min-height: var(--cp-inactive-min-h);
+  min-width: 0;
+  max-width: 68%;                   /* Folia: 气泡组 max-w-[78%] sm:max-w-[68%] */
+  padding: var(--cp-inactive-pad-y) var(--cp-inactive-pad-x);
+  font-size: var(--cp-inactive-font);
+  font-weight: 400;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+  transform-origin: 0% 100%;
+  transition: transform 0.32s cubic-bezier(0.34, 1.4, 0.5, 1),
+              opacity 0.28s ease, filter 0.28s ease, font-size 0.28s ease,
+              padding 0.28s ease, min-height 0.28s ease, box-shadow 0.2s ease;
 }
-.cappella-row.is-left .cappella-bubble { border-radius: 16px 16px 16px 5px; }
-.cappella-row.is-right .cappella-bubble { border-radius: 16px 16px 5px 16px; }
-
-.cappella-row.is-title .cappella-bubble {
-  font-size: 17px;
-  font-weight: 700;
-  background: linear-gradient(160deg, rgba(255, 156, 110, 0.16), rgba(30, 32, 40, 0.9));
-  border: 1px solid rgba(255, 156, 110, 0.3);
+.cappella-row.is-right .cappella-bubble {
+  border-bottom-right-radius: 6px;  /* rounded-br-md 尾角 */
+  transform-origin: 100% 100%;
+}
+.cappella-row:not(.is-right) .cappella-bubble {
+  border-bottom-left-radius: 6px;   /* rounded-bl-md 尾角 */
 }
 
-.cappella-char { opacity: 0.34; transition: opacity 0.22s ease, color 0.22s ease; }
-.cappella-char.is-lit { opacity: 1; }
-
-.cappella-row.is-active .cappella-avatar { transform: scale(1.16); }
+/* 激活：放大 · 满字号 · 阴影（Folia: activeScale/activeFontMultiplier/boxShadow） */
 .cappella-row.is-active .cappella-bubble {
-  transform: scale(1.05);
-  font-size: 16.5px;
-  padding: 14px 19px;
-  background: rgba(38, 41, 52, 0.94);
-  box-shadow:
-    0 10px 30px rgba(0, 0, 0, 0.42),
-    0 0 26px var(--cappella-glow, rgba(255, 156, 110, 0.22));
+  transform: scale(var(--cp-active-scale));
+  font-size: var(--cp-active-font);
+  padding: var(--cp-active-pad-y) var(--cp-active-pad-x);
+  min-height: var(--cp-active-min-h);
+  box-shadow: 0 18px 48px rgba(255, 156, 110, 0.30);
 }
-.cappella-row.is-active .cappella-char.is-lit { color: var(--theme-accent, #ff9c6e); }
+.cappella-row.is-passed .cappella-bubble {
+  transform: scale(var(--cp-passed-scale));
+  opacity: var(--cp-passed-opacity);
+  filter: saturate(0.88);
+}
 
-.cappella-row.is-passed { opacity: 0.62; }
-.cappella-row.is-passed .cappella-bubble { transform: scale(0.96); }
-.cappella-row.is-passed .cappella-avatar { transform: scale(0.92); }
+/* 标题卡（歌名消息） */
+.cappella-bubble.is-title-text { font-weight: 600; }
 
-.cappella-bubble.is-emo {
-  font-size: 58px;
-  line-height: 1.1;
-  padding: 10px 14px;
-  background: rgba(30, 32, 40, 0.6);
+/* 气泡内缘流光（Folia CappellaBubbleGlow：105deg 条带 200% 宽横扫） */
+.cappella-bubble-glow {
+  position: absolute;
+  top: 0; bottom: 0; left: 0;
+  width: 200%;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(105deg,
+    transparent 0%, rgba(255, 255, 255, var(--cp-glow-alpha, 0.34)) 23%, transparent 34%,
+    transparent 50%, transparent 50%,
+    rgba(255, 255, 255, var(--cp-glow-alpha, 0.34)) 73%, transparent 84%, transparent 100%);
+  animation: cappellaBubbleGlowPan 1.8s linear infinite;
+  transition: opacity 0.3s ease;
 }
-.cappella-row.is-active .cappella-bubble.is-emo {
-  font-size: 76px;
-  transform: scale(1.08) rotate(-2deg);
+.cappella-row.is-active .cappella-bubble-glow { opacity: var(--cp-glow-opacity, 0.4); }
+@keyframes cappellaBubbleGlowPan {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
+@media (prefers-reduced-motion: reduce) { .cappella-bubble-glow { animation: none; } }
+
+/* ---------- 文本与逐字浮现（Folia: cappella-char-fade 220ms） ---------- */
+.cappella-text { position: relative; z-index: 1; }
+.cappella-char { opacity: 0; }
+.cappella-char.is-lit { animation: cappellaCharFade 0.22s ease-out forwards; }
+@keyframes cappellaCharFade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .cappella-char { opacity: 1; }
+  .cappella-char.is-lit { animation: none; }
+}
+
+/* ---------- 时间戳（Folia: 11px tabular-nums · 气泡外侧 8px · passed 浮现） ---------- */
+.cappella-timestamp {
+  position: absolute;
+  bottom: 4px;
+  right: calc(100% + 8px);
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: inherit;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.18s ease-out, transform 0.18s ease-out;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.cappella-row:not(.is-right) .cappella-timestamp { right: auto; left: calc(100% + 8px); }
+.cappella-row.is-passed .cappella-timestamp,
+.cappella-row.is-passed .cappella-emo .cappella-timestamp { opacity: 0.62; transform: translateY(0); }
+
+/* ---------- 表情贴纸（Folia: img rounded-2xl + wiggle + active 更大） ---------- */
+.cappella-emo {
+  position: relative;
+  flex: 0 0 auto;
+  width: var(--cp-emo-inactive);
+  height: var(--cp-emo-inactive);
+  transition: width 0.25s ease-out, height 0.25s ease-out;
+}
+.cappella-row.is-active .cappella-emo {
+  width: var(--cp-emo-active);
+  height: var(--cp-emo-active);
+}
+.cappella-emo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 16px;              /* rounded-2xl */
+  display: block;
+  animation: cappellaEmoWiggle 1.9s ease-in-out infinite;
+}
+@keyframes cappellaEmoWiggle {
+  0%, 100% { transform: rotate(-1.6deg); }
+  50% { transform: rotate(1.6deg); }
+}
+@media (prefers-reduced-motion: reduce) { .cappella-emo img { animation: none; } }

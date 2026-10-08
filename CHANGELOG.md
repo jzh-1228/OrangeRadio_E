@@ -2,6 +2,13 @@
 
 ## 未发布
 
+- **视觉模式保真度对齐原版**（启动 folia 原项目试验场逐模式实机对照 + 源码逐行核对后重写/修正，DIY 控制台各模式卡片入口不变）：
+  - **静止（Still）**：字色与底色改随主题服务（`--theme-primary/secondary/bg`，原版即 theme.primaryColor + 正交背景层），暗角改回原版语义——黑色径向罩层 0.65 不透明度压在主题色底上，替换此前的纯黑暖光基底；三行窗口/字号阶梯/索引回退此前已直译，本轮补齐配色层。
+  - **莫奈（Monet）**：整体构图重排为原版**海报双栏**（此前布局镜像反了）——左栏艺术家斜体（clamp(1rem,1.8vw,1.8rem)·primary 0.96）→ 垂直装饰线（h-14，primary 0.72→transparent 渐变 scaleY 入场）→ 大标题（clamp(1.45rem,3.3vw,2.8rem)·600·leading 1.06·line-clamp-2）→ 歌词轨道 → 底部**主题描述胶囊**（accent 圆点 + 主题名，backdrop-blur）；右栏**竖幅 0.74 相框封面**（外框 rounded 2.15rem·p-1.5 + 内框 1.85rem）+ 顶部**挂画钉**（w-3 h-14）。歌词轨道按 MonetLyricsRail 直译：±4 可见窗口、行状态 tone 曲线（waiting/passed 透明度与缩放衰减、blur 分档）、active 行基色 primary 0.34 淡底 + 唱到的词亮 accent、glow 副歌 0.45/0.90×字号 vs 普通 0.28/0.65、**副歌行径向光斑**（accent 0.14→0.04 + blur10）、行内翻译子行、active 行距 0.49×字号；六元素入场时间表直译；1536px 起大屏整体放大。封面相框显示清晰原图（水洗海报仍为背景层）。
+  - **群唱（Cappella）**：头像从色块字块换成 **Folia 内置圆形人物头像**（15 张 folia-chan，AI 生成、上游 README 明示可自由分发，`public/assets/cappella/` 含来源说明）、表情从 emoji 字符换成 **9 张内置表情贴纸**（wiggle 1.9s 摆动、active/inactive 尺寸过渡）；气泡配色按原版 getBubbleColors 直译（右侧 accent 混 primary 深底、左侧按头像 tone 渐进向 accent）；气泡尾角、active 内缘**流光扫动**（105° 条带横扫、左右 0.34/0.18 分档）、**时间戳**（气泡外侧 11px tabular-nums、唱完浮现）；三档 motion 全参数直译（calm/normal/chaotic 26 项，CSS 变量注入）；聊天面板 max-w-4xl 居中。测试同步重写（配色公式/三档数值/资源存在性断言）。
+  - **流光（Classic）**：active 点亮色与 base 底字色改随主题服务（原版 activeColor=theme.accentColor / baseColor=theme.primaryColor），新增主题中途变化检测（--theme-accent 变化即重应用）。
+  - **烟纸/心象/云阶/时计/斜排/环歌**：经实机截图对照确认前几轮深抄的结构已对齐（烟纸 hero 大块与相机、时计的齿轮/游丝 canvas 机械、斜排的拆段+斜体+字符交错、环歌的扁椭圆 45° 弧排数学），本轮无需改动。
+- 新增 `public/assets/cappella/`（Folia 内置头像 15 张 + 表情 9 张，AI 生成资源，上游声明不受 AGPL 约束可自由分发，README 记录来源与声明）。
 - 主题系统补全 folia 三源：新增**基础预设对「墨染/素白」**（baseThemes.ts 逐字段：夜 zinc 系 / 昼 stone 系 + orange-600 强调，无封面与"保存前"的默认观感）与**我的主题库**（Theme Park 保存主题等价：一键把当前生效双主题存进 localStorage，列表应用/删除，悬空回退封面派生）；`fx.themePreset` 三源选择（封面派生/墨染素白/custom:\<id\>）持久化。
 - 新增**群唱（Cappella · 聊天气泡歌词）沉浸模式**（移植自 Folia cappella）：每句歌词是一条左右聊天消息——左侧四位"合唱成员"轮换（稳定色相字块头像）、右侧"主唱"发出歌名卡；间奏"......"变表情包大贴纸、普通行后按概率触发回应贴纸（概率/上限/间隔按 calm/normal/chaotic 三档照搬）；当前句气泡放大发亮逐字点亮、唱完收缩变暗，聊天流自动滚到最新。发送者分配按歌曲 key 确定性播种（同歌同对话）。测试基线 47 → 48。
 - 新增**莫奈（Monet · 油画海报歌词）沉浸模式**（移植自 Folia monet 的背景管线与歌词轨道）：封面在 1920×1080 离屏画布上烘焙成印象派海报——模糊 → 灰度/饱和/水洗像素后处理（亮度沿 shadow→accent→highlight 两段折线向主题三色混色）→ 对角渐变 + 左侧 bloom + 右侧 veil + 18 条竖笔触痕，仅封面/主题变化时重算；海报缓漂移 + 主题色光斑装饰；右侧逐词歌词轨道（当前行大字、逐词点亮、唱过缩小沉入画里）。测试基线 48 → 49，八模式烟测扩展至十模式全绿。

@@ -139,6 +139,13 @@ function classicApplyTheme() {
       active = fx.visualTintColor;
     }
   } catch (e) { }
+  /* 主题服务（Folia: activeColor = theme.accentColor）优先于内置默认 */
+  try {
+    if (typeof themeServiceActiveTheme === 'function') {
+      var theme = themeServiceActiveTheme();
+      if (theme && theme.accentColor) active = theme.accentColor;
+    }
+  } catch (e) { }
   var overlay = document.getElementById('classic-overlay');
   if (!overlay) return;
   overlay.style.setProperty('--cl-active', active);
@@ -632,6 +639,20 @@ function watchClassicLyricsChange() {
 }
 
 /* ---------- 主循环（rAF 节流 ~30fps；每帧零分配） ---------- */
+var classicLastThemeKey = '';
+
+function classicCheckThemeChange() {
+  var key = '';
+  try {
+    key = getComputedStyle(document.documentElement).getPropertyValue('--theme-accent') || '';
+  } catch (e) { }
+  key = String(key).trim();
+  if (key && key !== classicLastThemeKey) {
+    classicLastThemeKey = key;
+    classicApplyTheme();
+  }
+}
+
 function startClassicLoop() {
   stopClassicLoop();
   var lastTick = 0;
@@ -640,6 +661,7 @@ function startClassicLoop() {
     if (now - lastTick > 33) {
       lastTick = now;
       classicCheckFontChange();
+      classicCheckThemeChange();
       classicTickLyrics();
     }
     classicRafId = requestAnimationFrame(frame);

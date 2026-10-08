@@ -28,15 +28,15 @@
   <link rel="stylesheet" href="css/graffiti-lyrics.css?v=20260813-multilang-anim">
   <link rel="stylesheet" href="css/aurora-flow.css?v=20260910-aurora-flow">
   <link rel="stylesheet" href="css/rainy-cab.css?v=20260910-rainy-cab">
-  <link rel="stylesheet" href="css/still.css?v=20261008-still">
+  <link rel="stylesheet" href="css/still.css?v=20261008b-still">
   <link rel="stylesheet" href="css/claddagh.css?v=20261008-claddagh">
   <link rel="stylesheet" href="css/tilt.css?v=20261008-tilt">
   <link rel="stylesheet" href="css/fume.css?v=20261008-fume">
   <link rel="stylesheet" href="css/lattice.css?v=20261008-lattice">
-  <link rel="stylesheet" href="css/cappella.css?v=20261008-cappella">
-  <link rel="stylesheet" href="css/monet.css?v=20261008-monet">
+  <link rel="stylesheet" href="css/cappella.css?v=20261008c-cappella">
+  <link rel="stylesheet" href="css/monet.css?v=20261008b-monet">
   <link rel="stylesheet" href="css/pendolo.css?v=20261008-pendolo">
-  <link rel="stylesheet" href="css/classic.css?v=20261008-classic">
+  <link rel="stylesheet" href="css/classic.css?v=20261008b">
   <link rel="stylesheet" href="css/partita.css?v=20261008-partita">
     <link rel="stylesheet" href="css/cadenza.css?v=20261008-cadenza">
     <link rel="stylesheet" href="css/visualizer-background.css?v=20261008-bg-switcher">
@@ -1807,19 +1807,39 @@
       </div>
     </div>
 
-    <!-- 莫奈覆盖层（Monet · 油画海报歌词）：封面水洗成印象派海报，右侧逐词歌词轨道
-         （源自 Folia monet 模式，AGPL-3.0，见 NOTICE.md） -->
+    <!-- 莫奈覆盖层（Monet · 油画海报歌词）：左文右封面海报构图——艺术家斜体 → 垂直装饰线 →
+         大标题 → 歌词轨道 → 主题描述胶囊；右侧竖幅相框封面 + 挂画钉。
+         背景为封面水洗油画（源自 Folia monet 模式，AGPL-3.0，见 NOTICE.md） -->
     <div id="monet-overlay" aria-hidden="true">
       <div class="monet-poster" id="monet-poster"></div>
       <div class="monet-decor d1" aria-hidden="true"></div>
       <div class="monet-decor d2" aria-hidden="true"></div>
       <div class="monet-decor d3" aria-hidden="true"></div>
-      <div class="monet-title-block" aria-hidden="true">
-        <div class="monet-title" id="monet-title"></div>
-        <div class="monet-artist" id="monet-artist"></div>
-      </div>
-      <div class="monet-rail-wrap">
-        <div class="monet-rail" id="monet-rail" aria-live="polite"></div>
+      <div class="monet-composition">
+        <div class="monet-text-col">
+          <div class="monet-header">
+            <div class="monet-artist" id="monet-artist"></div>
+            <div class="monet-rule" aria-hidden="true"></div>
+          </div>
+          <div class="monet-title-wrap">
+            <div class="monet-title" id="monet-title"></div>
+          </div>
+          <div class="monet-rail-wrap">
+            <div class="monet-rail" id="monet-rail" aria-live="polite"></div>
+          </div>
+          <div class="monet-capsule" id="monet-capsule">
+            <div class="monet-capsule-inner">
+              <span class="monet-capsule-dot" aria-hidden="true"></span>
+              <span class="monet-capsule-text" id="monet-capsule-text"></span>
+            </div>
+          </div>
+        </div>
+        <div class="monet-portrait-col" aria-hidden="true">
+          <div class="monet-portrait-frame">
+            <div class="monet-portrait-hanger"></div>
+            <div class="monet-portrait-inner" id="monet-portrait-img"></div>
+          </div>
+        </div>
       </div>
     </div>
 

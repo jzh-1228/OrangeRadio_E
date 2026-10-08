@@ -6,13 +6,14 @@
 
    body.still 命名空间，与 index.css / aurora-flow.css 等完全隔离。
    Folia Tailwind 数值直译（px-12 pb-16 gap-8 / max-w-4xl / h-20 /
-   text-[2.5rem]·700 / text-3xl·600·30% / text-2xl·500·80% / text-xl·400·30%），
-   配色自 theme.primaryColor/secondaryColor 换成项目日落暖色系。
+   text-[2.5rem]·700 / text-3xl·600·30% / text-2xl·500·80% / text-xl·400·30%）。
+   字色与底色跟随主题服务（Folia: theme.primaryColor / 正交背景层 + 黑色径向
+   暗角罩层 夜间 opacity 0.65）。
    ========================================================================= */
 
 #still-overlay {
-  --st-ink: #f7eee3;               /* 主行字色（Folia theme.primaryColor 的日落暖白版） */
-  --st-ink-2: #e6c9a6;             /* 翻译字色（Folia secondaryColor 的暖沙版） */
+  --st-ink: var(--theme-primary, #f7eee3);          /* Folia: theme.primaryColor */
+  --st-ink-2: var(--theme-secondary, #e6c9a6);      /* Folia: subtitleTheme.secondaryColor */
   --st-font: "PingFang SC", "HarmonyOS Sans SC", "MiSans", "Microsoft YaHei UI", "Source Han Sans SC", system-ui, sans-serif;
 
   position: fixed;
@@ -23,7 +24,7 @@
   z-index: 5;
   display: none;
   overflow: hidden;
-  background: #000;
+  background: var(--theme-bg, #171009);   /* 正交背景层（Folia: 背景渲染器供底） */
   pointer-events: none;            /* 默认不拦截，切到本模式时由 body.still 打开 */
 }
 
@@ -42,12 +43,12 @@ body.still #empty-home {
 }
 
 /* ---------- L0 · 中心径向暗角（Folia: radial-gradient(ellipse at center,
-     transparent 0%, #000 100%) 夜间 0.65 档；不透明覆盖层等价为中心微暖亮、
-     边缘压黑） ---------- */
+     transparent 0%, #000 100%) 夜间 opacity 0.65 罩层直译） ---------- */
 .still-vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at center, #1f1712 0%, #000000 100%);
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 0%, #000000 100%);
+  opacity: 0.65;
   z-index: 0;
 }
 

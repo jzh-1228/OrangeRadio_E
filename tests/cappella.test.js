@@ -1,5 +1,5 @@
 'use strict';
-/* 群唱（Cappella）：确定性哈希/序列构建/短行承接/表情包闸门/头像稳定色 */
+/* 群唱（Cappella）：确定性哈希/序列构建/短行承接/表情包闸门/气泡配色/三档 motion */
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -25,7 +25,9 @@ vm.runInContext(fs.readFileSync(modulePath, 'utf8'), sandbox, { filename: module
 
 const {
   cappellaHashString, cappellaSeededUnit, cappellaCountCompactChars,
-  cappellaBuildMessages, cappellaAvatarStyle, cappellaAvatarGlyph,
+  cappellaBuildMessages, cappellaBubbleColors, cappellaMixColors,
+  cappellaFormatTimestamp, cappellaAvatarUrl, CAPPELLA_CONFIGS,
+  CAPPELLA_AVATAR_URLS, CAPPELLA_EMO_URLS,
 } = sandbox;
 
 /* ---------- 确定性哈希 ---------- */
@@ -60,13 +62,14 @@ const {
   // 强制右：normal 档每 5 行（lineIndex+1)%5===0 的非间奏行落在右侧
   const forced = msgs.find(m => m.kind === 'lyric' && m.lineIndex === 4);
   assert.equal(forced.side, 'right');
-  // 短行承接：短行大概率沿用上一发送者（同侧）
-  const shortLine = msgs.find(m => m.kind === 'lyric' && m.lineIndex === 2 && cappellaCountCompactChars(lines[2].text) <= 12);
   // 顺序与时间
   const timed = msgs.filter(m => m.kind !== 'title');
   let mono = true;
   for (let i = 1; i < timed.length; i++) if (timed[i].start < timed[i - 1].start) mono = false;
   assert.ok(mono);
+  // emo 消息携带图片 URL（不再用 emoji 字符）
+  const emo = msgs.find(m => m.kind === 'emo');
+  assert.ok(emo.emoUrl && emo.emoUrl.startsWith('assets/cappella/emo/'));
   // 空歌词：只有标题
   assert.equal(cappellaBuildMessages([], '空', 'normal', 's').length, 1);
 }
@@ -83,12 +86,54 @@ const {
   assert.equal(calm.filter(m => m.kind === 'emo').length, 0);   // calm 档无随机表情
 }
 
-/* ---------- 头像 ---------- */
+/* ---------- 三档 motion（Folia getCappellaIntensityConfig 数值直译） ---------- */
 {
-  assert.ok(cappellaAvatarStyle(3).startsWith('linear-gradient'));
-  assert.equal(cappellaAvatarStyle(3), cappellaAvatarStyle(3));  // 稳定
-  assert.equal(cappellaAvatarGlyph(8, '夜航'), '夜');             // 右侧主唱用歌名首字
-  assert.ok('月星风海灯'.includes(cappellaAvatarGlyph(0, '')));
+  const m = CAPPELLA_CONFIGS.normal.motion;
+  assert.equal(m.activeScale, 1.12);
+  assert.equal(m.passedScale, 0.92);
+  assert.equal(m.activeFontMultiplier, 1.34);
+  assert.equal(m.glowOpacity, 0.4);
+  assert.equal(m.glowDuration, 1.8);
+  assert.equal(m.glowRightAlpha, 0.34);
+  assert.equal(m.glowLeftAlpha, 0.18);
+  assert.equal(m.emoActiveSize, 160);
+  assert.ok(CAPPELLA_CONFIGS.calm.motion.activeScale < m.activeScale);
+  assert.ok(CAPPELLA_CONFIGS.chaotic.motion.activeScale > m.activeScale);
+}
+
+/* ---------- 气泡配色（Folia getBubbleColors 直译） ---------- */
+{
+  const theme = { backgroundColor: '#171009', primaryColor: '#f2e6d4', accentColor: '#ff9c6e', secondaryColor: '#e6c9a6' };
+  const right = cappellaBubbleColors({ side: 'right', avatarIndex: 8 }, theme);
+  assert.ok(right.backgroundColor.startsWith('rgba('));
+  assert.equal(right.textColor, theme.backgroundColor);      // 右侧深色字
+  const left0 = cappellaBubbleColors({ side: 'left', avatarIndex: 0 }, theme);
+  const left8 = cappellaBubbleColors({ side: 'left', avatarIndex: 8 }, theme);
+  assert.equal(left0.textColor, theme.primaryColor);        // 左侧浅色字
+  assert.notEqual(left0.backgroundColor, left8.backgroundColor);  // 头像 tone 渐进
+  // mixColors：中点混合
+  const mid = cappellaMixColors('#000000', '#ffffff', 0.5, 1);
+  assert.equal(mid, 'rgba(128,128,128,1)');
+}
+
+/* ---------- 头像与资源 ---------- */
+{
+  assert.equal(CAPPELLA_AVATAR_URLS.length, 15);
+  assert.equal(CAPPELLA_EMO_URLS.length, 9);
+  assert.ok(cappellaAvatarUrl(8, 'right').includes('assets/cappella/avatar/'));
+  assert.equal(cappellaAvatarUrl(0, 'left'), CAPPELLA_AVATAR_URLS[0]);
+  // 资源文件真实存在
+  const pub = path.join(__dirname, '..', 'public');
+  for (const u of [...CAPPELLA_AVATAR_URLS, ...CAPPELLA_EMO_URLS]) {
+    assert.ok(fs.existsSync(path.join(pub, u)), 'missing asset ' + u);
+  }
+}
+
+/* ---------- 时间戳 ---------- */
+{
+  assert.equal(cappellaFormatTimestamp(0), '0:00');
+  assert.equal(cappellaFormatTimestamp(83), '1:23');
+  assert.equal(cappellaFormatTimestamp(-5), '0:00');
 }
 
 console.log('cappella.test.js: all assertions passed');

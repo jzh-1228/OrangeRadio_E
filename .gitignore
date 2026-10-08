@@ -82,3 +82,6 @@ scripts/concert-screenshot.png
 
 __pycache__/
 android/
+.tmp-folia-modes/
+.tmp-our-modes/
+.tmp-folia-*.png

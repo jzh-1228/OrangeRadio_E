@@ -217,6 +217,23 @@ function monetRefreshBackground() {
   var active = (typeof themeServiceActiveTheme === 'function') ? themeServiceActiveTheme() : null;
   var theme = active || { backgroundColor: '#171009', primaryColor: '#f2e6d4', accentColor: '#ff9c6e' };
   var cover = monetCoverUrlNow();
+
+  /* 主题描述胶囊（Folia: theme.description → 胶囊文案） */
+  var capsuleEl = document.getElementById('monet-capsule-text');
+  if (capsuleEl) {
+    var label = (theme.description || theme.name || 'Monet').trim();
+    if (capsuleEl.textContent !== label) capsuleEl.textContent = label;
+  }
+  /* 封面相框（清晰原图，非水洗） */
+  var portraitEl = document.getElementById('monet-portrait-img');
+  if (portraitEl) {
+    var nextBg = cover ? 'url("' + cover + '")' : 'none';
+    if (portraitEl.dataset.bg !== nextBg) {
+      portraitEl.dataset.bg = nextBg;
+      portraitEl.style.backgroundImage = nextBg;
+    }
+  }
+
   var key = (cover || '') + '|' + theme.backgroundColor + '|' + theme.accentColor + '|' + theme.primaryColor;
   if (key === monetBgCache.key) return;
   monetBgCache.key = key;
@@ -232,7 +249,12 @@ function monetRefreshBackground() {
   });
 }
 
-/* ---------- 歌词轨道（逐词令牌） ---------- */
+/* ---------- 歌词轨道（Folia MonetLyricsRail 直译：±4 窗口 / tone 曲线 / 逐词扫过） ---------- */
+
+/* 窗口大小（MONET_SCROLL_BEFORE/AFTER = 4） */
+var MONET_WINDOW = 4;
+/* inactive 基准缩放 = inactiveFontPx / lyricFontPx（clamp 0.72~0.92 的中值，CSS 变量换算） */
+var MONET_INACTIVE_SCALE = 0.72;
 
 function monetNowTime() {
   try {
@@ -267,6 +289,12 @@ function monetBuildRail() {
     var row = document.createElement('div');
     row.className = 'monet-row';
     row.dataset.lineIndex = String(i);
+    if (line.isChorus) {
+      row.classList.add('is-chorus');
+      var glow = document.createElement('span');
+      glow.className = 'monet-chorus-glow';
+      row.appendChild(glow);
+    }
     if (!text) {
       row.classList.add('is-empty');
       frag.appendChild(row);
@@ -277,18 +305,46 @@ function monetBuildRail() {
     if (words) {
       for (var w = 0; w < words.length; w++) {
         var span = document.createElement('span');
-        span.className = 'monet-word';
+        span.className = 'monet-word is-pending';
         span.textContent = words[w].text;
         row.appendChild(span);
       }
     } else {
-      row.textContent = text;
+      var span0 = document.createElement('span');
+      span0.className = 'monet-word is-pending';
+      span0.textContent = text;
+      row.appendChild(span0);
+    }
+    /* 翻译子行（Folia: rail 行内 subtitle） */
+    var tr = String(line.translation || '').trim();
+    if (tr) {
+      var trEl = document.createElement('span');
+      trEl.className = 'monet-row-tr';
+      trEl.textContent = tr;
+      row.appendChild(trEl);
     }
     frag.appendChild(row);
-    monetRowsDom.push({ row: row, words: words });
+    monetRowsDom.push({ row: row, words: words, plain: !words ? text : null });
   }
   rail.appendChild(frag);
   monetLastActiveIdx = -99;
+}
+
+/* Folia resolveLineTone 直译：distance/状态 → opacity·scale·blur（写 CSS 变量） */
+function monetApplyTone(row, distance, isWaiting) {
+  var d = Math.max(Math.abs(distance), 1);
+  var scale = Math.min(0.92, Math.max(0.68, MONET_INACTIVE_SCALE * Math.pow(0.9, d - 1)));
+  var opacity, blur;
+  if (isWaiting) {
+    opacity = Math.min(0.72, Math.max(0.36, 0.72 - (d - 1) * 0.18));
+    blur = d === 1 ? 0.7 : 1.8 + (d - 2) * 0.8;
+  } else {
+    opacity = Math.min(0.52, Math.max(0.28, 0.52 - (d - 1) * 0.12));
+    blur = 1.1 + (d - 1) * 0.7;
+  }
+  row.style.setProperty('--mn-tone-opacity', opacity.toFixed(3));
+  row.style.setProperty('--mn-tone-scale', scale.toFixed(3));
+  row.style.setProperty('--mn-tone-blur', blur.toFixed(2) + 'px');
 }
 
 function monetTick() {
@@ -298,18 +354,31 @@ function monetTick() {
   for (var i = 0; i < monetRowsDom.length; i++) {
     var entry = monetRowsDom[i];
     var isActive = i === idx;
-    entry.row.classList.toggle('is-active', isActive);
     var line = lines[i] || {};
-    var isPassed = !isActive && line.t != null && t >= (line.t + (line.duration > 0 ? line.duration : 2.4));
-    entry.row.classList.toggle('is-passed', isPassed);
-    if (isActive && entry.words) {
-      var spans = entry.row.children;
-      for (var w = 0; w < entry.words.length && w < spans.length; w++) {
-        var word = entry.words[w];
-        var ws = Number(word.t) || Number(line.t) || 0;
-        var we = ws + Math.max(Number(word.d) || 0, 0.05);
-        spans[w].classList.toggle('is-lit', t >= ws - 0.05);
-        spans[w].classList.toggle('is-singing', t >= ws - 0.05 && t < we);
+    /* ±4 窗口外的行直接隐藏（Folia: buildScrollableRailEntries before/after 4） */
+    var off = !isActive && (idx < 0 ? Math.abs(i) > MONET_WINDOW : Math.abs(i - idx) > MONET_WINDOW);
+    if (entry.row.classList.contains('is-off') !== off) entry.row.classList.toggle('is-off', off);
+    if (off) continue;
+    entry.row.classList.toggle('is-active', isActive);
+    var distance = isActive ? 0 : (i < idx ? idx - i : i - idx);
+    var isWaiting = !isActive && i > idx;
+    if (!isActive) monetApplyTone(entry.row, distance, isWaiting);
+    if (isActive && (entry.words || entry.plain)) {
+      var spans = entry.row.querySelectorAll('.monet-word');
+      var wsBase = Number(line.t) || 0;
+      if (entry.words) {
+        for (var w = 0; w < entry.words.length && w < spans.length; w++) {
+          var word = entry.words[w];
+          var ws = Number(word.t) || wsBase;
+          var we = ws + Math.max(Number(word.d) || 0, 0.05);
+          var sung = t >= ws - 0.05;
+          var singing = sung && t < we;
+          spans[w].classList.toggle('is-pending', !sung);
+          spans[w].classList.toggle('is-singing', singing);
+        }
+      } else if (spans.length) {
+        spans[0].classList.toggle('is-pending', t < wsBase - 0.05);
+        spans[0].classList.toggle('is-singing', false);
       }
     }
   }

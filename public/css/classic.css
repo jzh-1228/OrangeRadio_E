@@ -18,7 +18,7 @@
    ========================================================================= */
 
 #classic-overlay {
-  --cl-base: #f6e9d8;             /* 暖象牙底字（Folia primaryColor 角色） */
+  --cl-base: var(--theme-primary, #f6e9d8);  /* Folia: baseColor = theme.primaryColor（主题跟随） */
   --cl-active: #ffb27a;           /* 点亮色（JS 按用户视觉染色同步覆盖） */
   --cl-active-inner: rgba(255, 178, 122, 0.7);  /* 内层辉光 alpha 0.7 */
   --cl-idle: rgba(240, 224, 205, 0.4);
