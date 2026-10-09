@@ -35,6 +35,10 @@
   <link rel="stylesheet" href="css/lattice.css?v=20261009a">
   <link rel="stylesheet" href="css/cappella.css?v=20261008c-cappella">
   <link rel="stylesheet" href="css/monet.css?v=20261008b-monet">
+  <link rel="stylesheet" href="css/diorama.css?v=20261009a">
+  <link rel="stylesheet" href="css/sonnet.css?v=20261009a">
+  <link rel="stylesheet" href="css/tempera.css?v=20261009a">
+  <link rel="stylesheet" href="css/lumiere.css?v=20261009a">
   <link rel="stylesheet" href="css/pendolo.css?v=20261008-pendolo">
   <link rel="stylesheet" href="css/classic.css?v=20261008b">
   <link rel="stylesheet" href="css/partita.css?v=20261008-partita">
@@ -1843,6 +1847,68 @@
             <div class="monet-portrait-inner" id="monet-portrait-img"></div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- 镜台覆盖层（Diorama · 圆窗景深）：圆窗内模糊封面 + 双环描边 + 层叠卡堆 +
+         三层柔光大字 + 尘埃粒子（源自 Folia diorama 模式，AGPL-3.0，见 NOTICE.md） -->
+    <div id="diorama-overlay" aria-hidden="true">
+      <div class="diorama-stack" id="diorama-stack" aria-hidden="true">
+        <div class="diorama-card c1"></div>
+        <div class="diorama-card c2"></div>
+        <div class="diorama-card c3"></div>
+        <div class="diorama-card c4"></div>
+      </div>
+      <div class="diorama-window" aria-hidden="true">
+        <div class="diorama-window-img" id="diorama-window-img"></div>
+        <div class="diorama-window-shade"></div>
+        <canvas class="diorama-motes" id="diorama-motes"></canvas>
+        <div class="diorama-ring outer"></div>
+        <div class="diorama-ring inner"></div>
+      </div>
+      <div class="diorama-lyrics" id="diorama-lyrics">
+        <div class="diorama-line" id="diorama-line-prev"></div>
+        <div class="diorama-line" id="diorama-line-main"></div>
+        <div class="diorama-tr" id="diorama-line-tr"></div>
+        <div class="diorama-line" id="diorama-line-next"></div>
+      </div>
+    </div>
+
+    <!-- 商籁覆盖层（Sonnet · 聚光灯诗稿）：圆形光台 + 幕布放射 + 光束 + 诗稿层叠行栈
+         逐字点亮（源自 Folia sonnet 模式，AGPL-3.0，见 NOTICE.md） -->
+    <div id="sonnet-overlay" aria-hidden="true">
+      <div class="sonnet-rays" aria-hidden="true"></div>
+      <div class="sonnet-spot" aria-hidden="true">
+        <div class="sonnet-spot-core"></div>
+        <div class="sonnet-spot-ring"></div>
+      </div>
+      <div class="sonnet-beam" aria-hidden="true"></div>
+      <div class="sonnet-stack" id="sonnet-stack" aria-live="polite"></div>
+      <div class="sonnet-tr" id="sonnet-line-tr"></div>
+    </div>
+
+    <!-- 凝彩覆盖层（Tempera · 剪纸色块）：马蒂斯式大色块拼贴（按歌曲 seed 选构图）+
+         能量驱动明暗 + 居中大字逐字点亮（源自 Folia tempera 模式，AGPL-3.0，见 NOTICE.md） -->
+    <div id="tempera-overlay" aria-hidden="true">
+      <div class="tempera-field" id="tempera-field" aria-hidden="true"></div>
+      <div class="tempera-veil" aria-hidden="true"></div>
+      <div class="tempera-lyrics">
+        <div class="tempera-line" id="tempera-line-prev"></div>
+        <div class="tempera-line" id="tempera-line-main"></div>
+        <div class="tempera-tr" id="tempera-line-tr"></div>
+        <div class="tempera-line" id="tempera-line-next"></div>
+      </div>
+    </div>
+
+    <!-- 绘光覆盖层（Lumiere · 霓虹光丝）：暗场流动光丝 + 光点串 + 上浮星尘 + 星落 +
+         居中柔光大字逐字点亮（源自 Folia lumiere 模式，AGPL-3.0，见 NOTICE.md） -->
+    <div id="lumiere-overlay" aria-hidden="true">
+      <canvas id="lumiere-canvas" aria-hidden="true"></canvas>
+      <div class="lumiere-lyrics">
+        <div class="lumiere-line" id="lumiere-line-prev"></div>
+        <div class="lumiere-line" id="lumiere-line-main"></div>
+        <div class="lumiere-tr" id="lumiere-line-tr"></div>
+        <div class="lumiere-line" id="lumiere-line-next"></div>
       </div>
     </div>
 

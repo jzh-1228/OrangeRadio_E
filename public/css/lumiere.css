@@ -1,0 +1,90 @@
+/* =========================================================================
+   OrangeSea · 绘光（Lumiere · 霓虹光丝歌词）
+   Portions Copyright (c) 2025 chthollyphile and Folia contributors
+   — adapted from folia-major (AGPL-3.0): src/components/visualizer/lumiere/
+   body.lumiere 命名空间。暗场光丝（canvas）+ 居中柔光大字逐字点亮。
+   ========================================================================= */
+
+#lumiere-overlay {
+  --lu-ink: #f4efe4;
+  --lu-gold: #ffc998;
+  --lu-font: "Noto Sans SC", "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei UI", system-ui, sans-serif;
+
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  display: none;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 100% 80% at 50% 42%, #0d0b10 0%, #070609 56%, #030304 100%);
+}
+
+body.lumiere #lumiere-overlay { display: block; animation: lumiereIn 0.7s ease; }
+body.lumiere #empty-home { display: none; }
+@keyframes lumiereIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* 光丝 canvas */
+#lumiere-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ---------- 歌词 ---------- */
+.lumiere-lyrics {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 0 8vw;
+  pointer-events: none;
+  font-family: var(--lu-font);
+}
+.lumiere-line {
+  font-size: 19px;
+  font-weight: 600;
+  color: rgba(244, 239, 228, 0.32);
+  letter-spacing: 0.02em;
+  text-align: center;
+  min-height: 1.3em;
+  transition: color 0.4s ease, font-size 0.4s ease;
+}
+.lumiere-line.is-active {
+  font-size: clamp(32px, 5vh, 48px);
+  font-weight: 800;
+  color: var(--lu-ink);
+  text-shadow:
+    0 0 22px rgba(255, 201, 152, 0.24),
+    0 0 46px rgba(255, 201, 152, 0.12),
+    0 3px 22px rgba(0, 0, 0, 0.6);
+}
+#lumiere-overlay.is-chorus .lumiere-line.is-active {
+  text-shadow:
+    0 0 26px rgba(255, 214, 168, 0.34),
+    0 0 58px rgba(255, 201, 152, 0.2),
+    0 3px 24px rgba(0, 0, 0, 0.6);
+}
+.lumiere-tr {
+  font-size: 15px;
+  color: rgba(244, 239, 228, 0.52);
+  letter-spacing: 0.05em;
+  min-height: 1.2em;
+}
+.lumiere-tr.is-hidden { visibility: hidden; }
+
+/* 逐字点亮：白 → 暖金 */
+.lumiere-word { transition: color 0.3s ease, text-shadow 0.3s ease; }
+.lumiere-line.is-active .lumiere-word { color: rgba(244, 239, 228, 0.4); }
+.lumiere-line.is-active .lumiere-word.is-lit {
+  color: var(--lu-gold);
+  text-shadow: 0 0 18px rgba(255, 201, 152, 0.5);
+}
+
+@media (max-width: 760px) {
+  .lumiere-line.is-active { font-size: clamp(26px, 4.6vh, 38px); }
+}

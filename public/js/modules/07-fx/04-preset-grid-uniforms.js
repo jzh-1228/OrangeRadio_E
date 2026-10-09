@@ -19,7 +19,7 @@ function buildPresetGrid() {
       '<div class="pc-name">' + name + '</div>' +
       '<div class="pc-desc">' + desc + '</div>' +
       '</div>';
-  }).join('') + buildFilmRadioPresetCard() + buildGraffitiPresetCard() + buildAuroraPresetCard() + buildRainyPresetCard() + buildStillPresetCard() + buildCladdaghPresetCard() + buildTiltPresetCard() + buildFumePresetCard() + buildClassicPresetCard() + buildPendoloPresetCard() + buildPartitaPresetCard() + buildCadenzaPresetCard() + buildLatticePresetCard() + buildCappellaPresetCard() + buildMonetPresetCard();
+  }).join('') + buildFilmRadioPresetCard() + buildGraffitiPresetCard() + buildAuroraPresetCard() + buildRainyPresetCard() + buildStillPresetCard() + buildCladdaghPresetCard() + buildTiltPresetCard() + buildFumePresetCard() + buildClassicPresetCard() + buildPendoloPresetCard() + buildPartitaPresetCard() + buildCadenzaPresetCard() + buildLatticePresetCard() + buildCappellaPresetCard() + buildMonetPresetCard() + buildDioramaPresetCard() + buildSonnetPresetCard() + buildTemperaPresetCard() + buildLumierePresetCard();
   refreshPresetGrid();
 }
 
@@ -158,6 +158,42 @@ function buildMonetPresetCard() {
     '</div>';
 }
 
+/* 镜台：圆窗景深 · 柔光字（移植自 Folia diorama 模式） */
+function buildDioramaPresetCard() {
+  return '<div class="preset-card diorama-card" data-diorama="1" onclick="toggleDioramaMode()" title="镜台">' +
+    '<div class="pc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.2"/><circle cx="12" cy="12" r="4.4" opacity=".55"/><path d="M8.4 8.4L4.2 4.2M15.6 15.6l4.2 4.2" opacity=".4"/></svg></div>' +
+    '<div class="pc-name">镜台</div>' +
+    '<div class="pc-desc">圆窗景深 · 柔光字</div>' +
+    '</div>';
+}
+
+/* 商籁：聚光灯诗稿 · 逐字点亮（移植自 Folia sonnet 模式） */
+function buildSonnetPresetCard() {
+  return '<div class="preset-card sonnet-card" data-sonnet="1" onclick="toggleSonnetMode()" title="商籁">' +
+    '<div class="pc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3.4M5.6 6.2l2 2.4M18.4 6.2l-2 2.4"/><circle cx="12" cy="15" r="5.6" opacity=".55"/><path d="M4 21l3-4.6M20 21l-3-4.6" opacity=".4"/></svg></div>' +
+    '<div class="pc-name">商籁</div>' +
+    '<div class="pc-desc">聚光灯 · 诗稿层叠</div>' +
+    '</div>';
+}
+
+/* 凝彩：剪纸色块 · 逐字点亮（移植自 Folia tempera 模式） */
+function buildTemperaPresetCard() {
+  return '<div class="preset-card tempera-card" data-tempera="1" onclick="toggleTemperaMode()" title="凝彩">' +
+    '<div class="pc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.4" cy="9" r="4.4"/><rect x="11.6" y="9.6" width="8" height="6" rx="1.4" transform="rotate(-8 15.6 12.6)" opacity=".75"/><path d="M4 18.4h10" opacity=".5"/></svg></div>' +
+    '<div class="pc-name">凝彩</div>' +
+    '<div class="pc-desc">剪纸色块 · 拼贴构图</div>' +
+    '</div>';
+}
+
+/* 绘光：霓虹光丝 · 星尘（移植自 Folia lumiere 模式） */
+function buildLumierePresetCard() {
+  return '<div class="preset-card lumiere-card" data-lumiere="1" onclick="toggleLumiereMode()" title="绘光">' +
+    '<div class="pc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8c4-3 7 3 11 0s5-2 7-1"/><path d="M3 15c4-3 7 3 11 0s5-2 7-1" opacity=".55"/><circle cx="7" cy="6" r="1" fill="currentColor"/><circle cx="17" cy="12" r="1" fill="currentColor"/><circle cx="10" cy="19" r="1" fill="currentColor"/></svg></div>' +
+    '<div class="pc-name">绘光</div>' +
+    '<div class="pc-desc">霓虹光丝 · 星尘</div>' +
+    '</div>';
+}
+
 function refreshPresetGrid() {
   // 覆盖层模式激活时，常规预设卡片不再显示激活态（经视觉模式注册表）
   var specialActive = !!(typeof activeVisualizerOverlay === 'function' && activeVisualizerOverlay());
@@ -235,6 +271,26 @@ function refreshPresetGrid() {
     var monetAttr = el.getAttribute('data-monet');
     if (monetAttr) {
       el.classList.toggle('active', !!(typeof overlayModeIsActive === 'function' && getVisualizerOverlayMode('monet') && overlayModeIsActive(getVisualizerOverlayMode('monet'))));
+      return;
+    }
+    var dioramaAttr = el.getAttribute('data-diorama');
+    if (dioramaAttr) {
+      el.classList.toggle('active', !!(typeof overlayModeIsActive === 'function' && getVisualizerOverlayMode('diorama') && overlayModeIsActive(getVisualizerOverlayMode('diorama'))));
+      return;
+    }
+    var sonnetAttr = el.getAttribute('data-sonnet');
+    if (sonnetAttr) {
+      el.classList.toggle('active', !!(typeof overlayModeIsActive === 'function' && getVisualizerOverlayMode('sonnet') && overlayModeIsActive(getVisualizerOverlayMode('sonnet'))));
+      return;
+    }
+    var temperaAttr = el.getAttribute('data-tempera');
+    if (temperaAttr) {
+      el.classList.toggle('active', !!(typeof overlayModeIsActive === 'function' && getVisualizerOverlayMode('tempera') && overlayModeIsActive(getVisualizerOverlayMode('tempera'))));
+      return;
+    }
+    var lumiereAttr = el.getAttribute('data-lumiere');
+    if (lumiereAttr) {
+      el.classList.toggle('active', !!(typeof overlayModeIsActive === 'function' && getVisualizerOverlayMode('lumiere') && overlayModeIsActive(getVisualizerOverlayMode('lumiere'))));
       return;
     }
     el.classList.toggle('active', !specialActive && Number(el.dataset.preset) === fx.preset);

@@ -1,0 +1,154 @@
+/* =========================================================================
+   OrangeSea · 商籁（Sonnet · 聚光灯诗稿歌词）
+   Portions Copyright (c) 2025 chthollyphile and Folia contributors
+   — adapted from folia-major (AGPL-3.0): src/components/visualizer/sonnet/
+   body.sonnet 命名空间。聚光灯光台 + 诗稿层叠（随机错位沉浮）+ 逐字点亮。
+   ========================================================================= */
+
+#sonnet-overlay {
+  --sn-ink: #f6efe2;
+  --sn-gold: #ffcf9e;
+  --sn-font: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", Georgia, serif;
+
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  display: none;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 78% 62% at 50% 34%, rgba(64, 46, 28, 0.42) 0%, rgba(16, 11, 8, 0.7) 54%, rgba(5, 4, 3, 0.97) 100%),
+    linear-gradient(180deg, #0c0907 0%, #080605 58%, #040302 100%);
+}
+
+body.sonnet #sonnet-overlay { display: block; animation: sonnetIn 0.7s ease; }
+body.sonnet #empty-home { display: none; }
+@keyframes sonnetIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---------- 聚光灯光台（圆形 + 放射幕布 + 光束） ---------- */
+.sonnet-spot {
+  position: absolute;
+  left: 50%;
+  top: 33%;
+  width: min(56vh, 42vw);
+  height: min(56vh, 42vw);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: sonnetSpotBreath 6.5s ease-in-out infinite;
+}
+@keyframes sonnetSpotBreath {
+  0%, 100% { opacity: 0.9; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.035); }
+}
+@media (prefers-reduced-motion: reduce) { .sonnet-spot { animation: none; } }
+.sonnet-spot-core {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 44%, rgba(255, 214, 164, 0.16) 0%, rgba(255, 190, 130, 0.07) 40%, transparent 68%);
+}
+.sonnet-spot-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(255, 207, 158, 0.16), 0 0 0 14px rgba(255, 207, 158, 0.04), inset 0 0 60px rgba(0, 0, 0, 0.35);
+}
+/* 底部光束（从光台洒向歌词区） */
+.sonnet-beam {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  width: min(64vh, 48vw);
+  height: 62vh;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, rgba(255, 207, 158, 0.10) 0%, rgba(255, 207, 158, 0.035) 46%, transparent 82%);
+  clip-path: polygon(34% 0, 66% 0, 92% 100%, 8% 100%);
+  pointer-events: none;
+}
+/* 幕布放射装饰 */
+.sonnet-rays {
+  position: absolute;
+  left: 50%;
+  top: 33%;
+  width: min(120vh, 90vw);
+  height: min(120vh, 90vw);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg at 50% 50%,
+    rgba(255, 207, 158, 0.028) 0deg 6deg, transparent 6deg 15deg);
+  mask-image: radial-gradient(circle, transparent 26%, #000 42%, transparent 72%);
+  -webkit-mask-image: radial-gradient(circle, transparent 26%, #000 42%, transparent 72%);
+  pointer-events: none;
+  animation: sonnetRaysDrift 60s linear infinite;
+}
+@keyframes sonnetRaysDrift { to { transform: translate(-50%, -50%) rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .sonnet-rays { animation: none; } }
+
+/* ---------- 诗稿行栈 ---------- */
+.sonnet-stack {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translateX(-50%);
+  width: min(860px, 88vw);
+  pointer-events: none;
+  font-family: var(--sn-font);
+}
+.sonnet-line {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform-origin: 50% 50%;
+  white-space: nowrap;
+  max-width: 92vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: clamp(30px, 4.4vh, 42px);
+  font-weight: 700;
+  color: rgba(246, 239, 226, 0.42);
+  letter-spacing: 0.03em;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.5);
+  transition: transform 0.55s cubic-bezier(0.32, 0.72, 0, 1),
+              opacity 0.42s ease, filter 0.42s ease, color 0.42s ease;
+  will-change: transform, opacity;
+}
+.sonnet-line.is-active {
+  color: var(--sn-ink);
+  white-space: normal;
+  text-shadow: 0 0 24px rgba(255, 207, 158, 0.22), 0 3px 20px rgba(0, 0, 0, 0.55);
+}
+.sonnet-line.is-arriving { animation: sonnetArrive 0.6s cubic-bezier(0.25, 1, 0.5, 1); }
+@keyframes sonnetArrive {
+  from { filter: brightness(1.9); }
+  to { filter: brightness(1); }
+}
+/* 逐字点亮：白 → 金 */
+.sonnet-word { color: rgba(246, 239, 226, 0.4); transition: color 0.3s ease, text-shadow 0.3s ease; }
+.sonnet-line.is-active .sonnet-word.is-lit {
+  color: var(--sn-gold);
+  text-shadow: 0 0 18px rgba(255, 207, 158, 0.4);
+}
+.sonnet-line.is-active.is-chorus .sonnet-word.is-lit {
+  text-shadow: 0 0 26px rgba(255, 207, 158, 0.55);
+}
+
+/* 翻译行 */
+.sonnet-tr {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 58px);
+  transform: translateX(-50%);
+  width: min(680px, 80vw);
+  text-align: center;
+  font-size: 15px;
+  color: rgba(246, 239, 226, 0.5);
+  letter-spacing: 0.05em;
+  pointer-events: none;
+}
+.sonnet-tr.is-hidden { visibility: hidden; }
+
+@media (max-width: 760px) {
+  .sonnet-line { font-size: clamp(24px, 4vh, 34px); }
+  .sonnet-spot { width: 64vw; height: 64vw; }
+}

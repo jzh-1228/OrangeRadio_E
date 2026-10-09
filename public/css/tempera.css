@@ -1,0 +1,105 @@
+/* =========================================================================
+   OrangeSea · 凝彩（Tempera · 剪纸色块歌词）
+   Portions Copyright (c) 2025 chthollyphile and Folia contributors
+   — adapted from folia-major (AGPL-3.0): src/components/visualizer/tempera/
+   body.tempera 命名空间。马蒂斯剪纸式色块拼贴 + 居中大字逐字点亮。
+   ========================================================================= */
+
+#tempera-overlay {
+  --tp-ink: #f2ede2;
+  --tp-energy: 0.55;
+  --tp-font: "Noto Sans SC", "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei UI", system-ui, sans-serif;
+
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  display: none;
+  overflow: hidden;
+  background: #101014;
+}
+
+body.tempera #tempera-overlay { display: block; animation: temperaIn 0.7s ease; }
+body.tempera #empty-home { display: none; }
+@keyframes temperaIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---------- 色块场（柔边 + 漂移呼吸 + 能量驱动不透明度） ---------- */
+.tempera-field {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.tempera-block {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(42px);
+  opacity: calc(var(--tp-energy) * 0.5);
+  mix-blend-mode: screen;
+  animation: temperaDrift 30s ease-in-out infinite alternate;
+  will-change: transform;
+  transition: opacity 0.8s ease;
+}
+.tempera-block.is-band { border-radius: 999px; }
+.tempera-block.is-rect { border-radius: 34px; }
+.tempera-block.is-ring { border-style: solid; border-radius: 50%; }
+@keyframes temperaDrift {
+  from { translate: 0 0; rotate: calc(var(--tr, 0deg) - 4deg); }
+  to { translate: 3% -3%; rotate: calc(var(--tr, 0deg) + 5deg); }
+}
+@media (prefers-reduced-motion: reduce) { .tempera-block { animation: none; } }
+
+/* 暗角压底，歌词区可读 */
+.tempera-veil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 88% 70% at 50% 46%, rgba(8, 8, 12, 0.42) 0%, rgba(8, 8, 12, 0.62) 52%, rgba(8, 8, 12, 0.9) 100%);
+}
+
+/* ---------- 歌词 ---------- */
+.tempera-lyrics {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 0 8vw;
+  pointer-events: none;
+  font-family: var(--tp-font);
+}
+.tempera-line {
+  font-size: 19px;
+  font-weight: 600;
+  color: rgba(242, 237, 226, 0.34);
+  letter-spacing: 0.02em;
+  text-align: center;
+  min-height: 1.3em;
+  transition: color 0.4s ease, font-size 0.4s ease;
+}
+.tempera-line.is-active {
+  font-size: clamp(32px, 5vh, 48px);
+  font-weight: 800;
+  color: var(--tp-ink);
+  text-shadow: 0 3px 26px rgba(0, 0, 0, 0.5);
+}
+.tempera-tr {
+  font-size: 15px;
+  color: rgba(242, 237, 226, 0.55);
+  letter-spacing: 0.05em;
+  min-height: 1.2em;
+}
+.tempera-tr.is-hidden { visibility: hidden; }
+
+/* 逐字点亮 */
+.tempera-word { transition: color 0.3s ease, text-shadow 0.3s ease; }
+.tempera-line.is-active .tempera-word { color: rgba(242, 237, 226, 0.42); }
+.tempera-line.is-active .tempera-word.is-lit {
+  color: var(--tp-ink);
+  text-shadow: 0 0 22px rgba(255, 255, 255, 0.25);
+}
+
+@media (max-width: 760px) {
+  .tempera-block { filter: blur(30px); }
+}

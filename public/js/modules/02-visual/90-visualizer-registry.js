@@ -28,7 +28,11 @@ var VISUALIZER_OVERLAY_MODES = [
   { id: 'cadenza', label: '心象', stateVar: 'cadenzaMode', applyFn: 'applyCadenzaMode', order: 101 },
   { id: 'lattice', label: '队列拼贴', stateVar: 'latticeMode', applyFn: 'applyLatticeMode', order: 102 },
   { id: 'cappella', label: '群唱', stateVar: 'cappellaMode', applyFn: 'applyCappellaMode', order: 103 },
-  { id: 'monet', label: '莫奈', stateVar: 'monetMode', applyFn: 'applyMonetMode', order: 104 }
+  { id: 'monet', label: '莫奈', stateVar: 'monetMode', applyFn: 'applyMonetMode', order: 104 },
+  { id: 'diorama', label: '镜台', stateVar: 'dioramaMode', applyFn: 'applyDioramaMode', order: 105 },
+  { id: 'sonnet', label: '商籁', stateVar: 'sonnetMode', applyFn: 'applySonnetMode', order: 106 },
+  { id: 'tempera', label: '凝彩', stateVar: 'temperaMode', applyFn: 'applyTemperaMode', order: 107 },
+  { id: 'lumiere', label: '绘光', stateVar: 'lumiereMode', applyFn: 'applyLumiereMode', order: 108 }
 ];
 
 function registerVisualizerOverlayMode(entry) {

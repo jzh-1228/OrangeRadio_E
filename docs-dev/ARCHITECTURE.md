@@ -193,11 +193,15 @@ server.js（73 行门面）
 | `20-tilt.js` | 斜排 Tilt | 行拆 1-4 段概率布局 + 大斜体 + 字符 ±yOffset 交错 |
 | `20-claddagh.js` | 环歌 Claddagh | 扁椭圆（0.09 短轴）45° 环排字符流 + 聚焦因子衰减 |
 | `21-cadenza.js` | 心象 Cadenza | 中轴单行 + 当前字放大呼吸 |
-| `22-lattice.js` | 队列拼贴 Lattice | 队列封面海报墙（平铺网格/墙不改队列/当前海报原位展开），详见 `docs/LATTICE.md` |
+| `22-lattice.js` | 队列拼贴 Lattice | 队列封面海报墙（12×8 混合槽位无限晶格平铺/队列环绕/当前海报 6×6 让位展开/拖拽平移/墙不改队列），详见 `docs/LATTICE.md` |
 | `23-cappella.js` | 群唱 Cappella | 聊天气泡歌词：圆形人物头像（`public/assets/cappella/` 15 张）+ 表情贴纸（9 张）+ getBubbleColors 配色公式 + 三档 motion CSS 变量 + 流光/时间戳/逐字 fade |
 | `24-monet.js` | 莫奈 Monet | 海报双栏（左：艺术家斜体/装饰线/大标题/歌词轨道/主题胶囊；右：竖幅相框封面+挂钉）；背景 = 封面水洗油画管线；轨道 = ±4 窗口 tone 曲线 + 双色逐词扫过 + 副歌光斑 |
+| `25-diorama.js` | 镜台 Diorama | 圆窗景深：圆形镜窗（模糊封面+双环）+ 层叠卡堆 + 三层柔光大字 + 尘埃粒子 canvas + 副歌光台 |
+| `26-sonnet.js` | 商籁 Sonnet | 聚光灯诗稿：圆形光台+幕布放射+光束；7 层诗稿行栈（种子旋转错位沉浮）+ 逐字点亮 |
+| `27-tempera.js` | 凝彩 Tempera | 剪纸色块：5 种构图模板按歌曲 seed 选择，主题派生 6 色板柔边色块漂移 + 能量驱动明度 + 逐字点亮 |
+| `28-lumiere.js` | 绘光 Lumiere | 霓虹光丝：canvas 满帧 4 条贝塞尔光丝（双层描线辉光）+ 光点串 + 星尘上浮 + 星落 + 逐字点亮 |
 
-2026-10 视觉保真度对齐轮：启动 folia 原项目试验场逐模式实机截图对照 + 源码逐行核对，重写 still/monet/cappella 三个粗糙移植、修正 classic 主题跟随；其余模式确认结构已对齐。
+2026-10 视觉保真度对齐轮：启动 folia 原项目试验场逐模式实机截图对照 + 源码逐行核对，重写 still/monet/cappella 三个粗糙移植、修正 classic 主题跟随、lattice 重写为无限晶格、心象/云阶/时计/斜排/环歌接主题服务、烟纸默认衬线；并补齐 diorama/sonnet/tempera/lumiere 四模式（Folia 14 模式全集完成）。
 
 ### 6.4 主题系统
 
