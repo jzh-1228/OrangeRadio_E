@@ -119,9 +119,10 @@ body.sonnet #empty-home { display: none; }
   top: 0;
   transform-origin: 50% 50%;
   white-space: nowrap;
-  max-width: 92vw;
+  max-width: min(860px, 88vw);
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: center;                 /* 原版舞台 text-center：换行行也居中 */
   font-size: calc(clamp(30px, 4.4vh, 42px) * var(--mfs, 1));
   font-weight: 700;
   color: rgba(246, 239, 226, 0.42);

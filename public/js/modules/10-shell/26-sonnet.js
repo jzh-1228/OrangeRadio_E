@@ -74,13 +74,15 @@ function sonnetRowStyle(depth, lineIndex, stackOffsets) {
     /* 累计模型：offsets[i] 为行 i 的半高（中心到边缘），相邻行间距 =
        自身半高 + 邻行半高 + 呼吸 18px；从 depth 0 向两侧累加 */
     var center = stackOffsets.center;
+    /* 原版 resolveSonnetFlowGaps：stackGap = max(24, fontPx×0.35×1.35) */
+    var gap = stackOffsets.gap || 24;
     var step = 0;
     for (var s2 = 1; s2 <= d; s2++) {
       var idxSide = depth > 0 ? (center - s2) : (center + s2);
       var prevSide = depth > 0 ? (center - s2 + 1) : (center + s2 - 1);
       var halfA = stackOffsets.half[idxSide] || 0;
       var halfB = stackOffsets.half[prevSide] || 0;
-      step += halfA + halfB + 18;
+      step += halfA + halfB + gap;
     }
     offsetY = (depth > 0 ? -step : step) - d * d * 3.2;
   } else {
@@ -173,7 +175,10 @@ function sonnetRenderLines() {
   /* 两遍布局：内容就位后实测各行高 → 累计占高模型定位
      （主行换行 ×2 高度、内嵌翻译再加高，固定栅格会压住邻句——用户实测 bug） */
   var half = Math.floor(SONNET_STACK_DEPTH / 2);
-  var offsets = { center: half, half: [] };
+  /* 原版 stackGap 公式：按当前主行实际字号（--mfs 联动后）计算 */
+  var fontPx = parseFloat(getComputedStyle(sonnetRows[half] || document.body).fontSize) || 42;
+  var stackGap = Math.max(24, fontPx * 0.35 * 1.35);
+  var offsets = { center: half, half: [], gap: stackGap };
   for (var m2 = 0; m2 < sonnetRows.length; m2++) {
     var rowH = sonnetRows[m2].getBoundingClientRect().height || 78;
     /* scale 缩小会等比缩视觉高度：栅格用「布局高度×scale」防缩放行间距过大 */
