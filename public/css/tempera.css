@@ -56,7 +56,8 @@ body.tempera #empty-home { display: none; }
   position: absolute;
   border-radius: 999px;
   /* 柔边离线烘焙进贴图（JS temperaBlockSprite），运行时零 GPU 模糊滤镜合成 */
-  opacity: calc(var(--tp-energy) * 0.5);
+  /* 基础 0.3 抬底：剪纸色块是凝彩的构图特色，不该随能量归零而消失 */
+  opacity: calc(0.3 + var(--tp-energy) * 0.45);
   mix-blend-mode: screen;
   will-change: transform;
   transition: opacity 0.8s ease;
@@ -100,7 +101,7 @@ body.tempera #empty-home { display: none; }
   transition: color 0.4s ease, font-size 0.4s ease;
 }
 .tempera-line.is-active {
-  font-size: clamp(32px, 5vh, 48px);
+  font-size: calc(clamp(32px, 5vh, 48px) * var(--mfs, 1));
   font-weight: 800;
   color: var(--tp-ink);
   text-shadow: 0 3px 26px rgba(0, 0, 0, 0.5);

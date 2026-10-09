@@ -70,7 +70,7 @@ body.lumiere #empty-home { display: none; }
   transition: color 0.4s ease, font-size 0.4s ease;
 }
 .lumiere-line.is-active {
-  font-size: clamp(32px, 5vh, 48px);
+  font-size: calc(clamp(32px, 5vh, 48px) * var(--mfs, 1));
   font-weight: 800;
   color: var(--lu-ink);
   text-shadow:

@@ -109,9 +109,9 @@ function tiltFontStack() {
 /* 主题跟随（Folia: 水平段 = theme.primaryColor、大斜体段 = theme.accentColor） */
 var tiltLastThemeKey = '';
 function tiltSyncTheme() {
-  if (typeof themeServiceActiveTheme !== 'function') return;
+  if (typeof themeOverlayDarkTheme !== 'function') return;
   var t = null;
-  try { t = themeServiceActiveTheme(); } catch (e) { return; }
+  try { t = themeOverlayDarkTheme(); } catch (e) { return; }
   if (!t) return;
   var key = (t.primaryColor || '') + '|' + (t.accentColor || '');
   if (key === tiltLastThemeKey) return;
@@ -578,7 +578,7 @@ function buildTiltLayout(fullText, lineSeed, fontStack) {
     offsetAccum += text.length;
   }
 
-  var scaleMultiplier = 1;
+  var scaleMultiplier = (typeof overlayModeFontScale === 'function') ? overlayModeFontScale() : 1;   /* 用户歌词缩放偏置（布局自动收缩在此基础上） */
   var tiltWidth = 0, normalWidth = 0;
   var widestTiltText = '', widestNormalText = '';
   for (var w1 = 0; w1 < segments.length; w1++) {

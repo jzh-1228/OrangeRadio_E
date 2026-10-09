@@ -25,9 +25,9 @@ var SONNET_STACK_DEPTH = 7;
 var sonnetTheme = { primary: '#f6efe2', accent: '#ffcf9e', bg: '#0c0907' };
 
 function sonnetSyncTheme() {
-  if (typeof themeServiceActiveTheme !== 'function') return;
+  if (typeof themeOverlayDarkTheme !== 'function') return;
   var t = null;
-  try { t = themeServiceActiveTheme(); } catch (e) { return; }
+  try { t = themeOverlayDarkTheme(); } catch (e) { return; }
   if (!t) return;
   var key = (t.primaryColor || '') + '|' + (t.accentColor || '') + '|' + (t.backgroundColor || '');
   if (key === sonnetLastThemeKey) return;
@@ -67,7 +67,7 @@ function sonnetRowStyle(depth, lineIndex) {
   var d = Math.abs(depth);
   var scale = depth === 0 ? 1 : Math.max(0.52, 0.86 - (d - 1) * 0.09);
   var opacity = depth === 0 ? 1 : Math.max(0.1, 0.5 - (d - 1) * 0.075);
-  var offsetY = depth * 44 - d * d * 3.2;
+  var offsetY = depth * 78 - d * d * 3.2;   /* 78px ≈ 1.86×字高：42px 字号下不叠字 */
   var blur = depth === 0 ? 0 : Math.min(3.2, 0.6 + (d - 1) * 0.55);
   return {
     transform: 'translate(-50%,0) translateX(' + (shiftX * (depth === 0 ? 0.2 : 1)).toFixed(1) + 'px) translateY(' + offsetY.toFixed(1) + 'px) rotate(' + rotate.toFixed(2) + 'deg) scale(' + scale.toFixed(3) + ')',
@@ -121,8 +121,26 @@ function sonnetRenderLines() {
     var row = sonnetRows[s];
     var line = (lineIdx >= 0 && lineIdx < lines.length) ? lines[lineIdx] : null;
     var text = line ? String(line.text || '').trim() : '';
-    row.textContent = text || '·';
     row.dataset.lineIndex = String(lineIdx);
+    row.dataset.plain = '';
+    row.dataset.wordsKey = '';
+    if (depth === 0) {
+      /* 主行容器 + 翻译行内嵌（随主行移动，不再与行栈争位） */
+      row.textContent = '';
+      var main = document.createElement('span');
+      main.className = 'sonnet-main';
+      main.textContent = text || '·';
+      row.appendChild(main);
+      var trText = line ? String(line.translation || '').trim() : '';
+      if (trText) {
+        var trSpan = document.createElement('span');
+        trSpan.className = 'sonnet-tr-inline';
+        trSpan.textContent = trText;
+        row.appendChild(trSpan);
+      }
+    } else {
+      row.textContent = text || '·';
+    }
     /* 换行时（唱过的新行入栈）加一次入场动画 */
     if (prevIdx !== -99 && idx !== prevIdx && depth === 0) {
       row.classList.remove('is-arriving');
@@ -135,14 +153,6 @@ function sonnetRenderLines() {
     row.style.filter = st.filter;
     row.classList.toggle('is-active', depth === 0 && !!text);
     row.classList.toggle('is-chorus', depth === 0 && !!(line && line.isChorus));
-  }
-  /* 翻译行 */
-  var trEl = document.getElementById('sonnet-line-tr');
-  if (trEl) {
-    var cur = idx >= 0 ? lines[idx] : null;
-    var tr = cur ? String(cur.translation || '').trim() : '';
-    if (trEl.textContent !== tr) trEl.textContent = tr;
-    trEl.classList.toggle('is-hidden', !tr);
   }
 }
 
@@ -160,27 +170,29 @@ function sonnetTickWords() {
   if (!row || !row.classList.contains('is-active')) return;
   var words = line.words && line.words.length ? line.words : null;
   var text = String(line.text || '');
+  var main = row.querySelector('.sonnet-main');
+  if (!main) return;
   if (!words && row.dataset.plain !== text) {
     /* 无逐词数据：整行两态（唱到即亮） */
     row.dataset.plain = text;
-    row.textContent = '';
+    main.textContent = '';
     var span = document.createElement('span');
     span.className = 'sonnet-word';
     span.textContent = text;
-    row.appendChild(span);
+    main.appendChild(span);
   }
-  var spans = row.querySelectorAll('.sonnet-word');
+  var spans = main.querySelectorAll('.sonnet-word');
   var t = sonnetNowTime();
   if (words && row.dataset.wordsKey !== String(idx)) {
     row.dataset.wordsKey = String(idx);
-    row.textContent = '';
+    main.textContent = '';
     for (var w = 0; w < words.length; w++) {
       var sp = document.createElement('span');
       sp.className = 'sonnet-word';
       sp.textContent = words[w].text;
-      row.appendChild(sp);
+      main.appendChild(sp);
     }
-    spans = row.querySelectorAll('.sonnet-word');
+    spans = main.querySelectorAll('.sonnet-word');
   }
   for (var k = 0; k < spans.length && words; k++) {
     var ws = Number(words[k].t) || Number(line.t) || 0;
@@ -194,6 +206,8 @@ function sonnetTickWords() {
 /* ---------- 生命周期 ---------- */
 
 function startSonnet() {
+  /* 字号跟随「歌词大小」设置（--mfs，CSS 主行 clamp 乘算） */
+  if (typeof applyOverlayModeFontScale === "function") applyOverlayModeFontScale(document.getElementById("sonnet-overlay"));
   sonnetLastActiveIdx = -99;
   sonnetLastLinesKey = '';
   sonnetSyncTheme();

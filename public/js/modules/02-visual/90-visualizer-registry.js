@@ -225,6 +225,19 @@ function toggleVisualizerOverlay(id) {
   });
 }
 
+// 覆盖层歌词模式统一字号缩放（fx.lyricScale 0.35~1.65，「歌词大小」设置联动）。
+// 各模式 CSS 主行字号已乘 var(--mfs, 1)，模式进入/字号变更时调本函数写 overlay 变量。
+function overlayModeFontScale() {
+  try {
+    var v = Number(fx && fx.lyricScale);
+    return isFinite(v) ? Math.max(0.35, Math.min(1.65, v)) : 1;
+  } catch (e) { return 1; }
+}
+function applyOverlayModeFontScale(overlayEl) {
+  if (!overlayEl) return;
+  try { overlayEl.style.setProperty('--mfs', String(overlayModeFontScale())); } catch (e) { }
+}
+
 // 懒加载模式启动恢复：上次偏好为激活时，启动后空闲预载模块（模块尾部的
 // scheduleUiWarmTask 恢复段会自动 apply(true) 还原现场）。判定读 localStorage
 // 原始值（'1'，与 readBooleanPreference 同语义）——模块未加载时 stateVar 尚不存在，

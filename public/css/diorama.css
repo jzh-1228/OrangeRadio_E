@@ -165,7 +165,7 @@ body.diorama #empty-home { display: none; }
   min-height: 1.3em;
 }
 .diorama-line.is-active {
-  font-size: clamp(30px, 4.6vh, 44px);
+  font-size: calc(clamp(30px, 4.6vh, 44px) * var(--mfs, 1));
   font-weight: 700;
   color: var(--dr-ink);
   /* 三层柔光（半径 0.28/0.65 倍字号的同族，dioramaTextRaster glow 配方） */

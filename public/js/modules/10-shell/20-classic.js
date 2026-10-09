@@ -78,6 +78,8 @@ function toggleClassicMode() {
 
 /* ---------- 启动 / 停止 ---------- */
 function startClassic() {
+  /* 字号跟随「歌词大小」设置（--mfs，CSS 主行 clamp 乘算） */
+  if (typeof applyOverlayModeFontScale === "function") applyOverlayModeFontScale(document.getElementById("classic-overlay"));
   classicFontStack();
   classicApplyTheme();
   classicLineKey = '';
@@ -131,8 +133,8 @@ function classicApplyTheme() {
   } catch (e) { }
   /* 主题服务（Folia: activeColor = theme.accentColor）优先于内置默认 */
   try {
-    if (typeof themeServiceActiveTheme === 'function') {
-      var theme = themeServiceActiveTheme();
+    if (typeof themeOverlayDarkTheme === 'function') {
+      var theme = themeOverlayDarkTheme();
       if (theme && theme.accentColor) active = theme.accentColor;
     }
   } catch (e) { }

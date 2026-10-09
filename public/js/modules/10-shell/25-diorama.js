@@ -29,9 +29,9 @@ var dioramaLinesCache = [];
 var dioramaTheme = { primary: '#f4f0e8', accent: '#ffb98a', bg: '#0d0a08' };
 
 function dioramaSyncTheme() {
-  if (typeof themeServiceActiveTheme !== 'function') return false;
+  if (typeof themeOverlayDarkTheme !== 'function') return false;
   var t = null;
-  try { t = themeServiceActiveTheme(); } catch (e) { return false; }
+  try { t = themeOverlayDarkTheme(); } catch (e) { return false; }
   if (!t) return false;
   var key = (t.primaryColor || '') + '|' + (t.accentColor || '') + '|' + (t.backgroundColor || '');
   if (key === dioramaLastThemeKey) return false;
@@ -219,6 +219,8 @@ function dioramaFrame(now) {
 /* ---------- 生命周期 ---------- */
 
 function startDiorama() {
+  /* 字号跟随「歌词大小」设置（--mfs，CSS 主行 clamp 乘算） */
+  if (typeof applyOverlayModeFontScale === "function") applyOverlayModeFontScale(document.getElementById("diorama-overlay"));
   dioramaCanvas = document.getElementById('diorama-motes');
   dioramaCtx = dioramaCanvas ? dioramaCanvas.getContext('2d') : null;
   dioramaBuildMotes(window.innerWidth, window.innerHeight);

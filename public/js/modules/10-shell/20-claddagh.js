@@ -46,9 +46,9 @@ var CLADDAGH_AXIS_TO = '#ff9c6e';      /* 轴线节拍色（项目视觉主色�
 /* 主题跟随（Folia: 环排基底 = theme.primaryColor、已唱高亮 = theme.accentColor） */
 var claddaghLastThemeKey = '';
 function claddaghSyncTheme() {
-  if (typeof themeServiceActiveTheme !== 'function') return;
+  if (typeof themeOverlayDarkTheme !== 'function') return;
   var t = null;
-  try { t = themeServiceActiveTheme(); } catch (e) { return; }
+  try { t = themeOverlayDarkTheme(); } catch (e) { return; }
   if (!t) return;
   var key = (t.primaryColor || '') + '|' + (t.accentColor || '');
   if (key === claddaghLastThemeKey) return;
@@ -975,7 +975,8 @@ function claddaghRebuildTypography() {
   claddaghDims.h = h;
   claddaghRx = (w > 0 ? Math.min(w * 0.44, 560) : 360);
   /* Folia baseFontSize=72 固定；小窗下按视口收缩防溢出（本项目浏览器任意窗口） */
-  claddaghFontPx = Math.min(72, Math.max(40, Math.round(Math.min(w, h) * 0.085)));
+  var clFS = (typeof overlayModeFontScale === 'function') ? overlayModeFontScale() : 1;   /* 字号跟随「歌词大小」 */
+  claddaghFontPx = Math.min(72, Math.max(40, Math.round(Math.min(w, h) * 0.085))) * clFS;
   claddaghFontSpec = '700 ' + claddaghFontPx + 'px ' + claddaghFontStackStr;
   var overlay = document.getElementById('claddagh-overlay');
   if (overlay) overlay.style.setProperty('--cl-font-size', claddaghFontPx + 'px');

@@ -11,7 +11,7 @@
    · layoutVariants 三态位姿 → JS 状态机翻转 + 独立变换属性 transition
      （spring(200,20) ≈ cubic-bezier(.3,1.32,.42,1) .55s，rotate passed 5s linear）
    · wordGlowVariants → pt-glow* keyframes（逐字扫光 / 单字持亮 / 快闪）
-   · 行容器进出场 → enter-*/exit-* keyframes（normal/fast/none 三档）
+   · 行容器进出场 → enter-x / exit-x keyframes（normal/fast/none 三档）
    · lyricContainerFloat → pt-float 7s ease-in-out infinite
    · chorus ripple → pt-ripple keyframes（终末 scale 由 --pt-rip 注入）
    ========================================================================= */
@@ -56,20 +56,35 @@ body.partita #empty-home {
   position: absolute;
   inset: 0;
   z-index: 0;
+  /* 日落夜空：深靛→暖紫红，地平线方向明显偏暖（原色值近黑，视觉上等于没有背景） */
   background: linear-gradient(180deg,
-    #0a0c15 0%, #0e1019 42%, #14111d 74%, #1a1420 100%);
+    #10102a 0%, #191438 40%, #2b1a38 72%, #45243a 100%);
 }
+
+/* ---------- L0.25 · 内嵌正交背景（活背景：封面流体/几何律动，JS 挂载） ---------- */
+.pt-embed-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.5;                     /* 让位静态日落渐变，混合而非覆盖 */
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+.pt-embed-bg > * { width: 100%; height: 100%; }
+.pt-embed-bg .vbg-geo-canvas { width: 100%; height: 100%; display: block; }
+.pt-embed-bg .vbg-fluid-idle { position: absolute; inset: 0; }
 
 /* ---------- L0.5 · 地平线暖辉（随音频能量呼吸，opacity 经 --pt-energy） ---------- */
 .partita-glow {
   position: absolute;
   inset: 0;
   z-index: 1;
-  opacity: calc(0.4 + var(--pt-energy, 0.3) * 0.6);
+  opacity: calc(0.55 + var(--pt-energy, 0.3) * 0.45);
   background:
-    radial-gradient(58% 42% at 50% 114%, rgba(255, 122, 61, 0.34), rgba(255, 122, 61, 0.12) 46%, transparent 72%),
-    radial-gradient(42% 26% at 16% 110%, rgba(255, 156, 110, 0.16), transparent 72%),
-    radial-gradient(42% 24% at 84% 110%, rgba(210, 120, 90, 0.14), transparent 72%);
+    radial-gradient(58% 42% at 50% 114%, rgba(255, 128, 66, 0.5), rgba(255, 122, 61, 0.18) 48%, transparent 74%),
+    radial-gradient(46% 28% at 15% 110%, rgba(255, 156, 110, 0.24), transparent 74%),
+    radial-gradient(46% 26% at 85% 110%, rgba(224, 128, 96, 0.2), transparent 74%),
+    radial-gradient(80% 16% at 50% 102%, rgba(255, 176, 120, 0.2), transparent 80%);
 }
 
 /* ---------- L1 · 暗角（压边聚焦 + 底部向控制栏过渡） ---------- */
@@ -234,7 +249,14 @@ body.partita #empty-home {
 .pt-guide-h.pt-guide-left { left: -16px; transform-origin: left; }
 .pt-guide-h.pt-guide-right { right: -16px; left: auto; transform-origin: right; }
 
-.pt-chunk:not(.is-waiting) .pt-guide { opacity: 1; }
+.pt-chunk:not(.is-waiting) .pt-guide { opacity: 1; animation: pt-guide-breath 2.6s ease-in-out infinite; }
+@keyframes pt-guide-breath {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pt-chunk:not(.is-waiting) .pt-guide { animation: none; }
+}
 .pt-chunk:not(.is-waiting) .pt-guide-v { transform: scaleY(1); }
 .pt-chunk:not(.is-waiting) .pt-guide-h { transform: scaleX(1); }
 .pt-chunk.is-active .pt-guide { background-color: var(--pt-accent); }
@@ -269,6 +291,11 @@ body.partita #empty-home {
   color: var(--pt-accent);
   filter: blur(0);
   transition: color var(--pt-cdur, 0.2s) linear, filter 0.2s ease;
+}
+/* 副歌行（Folia isChorus）：激活词提亮 + 辉光，副歌段落更燃 */
+.pt-line.is-chorus .pt-word.is-active .pt-body {
+  color: var(--pt-accent-hi, #ffd9a8);
+  text-shadow: 0 0 18px rgba(255, 170, 100, 0.55), 0 0 36px rgba(255, 140, 70, 0.28);
 }
 .pt-word.is-passed .pt-body {
   color: var(--pt-base);

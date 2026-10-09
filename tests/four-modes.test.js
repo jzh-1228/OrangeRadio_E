@@ -22,6 +22,7 @@ function loadSandbox(file) {
     performance: { now: () => 0 },
     getAdjustedLyricPlaybackTime(t) { return t; },
     themeServiceActiveTheme() { return null; },
+    themeOverlayDarkTheme() { return null; },
     document: {
       getElementById() { return null; },
       createElement() { return { style: {}, dataset: {}, classList: { toggle() { }, add() { }, remove() { } }, querySelectorAll() { return []; } }; },
@@ -44,6 +45,7 @@ function loadSandbox(file) {
   assert.equal(typeof s.dioramaSyncTheme, 'function');
   // 主题跟随：服务主题色写入
   s.themeServiceActiveTheme = () => ({ primaryColor: '#aabbcc', accentColor: '#ff9c6e', backgroundColor: '#101010' });
+s.themeOverlayDarkTheme = s.themeServiceActiveTheme;
   assert.equal(s.dioramaSyncTheme(), true);
   assert.equal(s.dioramaTheme.primary, '#aabbcc');
   // 二次调用键相同 → false（零开销路径）
@@ -127,6 +129,7 @@ function loadSandbox(file) {
   }
   // 主题跟随
   s.themeServiceActiveTheme = () => ({ primaryColor: '#112233', accentColor: '#ffc998', secondaryColor: '#8fb3d9' });
+s.themeOverlayDarkTheme = s.themeServiceActiveTheme;
   s.lumiereSyncTheme();
   assert.equal(s.lumiereTheme.primary, '#112233');
 }

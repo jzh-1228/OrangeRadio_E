@@ -72,9 +72,9 @@ var pendoloAlphaCache = {};
 /* 主题跟随（Folia: 表盘机械配色 = theme.primaryColor/accentColor/backgroundColor） */
 var pendoloLastThemeKey = '';
 function pendoloSyncTheme() {
-  if (typeof themeServiceActiveTheme !== 'function') return;
+  if (typeof themeOverlayDarkTheme !== 'function') return;
   var t = null;
-  try { t = themeServiceActiveTheme(); } catch (e) { return; }
+  try { t = themeOverlayDarkTheme(); } catch (e) { return; }
   if (!t) return;
   var key = (t.primaryColor || '') + '|' + (t.accentColor || '') + '|' + (t.backgroundColor || '');
   if (key === pendoloLastThemeKey) return;
@@ -365,7 +365,7 @@ function pendoloLineBlockHeight(i, targetIdx) {
   var line = lines[i];
   if (!line) return 0;
   if (Math.abs(i - targetIdx) > 10) return 0;
-  var fontPx = 28;
+  var fontPx = 28 * ((typeof overlayModeFontScale === 'function') ? overlayModeFontScale() : 1);
   var measureWidth = pendoloView.textW / PENDOLO_TUNING.activeScale;
   var spec = pendoloFontSpec(fontPx);
   var key = (line.text || '') + '|' + Math.round(measureWidth) + '|' + spec + '|' + !!line.translation;
@@ -935,7 +935,7 @@ function pendoloEscapeHtml(s) {
 
 /* 非焦点行：显式分行渲染（与测量同源，杜绝 CSS 自动断行错位） */
 function pendoloRenderIdleContent(slot, item) {
-  var fontPx = 22;
+  var fontPx = 22 * ((typeof overlayModeFontScale === 'function') ? overlayModeFontScale() : 1);
   var spec = pendoloFontSpec(fontPx);
   var maxW = pendoloView.textW / item.scale;
   var layout = pendoloWrapText(item.line.text, spec, maxW, Math.round(fontPx * 1.2));
@@ -953,7 +953,7 @@ function pendoloRenderIdleContent(slot, item) {
    底层 = 全文 0.52 透明度；fill 层 = 已唱色 + mask 按 fillWidth 揭示。
    grapheme 前缀宽度在构建时一次算好，每帧只做时间→宽度插值。 */
 function pendoloRenderFocalContent(slot, item) {
-  var fontPx = 28;
+  var fontPx = 28 * ((typeof overlayModeFontScale === 'function') ? overlayModeFontScale() : 1);
   var spec = pendoloFontSpec(fontPx);
   var lineHeight = Math.round(fontPx * 1.2);
   var maxW = pendoloView.textW / item.scale;

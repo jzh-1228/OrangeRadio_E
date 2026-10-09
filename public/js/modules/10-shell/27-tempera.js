@@ -25,9 +25,9 @@ var temperaLastEnergyKey = '';
 var temperaTheme = { primary: '#f2ede2', accent: '#ff9c6e', secondary: '#7a9e9e', bg: '#101014' };
 
 function temperaSyncTheme() {
-  if (typeof themeServiceActiveTheme !== 'function') return false;
+  if (typeof themeOverlayDarkTheme !== 'function') return false;
   var t = null;
-  try { t = themeServiceActiveTheme(); } catch (e) { return false; }
+  try { t = themeOverlayDarkTheme(); } catch (e) { return false; }
   if (!t) return false;
   var key = (t.primaryColor || '') + '|' + (t.accentColor || '') + '|' + (t.secondaryColor || '') + '|' + (t.backgroundColor || '');
   if (key === temperaLastThemeKey) return false;
@@ -333,6 +333,8 @@ function temperaTickWords() {
 /* ---------- 生命周期 ---------- */
 
 function startTempera() {
+  /* 字号跟随「歌词大小」设置（--mfs，CSS 主行 clamp 乘算） */
+  if (typeof applyOverlayModeFontScale === "function") applyOverlayModeFontScale(document.getElementById("tempera-overlay"));
   temperaLastSeed = '';
   temperaLastActiveIdx = -99;
   temperaLastLinesKey = '';

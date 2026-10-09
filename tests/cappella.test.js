@@ -101,15 +101,16 @@ const {
   assert.ok(CAPPELLA_CONFIGS.chaotic.motion.activeScale > m.activeScale);
 }
 
-/* ---------- 气泡配色（Folia getBubbleColors 直译） ---------- */
+/* ---------- 气泡配色（Folia getBubbleColors 视觉导向调整版） ---------- */
 {
   const theme = { backgroundColor: '#171009', primaryColor: '#f2e6d4', accentColor: '#ff9c6e', secondaryColor: '#e6c9a6' };
   const right = cappellaBubbleColors({ side: 'right', avatarIndex: 8 }, theme);
   assert.ok(right.backgroundColor.startsWith('rgba('));
-  assert.equal(right.textColor, theme.backgroundColor);      // 右侧深色字
+  // 右侧文字为提亮白（本项目夜主题 accent 明度高，气泡压暗后浅字保对比）
+  assert.equal(right.textColor, 'rgba(249,244,236,1)');
   const left0 = cappellaBubbleColors({ side: 'left', avatarIndex: 0 }, theme);
   const left8 = cappellaBubbleColors({ side: 'left', avatarIndex: 8 }, theme);
-  assert.equal(left0.textColor, theme.primaryColor);        // 左侧浅色字
+  assert.equal(left0.textColor, 'rgba(249,243,234,1)');     // 左侧提亮白（mix 0.5）
   assert.notEqual(left0.backgroundColor, left8.backgroundColor);  // 头像 tone 渐进
   // mixColors：中点混合
   const mid = cappellaMixColors('#000000', '#ffffff', 0.5, 1);

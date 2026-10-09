@@ -122,7 +122,7 @@ body.sonnet #empty-home { display: none; }
   max-width: 92vw;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: clamp(30px, 4.4vh, 42px);
+  font-size: calc(clamp(30px, 4.4vh, 42px) * var(--mfs, 1));
   font-weight: 700;
   color: rgba(246, 239, 226, 0.42);
   letter-spacing: 0.03em;
@@ -151,20 +151,17 @@ body.sonnet #empty-home { display: none; }
   text-shadow: 0 0 26px rgba(255, 207, 158, 0.55);
 }
 
-/* 翻译行 */
-.sonnet-tr {
-  position: absolute;
-  left: 50%;
-  top: calc(50% + 58px);
-  transform: translateX(-50%);
-  width: min(680px, 80vw);
-  text-align: center;
+/* 翻译行（内嵌主行下方，随主行移动——原独立定位撞行栈已废） */
+.sonnet-tr-inline {
+  display: block;
+  margin-top: 10px;
   font-size: 15px;
-  color: rgba(246, 239, 226, 0.5);
+  font-weight: 400;
   letter-spacing: 0.05em;
-  pointer-events: none;
+  color: rgba(246, 239, 226, 0.55);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
 }
-.sonnet-tr.is-hidden { visibility: hidden; }
+.sonnet-line.is-active .sonnet-tr-inline { color: rgba(246, 239, 226, 0.62); }
 
 @media (max-width: 760px) {
   .sonnet-line { font-size: clamp(24px, 4vh, 34px); }

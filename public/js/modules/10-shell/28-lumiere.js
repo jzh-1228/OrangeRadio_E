@@ -28,9 +28,9 @@ var lumiereTheme = { primary: '#f4efe4', accent: '#ffc998', secondary: '#8fb3d9'
 
 /* ---------- 主题 ---------- */
 function lumiereSyncTheme() {
-  if (typeof themeServiceActiveTheme !== 'function') return;
+  if (typeof themeOverlayDarkTheme !== 'function') return;
   var t = null;
-  try { t = themeServiceActiveTheme(); } catch (e) { return; }
+  try { t = themeOverlayDarkTheme(); } catch (e) { return; }
   if (!t) return;
   var key = (t.primaryColor || '') + '|' + (t.accentColor || '') + '|' + (t.secondaryColor || '');
   if (key === lumiereLastThemeKey) return;
@@ -284,6 +284,8 @@ function lumiereFrame(now) {
 /* ---------- 生命周期 ---------- */
 
 function startLumiere() {
+  /* 字号跟随「歌词大小」设置（--mfs，CSS 主行 clamp 乘算） */
+  if (typeof applyOverlayModeFontScale === "function") applyOverlayModeFontScale(document.getElementById("lumiere-overlay"));
   lumiereCanvas = document.getElementById('lumiere-canvas');
   lumiereCtx = lumiereCanvas ? lumiereCanvas.getContext('2d') : null;
   lumiereBuildStrands();

@@ -50,9 +50,9 @@ var CADENZA_MAX_PREPARED_CACHE = 24;
 /* 主题跟随（Folia: 词色/基色 = theme.accentColor/primaryColor，随封面派生主题换色） */
 var cadenzaLastThemeKey = '';
 function cadenzaSyncTheme() {
-  if (typeof themeServiceActiveTheme !== 'function') return;
+  if (typeof themeOverlayDarkTheme !== 'function') return;
   var t = null;
-  try { t = themeServiceActiveTheme(); } catch (e) { return; }
+  try { t = themeOverlayDarkTheme(); } catch (e) { return; }
   if (!t) return;
   var key = (t.primaryColor || '') + '|' + (t.accentColor || '');
   if (key === cadenzaLastThemeKey) return;
@@ -1626,6 +1626,8 @@ function toggleCadenzaMode() {
 }
 
 function startCadenza() {
+  /* 字号跟随「歌词大小」设置（--mfs，CSS 主行 clamp 乘算） */
+  if (typeof applyOverlayModeFontScale === "function") applyOverlayModeFontScale(document.getElementById("cadenza-overlay"));
   if (!cadenzaPreparedCache) cadenzaPreparedCache = new Map();
   if (!cadenzaOverlayNodes) cadenzaOverlayNodes = new Map();
   if (!cadenzaAnimatedStates) cadenzaAnimatedStates = new Map();

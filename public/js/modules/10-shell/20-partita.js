@@ -39,9 +39,9 @@ var PARTITA_BASE_COLOR = '#e3d5c2';
 /* 主题跟随（Folia: 词激活色 = theme.accentColor、静息色 = theme.primaryColor） */
 var partitaLastThemeKey = '';
 function partitaSyncTheme() {
-  if (typeof themeServiceActiveTheme !== 'function') return;
+  if (typeof themeOverlayDarkTheme !== 'function') return;
   var t = null;
-  try { t = themeServiceActiveTheme(); } catch (e) { return; }
+  try { t = themeOverlayDarkTheme(); } catch (e) { return; }
   if (!t) return;
   var key = (t.primaryColor || '') + '|' + (t.accentColor || '');
   if (key === partitaLastThemeKey) return;
@@ -628,9 +628,10 @@ function partitaSetWordStatus(rec, status) {
       ', rotate ' + PARTITA_SPRING_BEZ + ', scale ' + PARTITA_SPRING_BEZ;
     /* 逐字流光：进入 active 才挂 on（动画从翻转时刻起算，--pt-gdl 为字内延迟） */
     for (var g = 0; g < rec.glowChars.length; g++) rec.glowChars[g].classList.add('on');
-    /* 副歌涟漪：Folia isChorus 行内词触发；本项目无副歌元数据，
-       以能量慢积分闸门（partitaChorus > 0.5）近似 */
-    if (partitaChorus > 0.5) {
+    /* 副歌涟漪：Folia isChorus 行内词触发（isChorus 由歌词打标管线提供）；
+       无打标数据时以能量慢积分闸门（partitaChorus > 0.5）回退近似 */
+    var isChorusRow = rec.lineIsChorus || partitaChorus > 0.5;
+    if (isChorusRow) {
       el.classList.add('is-rip');
       var ripEl = el;
       setTimeout(function () { ripEl.classList.remove('is-rip'); }, 560);
@@ -675,15 +676,18 @@ function renderPartitaLine(line) {
   partitaLineProfile = profile;
 
   var lineEl = document.createElement('div');
-  lineEl.className = 'pt-line enter-' + profile.lineTransitionMode;
+  lineEl.className = 'pt-line enter-' + profile.lineTransitionMode
+    + (line.isChorus ? ' is-chorus' : '');   /* 副歌行：激活色增强 + 词涟漪（Folia isChorus） */
   if (profile.wordRevealMode === 'fast') lineEl.classList.add('rv-fast');
   else if (profile.wordRevealMode === 'instant') lineEl.classList.add('rv-inst');
 
-  /* densityScale + clamp 主字号（Folia mainFontSize） */
+  /* densityScale + clamp 主字号（Folia mainFontSize × lyricsFontScale；
+     lyricsFontScale 等价本项目 fx.lyricScale 0.35~1.65，随「歌词大小」设置联动） */
   var density = layout.totalGraphemes > 40 ? 0.8 : 1;
+  var fontScale = partitaClamp((typeof fx !== 'undefined' && fx && Number(fx.lyricScale)) || 1, 0.35, 1.65);
   lineEl.style.setProperty('--pt-fs',
-    'clamp(' + (2.5 * density).toFixed(3) + 'rem, ' + (5.5 * density).toFixed(3) +
-    'vw, ' + (4.5 * density).toFixed(3) + 'rem)');
+    'clamp(' + (2.5 * density * fontScale).toFixed(3) + 'rem, ' + (5.5 * density * fontScale).toFixed(3) +
+    'vw, ' + (4.5 * density * fontScale).toFixed(3) + 'rem)');
 
   var column = document.createElement('div');
   column.className = 'pt-column';
@@ -756,7 +760,8 @@ function renderPartitaLine(line) {
         startT: dw.startTime,
         endT: activeEnd,
         state: 'waiting',
-        pose: pose
+        pose: pose,
+        lineIsChorus: !!line.isChorus
       });
     }
 
@@ -993,15 +998,66 @@ function togglePartitaMode() {
   applyPartitaMode(!partitaMode, { save: true, toast: true });
 }
 
+/* 内嵌正交背景（活背景）：把用户选中的背景实现（cover-fluid/geometric）挂进
+   overlay 内部 L0.25 层——静态渐变之上叠「活的」封面流体/几何律动。
+   与 95-background-runtime 的宿主层互不干扰（各自独立实例）。 */
+var partitaEmbedBg = { impl: null, host: null, rafId: 0, slowTimer: 0, lastFrame: 0, lastTick: 0 };
+function partitaMountEmbedBg() {
+  partitaUnmountEmbedBg();
+  var overlay = document.getElementById('partita-overlay');
+  if (!overlay) return;
+  var bgMode = (typeof fx !== 'undefined' && fx && fx.backgroundMode) || '';
+  var impl = (typeof VISUALIZER_BG_IMPLS !== 'undefined' && bgMode && VISUALIZER_BG_IMPLS[bgMode]) || null;
+  if (!impl) return;   /* ambient 或预留项：保持纯 CSS 渐变 */
+  var host = document.createElement('div');
+  host.className = 'pt-embed-bg';
+  host.setAttribute('aria-hidden', 'true');
+  overlay.insertBefore(host, overlay.querySelector('.partita-vignette'));
+  partitaEmbedBg.impl = impl;
+  partitaEmbedBg.host = host;
+  try {
+    impl.mount(host, typeof visualizerBackgroundContext === 'function' ? visualizerBackgroundContext() : null);
+  } catch (e) { }
+  if (impl.needsRaf) {
+    partitaEmbedBg.lastFrame = 0;
+    partitaEmbedBg.lastTick = 0;
+    (function frame(now) {
+      if (!partitaEmbedBg.impl) return;
+      var dt = partitaEmbedBg.lastFrame ? Math.min(0.1, (now - partitaEmbedBg.lastFrame) / 1000) : 1 / 30;
+      partitaEmbedBg.lastFrame = now;
+      if (now - partitaEmbedBg.lastTick > 33) {
+        partitaEmbedBg.lastTick = now;
+        try { partitaEmbedBg.impl.tick(visualizerBackgroundContext(), dt, now); } catch (e) { }
+      }
+      partitaEmbedBg.rafId = requestAnimationFrame(frame);
+    })(performance.now());
+  }
+  partitaEmbedBg.slowTimer = setInterval(function () {
+    if (!partitaEmbedBg.impl) return;
+    try { partitaEmbedBg.impl.tickSlow(visualizerBackgroundContext()); } catch (e) { }
+  }, 700);
+}
+function partitaUnmountEmbedBg() {
+  var e = partitaEmbedBg;
+  if (!e.impl) return;
+  if (e.rafId) { cancelAnimationFrame(e.rafId); e.rafId = 0; }
+  if (e.slowTimer) { clearInterval(e.slowTimer); e.slowTimer = 0; }
+  try { if (typeof e.impl.unmount === 'function') e.impl.unmount(); } catch (err) { }
+  if (e.host && e.host.parentElement) e.host.parentElement.removeChild(e.host);
+  e.impl = null; e.host = null;
+}
+
 function startPartita() {
   partitaFontStack();
   partitaLastLineIdx = -99;       /* 强制首帧渲染当前行 */
   partitaLineProfile = null;
   startPartitaLoop();
+  partitaMountEmbedBg();
 }
 
 function stopPartita() {
   stopPartitaLoop();
+  partitaUnmountEmbedBg();
   partitaDetachCurrentLine();
   partitaSetEmpty(false);
   partitaLastLineIdx = -99;

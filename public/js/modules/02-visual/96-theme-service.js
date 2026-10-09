@@ -732,6 +732,18 @@ function themeServiceActiveTheme() {
   return dual[themeResolveActiveMode()] || dual.dark;
 }
 
+/* 覆盖层歌词模式专用取色：这些模式是「夜色画布」（硬编码深色基底），
+   文字/点缀必须用夜主题色系——昼主题的深字色在黑底上不可读（绘光/凝彩/
+   商籁/云阶等 13 个模式的系统性暗字根因）。恒返回双主题 dark 侧；
+   无封面取色时回退墨染暗夜。 */
+function themeOverlayDarkTheme() {
+  try {
+    var dual = themeCurrentDualTheme();
+    if (dual && dual.dark) return dual.dark;
+  } catch (e) { }
+  return THEME_BASE_DUAL.dark;
+}
+
 /* CSS 变量输出（主题变化才写） */
 function themeSyncCssVars(active) {
   if (!active) return;

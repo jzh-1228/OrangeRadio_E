@@ -110,7 +110,7 @@ body.cadenza #cadenza-overlay {
   top: 42%;
   transform: translateY(-50%);
   text-align: center;
-  font-size: clamp(1.5rem, 3.5vw, 2.25rem);
+  font-size: calc(clamp(1.5rem, 3.5vw, 2.25rem) * var(--mfs, 1));
   font-weight: 500;
   letter-spacing: 0.14em;
   color: var(--cz-empty);

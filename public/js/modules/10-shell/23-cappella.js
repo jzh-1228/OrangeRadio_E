@@ -155,13 +155,15 @@ function cappellaMixColors(fromColor, toColor, mixAmount, alpha) {
   return 'rgba(' + r + ',' + g + ',' + b + ',' + (alpha == null ? 1 : alpha) + ')';
 }
 
-/* Folia getBubbleColors：右侧深底浅字，左侧按头像 tone 向 accent 渐进 */
+/* Folia getBubbleColors：右侧深底浅字，左侧按头像 tone 向 accent 渐进。
+   本项目夜主题的 accent 明度/饱和高于 Folia 约束（亮绿直接做底很扎眼），
+   视觉导向调整：右侧往背景色压暗 30%、文字统一提亮白保证对比。 */
 function cappellaBubbleColors(message, theme) {
   if (message.side === 'right') {
     return {
-      backgroundColor: cappellaMixColors(theme.accentColor, theme.primaryColor, 0.18, 0.94),
-      borderColor: cappellaMixColors(theme.accentColor, theme.primaryColor, 0.34, 0.3),
-      textColor: theme.backgroundColor
+      backgroundColor: cappellaMixColors(theme.accentColor, theme.backgroundColor, 0.30, 0.95),
+      borderColor: cappellaMixColors(theme.accentColor, theme.backgroundColor, 0.45, 0.3),
+      textColor: cappellaMixColors(theme.primaryColor, '#ffffff', 0.55)
     };
   }
   var tone = (message.avatarIndex % 9) / 8;
@@ -169,7 +171,7 @@ function cappellaBubbleColors(message, theme) {
   return {
     backgroundColor: cappellaMixColors(theme.secondaryColor, theme.accentColor, accentMix, 1),
     borderColor: cappellaMixColors(theme.secondaryColor, theme.accentColor, Math.min(accentMix + 0.18, 1), 0.26),
-    textColor: theme.primaryColor
+    textColor: cappellaMixColors(theme.primaryColor, '#ffffff', 0.5)
   };
 }
 
@@ -336,12 +338,7 @@ function cappellaBuildDom(list, titleText, theme, motion) {
       bubble.style.backgroundColor = colors.backgroundColor;
       bubble.style.borderColor = colors.borderColor;
       bubble.style.color = colors.textColor;
-      /* 激活流光层（Folia CappellaBubbleGlow） */
-      var glow = document.createElement('span');
-      glow.className = 'cappella-bubble-glow';
-      glow.style.setProperty('--cp-glow-alpha', isRight ? motion.glowRightAlpha : motion.glowLeftAlpha);
-      glow.style.animationDuration = motion.glowDuration + 's';
-      bubble.appendChild(glow);
+      /* 流光扫动已移除（视觉反馈过于嘈杂）——「正在唱」由放大/卡拉OK逐字/头像呼吸表达 */
       /* 时间戳（Folia: 气泡外侧 8px，passed 后浮现） */
       var ts = document.createElement('span');
       ts.className = 'cappella-timestamp';
@@ -396,33 +393,67 @@ function cappellaActiveIndexAt(t) {
   return active;
 }
 
+/* 封面模糊图背景（对齐 Folia 背景渲染器的「封面衍生物」意图与主流播放器
+   氛围底：大 blur + 压暗降饱和，比纯色/光斑有质感）。div 常驻，仅 URL
+   变化时换图；getControlCoverUrl 自带缓存，250ms 轮询成本可忽略。 */
+var cappellaBgPhoto = null;
+function cappellaEnsureBackground(overlay) {
+  if (!overlay) return;
+  if (!cappellaBgPhoto) {
+    cappellaBgPhoto = document.createElement('div');
+    cappellaBgPhoto.className = 'cappella-bg-photo';
+    overlay.insertBefore(cappellaBgPhoto, overlay.firstChild);
+  }
+  var url = (typeof getControlCoverUrl === 'function') ? getControlCoverUrl() : null;
+  if (url && cappellaBgPhoto.dataset.url !== url) {
+    cappellaBgPhoto.dataset.url = url;
+    cappellaBgPhoto.style.backgroundImage = 'url("' + url + '")';
+  }
+}
+
 function cappellaTick(motion) {
   var list = cappellaEnsureDom();
   if (!list) return;
+  cappellaEnsureBackground(list.parentElement);
   var t = cappellaNowTime();
   var activeIdx = cappellaActiveIndexAt(t);
 
-  /* 消息三态 + 逐字 reveal（Folia: cappella-char-fade 220ms） */
-  var nodes = list.children;
-  for (var i = 0; i < nodes.length; i++) {
-    var row = nodes[i];
-    var id = row.dataset.msgId;
-    var m = null;
-    for (var k = 0; k < cappellaMessages.length; k++) {
-      if (cappellaMessages[k].id === id) { m = cappellaMessages[k]; break; }
+  /* 可见窗口 + 消息三态 + 逐字 reveal。
+     Folia getVisibleMessages 语义：屏幕永远是「唱过的消息流」——
+     title 恒显，lyric/emo 到达（t>=start）才显示，未来消息不渲染；
+     字符到达即点亮常驻（原版 char-fade 无条件播放），active 句按唱词
+     进度逐字浮现。此前错译成「全量预渲染 + 默认 opacity:0 + 仅 active
+     点亮」，暂停/未播时整屏空色块。按 messages 索引遍历（与 activeIdx
+     同一坐标系），DOM 经 cappellaDomByKey 直取，O(n)。 */
+  for (var i = 0; i < cappellaMessages.length; i++) {
+    var m = cappellaMessages[i];
+    var entry = cappellaDomByKey[m.id];
+    if (!entry || !entry.row) continue;
+    var row = entry.row;
+    var reached = m.kind === 'title' || t >= m.start;
+    row.classList.toggle('is-visible', reached);
+    if (!reached) {
+      row.classList.remove('is-active');
+      row.classList.remove('is-passed');
+      continue;
     }
-    if (!m) continue;
     var isActive = i === activeIdx;
     var isPassed = m.kind !== 'title' && t >= (m.renderEnd == null ? m.end : m.renderEnd);
     row.classList.toggle('is-active', isActive);
     row.classList.toggle('is-passed', isPassed && !isActive);
-    if (isActive && m.kind === 'lyric') {
+    if (m.kind === 'lyric') {
       var chars = row.querySelectorAll('.cappella-char');
-      var span = Math.max(0.12, m.end - m.start);
-      var progress = Math.max(0, Math.min(1, (t - m.start) / span));
-      var litCount = Math.floor(progress * chars.length + 0.35);
-      for (var c = 0; c < chars.length; c++) {
-        chars[c].classList.toggle('is-lit', c < litCount);
+      if (isActive) {
+        var span = Math.max(0.12, m.end - m.start);
+        var progress = Math.max(0, Math.min(1, (t - m.start) / span));
+        var litCount = Math.floor(progress * chars.length + 0.35);
+        for (var c = 0; c < chars.length; c++) {
+          chars[c].classList.toggle('is-lit', c < litCount);
+        }
+      } else if (isPassed || t > m.start) {
+        for (var c2 = 0; c2 < chars.length; c2++) {
+          if (!chars[c2].classList.contains('is-lit')) chars[c2].classList.add('is-lit');
+        }
       }
     }
   }
@@ -430,11 +461,11 @@ function cappellaTick(motion) {
   /* 滚动：最新可见消息贴底 */
   if (activeIdx !== cappellaLastActiveIdx) {
     cappellaLastActiveIdx = activeIdx;
-    var scroller = document.getElementById('cappella-scroller');
-    if (scroller) {
-      var targetRow = nodes[Math.max(0, Math.min(nodes.length - 1, activeIdx))];
-      if (targetRow && targetRow.scrollIntoView) {
-        try { targetRow.scrollIntoView({ behavior: 'smooth', block: 'end' }); } catch (e) { }
+    if (activeIdx >= 0) {
+      var activeMsg = cappellaMessages[activeIdx];
+      var activeEntry = cappellaDomByKey[activeMsg.id];
+      if (activeEntry && activeEntry.row && activeEntry.row.scrollIntoView) {
+        try { activeEntry.row.scrollIntoView({ behavior: 'smooth', block: 'end' }); } catch (e) { }
       }
     }
   }
@@ -447,13 +478,43 @@ function cappellaLinesKeyNow() {
     + ((typeof lyricsMetaVersion !== 'undefined') ? lyricsMetaVersion : 0);
 }
 
-/* 当前三档（主题 animationIntensity；缺省 normal）与主题色 */
+/* 当前三档（主题 animationIntensity；缺省 normal）与主题色。
+   群唱是夜色语境（与其它 18 个覆盖层模式的深色基底一致）：背景/气泡固定取
+   封面派生双主题的「夜」侧——昼主题的浅底深字直接平铺会整屏米白（且气泡
+   深字配深背景不可读），Folia 原版的浅色配套 UI 本项目并未移植。 */
+function cappellaIsDarkColor(color) {
+  var ch = cappellaParseChannels(color);
+  if (!ch) return true;
+  return (ch.r * 0.299 + ch.g * 0.587 + ch.b * 0.114) < 128;
+}
+
 function cappellaThemeNow() {
-  var active = (typeof themeServiceActiveTheme === 'function') ? themeServiceActiveTheme() : null;
-  var theme = active || { backgroundColor: '#171009', primaryColor: '#f2e6d4', accentColor: '#ff9c6e', secondaryColor: '#e6c9a6' };
-  var intensity = (active && active.animationIntensity && CAPPELLA_CONFIGS[active.animationIntensity])
-    ? active.animationIntensity : 'normal';
+  var theme = null;
+  try {
+    var dual = (typeof themeCurrentDualTheme === 'function') ? themeCurrentDualTheme() : null;
+    if (dual && dual.dark) theme = dual.dark;
+  } catch (e) { }
+  if (!theme && typeof themeServiceActiveTheme === 'function') {
+    var active = themeServiceActiveTheme();
+    theme = (active && cappellaIsDarkColor(active.backgroundColor)) ? active : null;
+  }
+  if (!theme) {
+    theme = { backgroundColor: '#101014', primaryColor: '#f2e6d4', accentColor: '#ff9c6e', secondaryColor: '#e6c9a6' };
+  }
+  var activeTheme = (typeof themeServiceActiveTheme === 'function') ? themeServiceActiveTheme() : null;
+  var intensity = (activeTheme && activeTheme.animationIntensity && CAPPELLA_CONFIGS[activeTheme.animationIntensity])
+    ? activeTheme.animationIntensity : 'normal';
   return { theme: theme, intensity: intensity, config: CAPPELLA_CONFIGS[intensity] };
+}
+
+/* 夜色氛围背景变量：封面派生深色基底 + 双光斑（accent/secondary 低透明提亮），
+   CSS 侧组合 radial-gradient——替代此前的 --theme-bg 平铺（昼主题下整屏米白） */
+function cappellaApplyBackgroundVars(overlay, theme) {
+  if (!overlay) return;
+  var s = overlay.style;
+  s.setProperty('--cp-bg', theme.backgroundColor || '#101014');
+  s.setProperty('--cp-glow-a', cappellaMixColors(theme.accentColor || '#ff9c6e', '#ffffff', 0.14, 0.15));
+  s.setProperty('--cp-glow-b', cappellaMixColors(theme.secondaryColor || '#e6c9a6', theme.primaryColor || '#f2e6d4', 0.3, 0.12));
 }
 
 function cappellaRebuild() {
@@ -476,7 +537,10 @@ function cappellaRebuild() {
   cappellaBuildDom(list, titleText, env.theme, env.config.motion);
   /* 档位 motion 参数写入覆盖层 CSS 变量 */
   var overlay = document.getElementById('cappella-overlay');
-  if (overlay) cappellaApplyMotionVars(overlay, env.config.motion);
+  if (overlay) {
+    cappellaApplyMotionVars(overlay, env.config.motion);
+    cappellaApplyBackgroundVars(overlay, env.theme);
+  }
 }
 
 function cappellaApplyMotionVars(el, motion) {
@@ -508,7 +572,7 @@ function startCappella() {
     if (!cappellaMode) return;
     cappellaRebuild();
     cappellaTick(cappellaThemeNow().config.motion);
-    cappellaTimer = setTimeout(loop, 250);
+    cappellaTimer = setTimeout(loop, 150);   /* 150ms：active 行逐字点亮更顺滑 */
   })();
 }
 

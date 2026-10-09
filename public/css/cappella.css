@@ -29,8 +29,34 @@
   z-index: 5;
   display: none;
   overflow: hidden;
-  background-color: var(--theme-bg, #101014);
-  background-image: radial-gradient(ellipse 90% 70% at 78% 12%, rgba(80, 96, 140, 0.16) 0%, rgba(0, 0, 0, 0) 60%);
+  /* 封面模糊氛围背景：.cappella-bg-photo（大 blur 压暗）垫底 + ::before
+     深色渐变遮罩压边角（文字可读性），底色仅作图片未就绪兜底 */
+  background-color: var(--cp-bg, #101014);
+}
+
+/* 封面模糊层：inset 负值防 blur 边缘露白 */
+.cappella-bg-photo {
+  position: absolute;
+  inset: -10%;
+  background-size: cover;
+  background-position: center;
+  filter: blur(76px) saturate(0.75) brightness(0.5);
+  transform: scale(1.12);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* 深色遮罩：上下压暗 + 中心轻透，保歌词可读、防整屏发灰 */
+#cappella-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg,
+    rgba(8, 8, 12, 0.55) 0%,
+    rgba(8, 8, 12, 0.28) 45%,
+    rgba(8, 8, 12, 0.62) 100%);
 }
 
 body.cappella #cappella-overlay { display: block; animation: cappellaIn 0.5s ease; }
@@ -41,6 +67,7 @@ body.cappella #empty-home { display: none; }
 .cappella-scroller {
   position: absolute;
   inset: 0;
+  z-index: 1;                       /* 抬到模糊层/遮罩（z0）之上 */
   padding: 80px clamp(24px, 6vw, 72px) 150px;
   overflow-y: auto;
   display: flex;
@@ -56,13 +83,17 @@ body.cappella #empty-home { display: none; }
   flex-direction: column;
   gap: 12px;                        /* Folia gap-3 */
   width: 100%;
-  max-width: 896px;                 /* max-w-4xl */
+  max-width: min(1100px, 82vw);     /* 宽屏自适应加宽：面板两侧到屏幕边缘的空白不再巨大 */
   margin: 0 auto;
+  position: relative;
+  z-index: 1;
 }
 
-/* ---------- 行（Folia: flex w-full items-end gap-3 · 行内气泡组 max-w 78%） ---------- */
+/* ---------- 行（Folia: flex w-full items-end gap-3 · 行内气泡组 max-w 78%）
+     可见窗口：默认隐藏，到达（t>=start）后由 tick 打 is-visible 才显示——
+     未唱到的消息不渲染，屏幕永远是「唱过的消息流」 ---------- */
 .cappella-row {
-  display: flex;
+  display: none;
   align-items: flex-end;
   gap: 12px;
   width: 100%;
@@ -70,9 +101,10 @@ body.cappella #empty-home { display: none; }
   transform: translateY(var(--cp-enter-y)) scale(0.98);
   animation: cappellaRowIn 0.32s ease-out forwards;
 }
+.cappella-row.is-visible { display: flex; }
 @keyframes cappellaRowIn { to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {
-  .cappella-row { animation: none; opacity: 1; transform: none; }
+  .cappella-row.is-visible { animation: none; opacity: 1; transform: none; }
 }
 
 .cappella-row.is-right { margin-left: auto; flex-direction: row-reverse; }
@@ -92,7 +124,32 @@ body.cappella #empty-home { display: none; }
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
 }
-.cappella-row.is-active .cappella-avatar { transform: scale(1.06); }
+/* 当前行头像「跟音乐呼吸」：纯缩放的柔和起伏（无旋转/位移的廉价感），
+   光晕随呼吸同频明灭 */
+.cappella-row.is-active .cappella-avatar {
+  animation: cappellaAvatarBreath 1.5s ease-in-out infinite alternate;
+}
+.cappella-row.is-active .cappella-avatar::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  box-shadow: 0 0 14px 2px var(--theme-accent, #ff9c6e);
+  animation: cappellaAvatarHalo 1.5s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes cappellaAvatarBreath {
+  from { transform: scale(1); }
+  to   { transform: scale(1.06); }
+}
+@keyframes cappellaAvatarHalo {
+  from { opacity: 0.25; }
+  to   { opacity: 0.7; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cappella-row.is-active .cappella-avatar { animation: none; transform: scale(1.06); }
+  .cappella-row.is-active .cappella-avatar::after { animation: none; opacity: 0.4; }
+}
 .cappella-row.is-passed .cappella-avatar { opacity: 0.85; }
 
 /* ---------- 气泡（Folia: rounded-3xl + 尾角 rounded-br/bl-md） ---------- */
@@ -107,6 +164,13 @@ body.cappella #empty-home { display: none; }
   font-size: var(--cp-inactive-font);
   font-weight: 400;
   line-height: 1.45;
+  /* 激活/沉淀状态切换的弹性过渡：放大回缩带一点回弹，不再生硬跳变 */
+  transition:
+    transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1),
+    padding 0.28s ease,
+    font-size 0.28s ease,
+    min-height 0.28s ease,
+    box-shadow 0.28s ease;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
@@ -129,7 +193,10 @@ body.cappella #empty-home { display: none; }
   font-size: var(--cp-active-font);
   padding: var(--cp-active-pad-y) var(--cp-active-pad-x);
   min-height: var(--cp-active-min-h);
-  box-shadow: 0 18px 48px rgba(255, 156, 110, 0.30);
+  /* 内缘细白高光 + 中性投影（替代流光扫动与彩色大光晕——干净、聚焦文字） */
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    0 14px 36px rgba(0, 0, 0, 0.32);
 }
 .cappella-row.is-passed .cappella-bubble {
   transform: scale(var(--cp-passed-scale));
@@ -140,35 +207,16 @@ body.cappella #empty-home { display: none; }
 /* 标题卡（歌名消息） */
 .cappella-bubble.is-title-text { font-weight: 600; }
 
-/* 气泡内缘流光（Folia CappellaBubbleGlow：105deg 条带 200% 宽横扫） */
-.cappella-bubble-glow {
-  position: absolute;
-  top: 0; bottom: 0; left: 0;
-  width: 200%;
-  pointer-events: none;
-  opacity: 0;
-  background: linear-gradient(105deg,
-    transparent 0%, rgba(255, 255, 255, var(--cp-glow-alpha, 0.34)) 23%, transparent 34%,
-    transparent 50%, transparent 50%,
-    rgba(255, 255, 255, var(--cp-glow-alpha, 0.34)) 73%, transparent 84%, transparent 100%);
-  animation: cappellaBubbleGlowPan 1.8s linear infinite;
-  transition: opacity 0.3s ease;
-}
-.cappella-row.is-active .cappella-bubble-glow { opacity: var(--cp-glow-opacity, 0.4); }
-@keyframes cappellaBubbleGlowPan {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
-@media (prefers-reduced-motion: reduce) { .cappella-bubble-glow { animation: none; } }
+/* 流光扫动已移除（嘈杂）——active 气泡以内缘细高光 + 柔和外投影表达（见 .is-active 段） */
 
-/* ---------- 文本与逐字浮现（Folia: cappella-char-fade 220ms） ---------- */
+/* ---------- 文本与逐字高亮（卡拉OK式）
+     字符恒占位（气泡宽度一次到位不跳动），未唱字符 0.22 低透明可见、
+     唱过逐字点亮——比「打字机」流畅，比「全占位隐形」信息量足 ---------- */
 .cappella-text { position: relative; z-index: 1; }
-.cappella-char { opacity: 0; }
-.cappella-char.is-lit { animation: cappellaCharFade 0.22s ease-out forwards; }
-@keyframes cappellaCharFade { from { opacity: 0; } to { opacity: 1; } }
+.cappella-char { opacity: 0.22; transition: opacity 0.4s ease; }
+.cappella-char.is-lit { opacity: 1; transition: opacity 0.3s ease; }
 @media (prefers-reduced-motion: reduce) {
-  .cappella-char { opacity: 1; }
-  .cappella-char.is-lit { animation: none; }
+  .cappella-char { transition: none; }
 }
 
 /* ---------- 时间戳（Folia: 11px tabular-nums · 气泡外侧 8px · passed 浮现） ---------- */

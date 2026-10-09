@@ -23,7 +23,7 @@
   --cl-active-inner: rgba(255, 178, 122, 0.7);  /* 内层辉光 alpha 0.7 */
   --cl-idle: rgba(240, 224, 205, 0.4);
   --cl-font: "PingFang SC", "HarmonyOS Sans SC", "MiSans", "Microsoft YaHei UI", "Source Han Sans SC", system-ui, sans-serif;
-  --cl-fs: clamp(2.25rem, 6vw, 4.5rem);   /* Folia mainFontSize 原值 */
+  --cl-fs: calc(clamp(2.25rem, 6vw, 4.5rem) * var(--mfs, 1));   /* Folia mainFontSize 原值 × 用户歌词缩放 */
 
   position: fixed;
   left: 0;
