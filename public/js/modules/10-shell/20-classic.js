@@ -522,11 +522,12 @@ function classicRenderLine(line, idx) {
       unit.displayDuration.toFixed(3) + 's;">' +
       '<span class="cl-glow" aria-hidden="true">' + classicBuildGlowHtml(unit, graphemes, profile) + '</span>' +
       '<span class="cl-body">' + escapeClassicHtml(unit.text) + '</span>' +
+      (line.isChorus ? '<span class="cl-ripple" aria-hidden="true"></span>' : '') +
       '</div>';
   }
 
   var el = document.createElement('div');
-  el.className = 'cl-line';
+  el.className = 'cl-line' + (line.isChorus ? ' is-chorus' : '');   /* 副歌行：词涟漪（Folia Chorus Ripple） */
   el.setAttribute('data-lmode', profile.lineTransitionMode);
   el.setAttribute('data-reveal', profile.wordRevealMode);
   el.setAttribute('data-justify', layout.justify);

@@ -63,6 +63,18 @@ function toggleStillMode() {
 function startStill() {
   /* 字号跟随「歌词大小」设置（--mfs，CSS 主行乘算） */
   if (typeof applyOverlayModeFontScale === "function") applyOverlayModeFontScale(document.getElementById("still-overlay"));
+  /* 夜色取色（与其余覆盖层模式统一）：文字/背景恒用夜侧主题，昼主题深字不再漏入 */
+  var stillOv = document.getElementById("still-overlay");
+  if (stillOv && typeof themeOverlayDarkTheme === "function") {
+    try {
+      var stT = themeOverlayDarkTheme();
+      if (stT) {
+        stillOv.style.setProperty("--st-ink", stT.primaryColor || "#f7eee3");
+        stillOv.style.setProperty("--st-ink-2", stT.secondaryColor || "#e6c9a6");
+        stillOv.style.background = stT.backgroundColor || "#171009";
+      }
+    } catch (e) { }
+  }
   stillFontStack();
   invalidateStillSignature();
   startStillLoop();

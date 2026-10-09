@@ -231,6 +231,33 @@ body.classic #empty-home {
   transition: color 0.4s ease-out, filter 0.4s ease-out;
 }
 
+/* 副歌词涟漪（Folia Chorus Ripple：150% 圆环 0.2→1.4 扩散淡出，accent 描边） */
+.cl-word { position: relative; }
+.cl-ripple {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 150%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1px solid var(--theme-accent, #ff9c6e);
+  filter: blur(1px);
+  transform: translate(-50%, -50%) scale(0.2);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.cl-word.is-active .cl-ripple {
+  animation: cl-ripple-out 0.5s ease-out forwards;
+}
+@keyframes cl-ripple-out {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0.8; }
+  100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cl-ripple { display: none; }
+}
+
 /* active：点亮 + 去模糊；颜色按词演唱时长线性过渡（--cl-wdur） */
 .cl-word.is-active .cl-body {
   color: var(--cl-active);
