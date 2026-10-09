@@ -22,6 +22,30 @@ body.tempera #tempera-overlay { display: block; animation: temperaIn 0.7s ease; 
 body.tempera #empty-home { display: none; }
 @keyframes temperaIn { from { opacity: 0; } to { opacity: 1; } }
 
+/* 色块入场：逐个浮起（动画延迟让色块错峰） */
+.tempera-block {
+  animation: temperaDrift 30s ease-in-out infinite alternate, temperaBlockIn 1.1s cubic-bezier(0.25, 1, 0.5, 1) backwards;
+}
+.tempera-block:nth-child(1) { animation-delay: 0s, 0.02s; }
+.tempera-block:nth-child(2) { animation-delay: 0s, 0.1s; }
+.tempera-block:nth-child(3) { animation-delay: 0s, 0.18s; }
+.tempera-block:nth-child(4) { animation-delay: 0s, 0.26s; }
+.tempera-block:nth-child(5) { animation-delay: 0s, 0.34s; }
+.tempera-block:nth-child(6) { animation-delay: 0s, 0.42s; }
+.tempera-block:nth-child(7) { animation-delay: 0s, 0.5s; }
+@keyframes temperaBlockIn {
+  from { opacity: 0; scale: 0.86; }
+  to { opacity: calc(var(--tp-energy) * 0.5); scale: 1; }
+}
+.tempera-lyrics { animation: temperaLyricsIn 0.9s cubic-bezier(0.25, 1, 0.5, 1) 0.22s backwards; }
+@keyframes temperaLyricsIn {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tempera-block, .tempera-lyrics { animation: none; }
+}
+
 /* ---------- 色块场（柔边 + 漂移呼吸 + 能量驱动不透明度） ---------- */
 .tempera-field {
   position: absolute;
@@ -31,16 +55,13 @@ body.tempera #empty-home { display: none; }
 .tempera-block {
   position: absolute;
   border-radius: 999px;
-  filter: blur(42px);
+  /* 柔边离线烘焙进贴图（JS temperaBlockSprite），运行时零 GPU 模糊滤镜合成 */
   opacity: calc(var(--tp-energy) * 0.5);
   mix-blend-mode: screen;
-  animation: temperaDrift 30s ease-in-out infinite alternate;
   will-change: transform;
   transition: opacity 0.8s ease;
 }
-.tempera-block.is-band { border-radius: 999px; }
-.tempera-block.is-rect { border-radius: 34px; }
-.tempera-block.is-ring { border-style: solid; border-radius: 50%; }
+.tempera-block.is-ring { background-size: 100% 100%; }
 @keyframes temperaDrift {
   from { translate: 0 0; rotate: calc(var(--tr, 0deg) - 4deg); }
   to { translate: 3% -3%; rotate: calc(var(--tr, 0deg) + 5deg); }

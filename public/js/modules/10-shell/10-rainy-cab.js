@@ -40,6 +40,9 @@ var rainyNeonSprites = [];             /* 每色一张 bokeh 精灵 */
 
 /* 光斑群（两层视差） */
 var rainyBokeh = [];
+var rainySkyGrad = null;             /* 夜空渐变缓存（副歌暖度量化 4 档） */
+var rainySkyGradQ = -1;
+var rainySkyGradH = 0;
 
 /* 雨滴渲染状态（GL 方案，详见下方「雨滴系统」注释块） */
 
@@ -522,13 +525,21 @@ function tickRainyFar(dtSec, now) {
   var cityBright = rainyCityFactor();
   var drift = scale * dtSec;
   ctx.clearRect(0, 0, w, h);
-  /* 夜空基底渐变（随副歌泛暖 = 天际线渐亮） */
-  var sky = ctx.createLinearGradient(0, 0, 0, h);
+  /* 夜空基底渐变（随副歌泛暖 = 天际线渐亮）；副歌量量化 4 档缓存离线渐变，
+     避免每帧铸造新 gradient 对象 + 字符串拼接 */
   var warm = rainyChorus * 0.34;
-  sky.addColorStop(0, 'rgba(10,14,24,1)');
-  sky.addColorStop(0.72, 'rgba(' + Math.round(24 + warm * 100) + ',' + Math.round(28 + warm * 50) + ',' + Math.round(44 + warm * 26) + ',1)');
-  sky.addColorStop(1, 'rgba(' + Math.round(34 + warm * 120) + ',' + Math.round(30 + warm * 54) + ',' + Math.round(50 + warm * 22) + ',1)');
-  ctx.fillStyle = sky;
+  var warmQ = Math.round(warm * 4);
+  if (rainySkyGradQ !== warmQ || !rainySkyGrad || rainySkyGradH !== h) {
+    rainySkyGradQ = warmQ;
+    rainySkyGradH = h;
+    var g = ctx.createLinearGradient(0, 0, 0, h);
+    var warm2 = warmQ / 4;
+    g.addColorStop(0, 'rgba(10,14,24,1)');
+    g.addColorStop(0.72, 'rgba(' + Math.round(24 + warm2 * 100) + ',' + Math.round(28 + warm2 * 50) + ',' + Math.round(44 + warm2 * 26) + ',1)');
+    g.addColorStop(1, 'rgba(' + Math.round(34 + warm2 * 120) + ',' + Math.round(30 + warm2 * 54) + ',' + Math.round(50 + warm2 * 22) + ',1)');
+    rainySkyGrad = g;
+  }
+  ctx.fillStyle = rainySkyGrad;
   ctx.fillRect(0, 0, w, h);
   /* 车颤只作用于窗外景象（玻璃上的雨滴相对不动） */
   ctx.save();

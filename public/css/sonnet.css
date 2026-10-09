@@ -24,6 +24,26 @@ body.sonnet #sonnet-overlay { display: block; animation: sonnetIn 0.7s ease; }
 body.sonnet #empty-home { display: none; }
 @keyframes sonnetIn { from { opacity: 0; } to { opacity: 1; } }
 
+/* 光台入场：聚光亮起 */
+.sonnet-spot { animation: sonnetSpotBreath 6.5s ease-in-out infinite, sonnetSpotIn 1.2s cubic-bezier(0.25, 1, 0.5, 1) backwards; }
+@keyframes sonnetSpotIn {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.88); }
+  to { opacity: 0.9; transform: translate(-50%, -50%) scale(1); }
+}
+.sonnet-beam { animation: sonnetBeamIn 1s cubic-bezier(0.25, 1, 0.5, 1) 0.2s backwards; }
+@keyframes sonnetBeamIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.sonnet-stack { animation: sonnetStackIn 0.8s cubic-bezier(0.25, 1, 0.5, 1) 0.34s backwards; }
+@keyframes sonnetStackIn {
+  from { opacity: 0; transform: translate(-50%, 20px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sonnet-spot, .sonnet-beam, .sonnet-stack { animation: none; }
+}
+
 /* ---------- 聚光灯光台（圆形 + 放射幕布 + 光束） ---------- */
 .sonnet-spot {
   position: absolute;
@@ -34,13 +54,11 @@ body.sonnet #empty-home { display: none; }
   transform: translate(-50%, -50%);
   border-radius: 50%;
   pointer-events: none;
-  animation: sonnetSpotBreath 6.5s ease-in-out infinite;
 }
 @keyframes sonnetSpotBreath {
   0%, 100% { opacity: 0.9; transform: translate(-50%, -50%) scale(1); }
   50% { opacity: 1; transform: translate(-50%, -50%) scale(1.035); }
 }
-@media (prefers-reduced-motion: reduce) { .sonnet-spot { animation: none; } }
 .sonnet-spot-core {
   position: absolute;
   inset: 0;

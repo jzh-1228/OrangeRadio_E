@@ -164,25 +164,20 @@ function temperaRebuildBlocks() {
   var compIdx = temperaHashString(seed) % TEMPERA_COMPOSITIONS.length;
   var comp = TEMPERA_COMPOSITIONS[compIdx];
   var palette = temperaPalette();
+  /* 每色块离线渲染成一张柔边贴图（PBR 前·temperaCutout 思路）：模糊只发生一次
+     （低分辨率画布 + canvas 放大），运行时零 GPU 模糊滤镜合成 */
   var frag = document.createDocumentFragment();
   for (var i = 0; i < comp.length; i++) {
     var spec = comp[i];
     var el = document.createElement('div');
     el.className = 'tempera-block is-' + spec.shape;
     var color = palette[i % palette.length];
-    el.style.background = spec.shape === 'ring'
-      ? 'transparent'
-      : (spec.shape === 'circle'
-        ? 'radial-gradient(circle at 38% 34%, ' + color + ' 0%, ' + color + ' 100%)'
-        : 'linear-gradient(135deg, ' + color + ' 0%, ' + color + ' 100%)');
-    if (spec.shape === 'ring') {
-      el.style.borderColor = color;
-      el.style.borderWidth = '14px';
-      el.style.background = 'transparent';
-    }
     var sizeUnit = Math.max(window.innerWidth, window.innerHeight);
-    var w = spec.size / 100 * sizeUnit;
+    var w = Math.max(40, spec.size / 100 * sizeUnit);
     var h = spec.shape === 'band' ? w * 0.3 : w;
+    el.style.backgroundImage = 'url("' + temperaBlockSprite(spec.shape, color, w, h) + '")';
+    el.style.backgroundSize = '100% 100%';
+    el.style.backgroundRepeat = 'no-repeat';
     el.style.width = w + 'px';
     el.style.height = h + 'px';
     el.style.left = spec.x + '%';
@@ -194,6 +189,46 @@ function temperaRebuildBlocks() {
     temperaBlocksDom.push(el);
   }
   field.appendChild(frag);
+}
+
+/* 离线烘焙柔边色块贴图：低分辨率（缩放 1/3.2）画纯色形 + 大高斯模糊（canvas filter），
+   再以 dataURL 供 CSS 平铺——合成端只做一张纹理的缩放，零每帧模糊计算 */
+var temperaSpriteCache = {};
+function temperaBlockSprite(shape, color, w, h) {
+  var key = shape + '|' + color + '|' + Math.round(w / 8) + '|' + Math.round(h / 8);
+  var cached = temperaSpriteCache[key];
+  if (cached) return cached;
+  var scale = 1 / 3.2;
+  var cw = Math.max(24, Math.round(w * scale));
+  var ch = Math.max(24, Math.round(h * scale));
+  var cv = document.createElement('canvas');
+  cv.width = cw; cv.height = ch;
+  var ctx = cv.getContext('2d');
+  if (!ctx) return 'none';
+  ctx.filter = 'blur(' + Math.max(6, Math.round(Math.min(cw, ch) * 0.4)) + 'px)';
+  ctx.fillStyle = color;
+  var pad = Math.min(cw, ch) * 0.26;
+  if (shape === 'circle') {
+    ctx.beginPath();
+    ctx.arc(cw / 2, ch / 2, Math.min(cw, ch) / 2 - pad * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (shape === 'ring') {
+    ctx.lineWidth = Math.max(4, Math.min(cw, ch) * 0.2);
+    ctx.strokeStyle = color;
+    ctx.beginPath();
+    ctx.arc(cw / 2, ch / 2, Math.min(cw, ch) / 2 - ctx.lineWidth, 0, Math.PI * 2);
+    ctx.stroke();
+  } else if (shape === 'rect') {
+    var rw = cw - pad * 2, rh = ch - pad * 2;
+    ctx.fillRect(pad, pad, rw, rh);
+  } else { /* band */
+    ctx.fillRect(pad * 0.6, ch * 0.22, cw - pad * 1.2, ch * 0.56);
+  }
+  try {
+    var url = cv.toDataURL('image/png');
+    temperaSpriteCache[key] = url;
+    return url;
+  } catch (e) { return 'none'; }
 }
 
 /* ---------- 能量驱动（副歌更实更亮） ---------- */
