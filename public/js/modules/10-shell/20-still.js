@@ -23,7 +23,6 @@
 var STILL_STORE_KEY = 'orangesea-still-lyrics-v1';
 var stillMode = readBooleanPreference(STILL_STORE_KEY, false);
 var stillRafId = 0;
-var stillPrevQuality = null;
 var stillLastFontKey = null;    /* 字体变化检测（fx.lyricFont 实时同步，与流光/雨窗一致） */
 
 /* Folia VisualizerStill 的 useState(effectiveIndex) 直译（初始 max(0, idx) → 0） */
@@ -49,17 +48,8 @@ function applyStillMode(on, opts) {
   if (opts.save) saveBooleanPreference(STILL_STORE_KEY, stillMode);
   if (stillMode) {
     startStill();
-    /* 3D 场景已被覆盖层盖住：临时切 eco 质量档让出帧预算（退出时恢复） */
-    if (typeof fx !== 'undefined' && fx && stillPrevQuality === null) {
-      stillPrevQuality = fx.performanceQuality || 'balanced';
-      fx.performanceQuality = 'eco';
-    }
   } else {
     stopStill();
-    if (stillPrevQuality !== null && typeof fx !== 'undefined' && fx) {
-      fx.performanceQuality = stillPrevQuality;
-      stillPrevQuality = null;
-    }
   }
   if (typeof refreshPresetGrid === 'function') refreshPresetGrid();
   if (opts.toast) showToast(stillMode ? '静止歌词已开启' : '已切回标准模式');

@@ -34,7 +34,6 @@ var CADENZA_STORE_KEY = 'orangesea-cadenza-v1';
 var cadenzaMode = (typeof readBooleanPreference === 'function')
   ? readBooleanPreference(CADENZA_STORE_KEY, false) : false;
 var cadenzaRafId = 0;
-var cadenzaPrevQuality = null;
 var cadenzaResizeTimer = 0;
 var cadenzaLyricsWatchToken = 0;
 var cadenzaFrameNo = 0;
@@ -1613,17 +1612,8 @@ function applyCadenzaMode(on, opts) {
   }
   if (cadenzaMode) {
     startCadenza();
-    /* 3D 场景已被覆盖层盖住：临时切 eco 质量档让出帧预算（退出时恢复） */
-    if (typeof fx !== 'undefined' && fx && cadenzaPrevQuality === null) {
-      cadenzaPrevQuality = fx.performanceQuality || 'balanced';
-      fx.performanceQuality = 'eco';
-    }
   } else {
     stopCadenza();
-    if (cadenzaPrevQuality !== null && typeof fx !== 'undefined' && fx) {
-      fx.performanceQuality = cadenzaPrevQuality;
-      cadenzaPrevQuality = null;
-    }
   }
   if (typeof refreshPresetGrid === 'function') refreshPresetGrid();
   if (opts.toast && typeof showToast === 'function') {

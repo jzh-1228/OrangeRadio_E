@@ -13,10 +13,6 @@ var filmRadioLastLyricIdx = -99;
 var filmRadioRafId = 0;
 var filmRadioSpectrumBuilt = false;
 var filmRadioSeekDragging = false;
-/* 进入胶片电台时临时降载 3D 渲染（覆盖层已盖住 3D 场景），
-   把帧预算让给歌词行切换动画；退出时恢复原质量档（不写入存档） */
-var filmRadioPrevQuality = null;
-
 /* ---------- 切换 ---------- */
 function syncFilmRadioButton() {
   var btn = document.getElementById('film-radio-btn');
@@ -42,17 +38,8 @@ function applyFilmRadioMode(on, opts) {
   if (opts.save) saveBooleanPreference(FILM_RADIO_STORE_KEY, filmRadioMode);
   if (filmRadioMode) {
     startFilmRadio();
-    // 3D 场景已被覆盖层盖住：临时切 eco 质量档，负载高时 3D 自动跳帧让路
-    if (typeof fx !== 'undefined' && fx && filmRadioPrevQuality === null) {
-      filmRadioPrevQuality = fx.performanceQuality || 'balanced';
-      fx.performanceQuality = 'eco';
-    }
   } else {
     stopFilmRadio();
-    if (filmRadioPrevQuality !== null && typeof fx !== 'undefined' && fx) {
-      fx.performanceQuality = filmRadioPrevQuality;
-      filmRadioPrevQuality = null;
-    }
   }
   // DIY 控制台的视觉预设卡片与本模式联动（卡片在 07-fx 模块构建）
   if (typeof refreshPresetGrid === 'function') refreshPresetGrid();

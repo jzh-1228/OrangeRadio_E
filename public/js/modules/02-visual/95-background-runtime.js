@@ -121,6 +121,13 @@ function stopVisualizerBgLoops() {
   }
 }
 
+/* 覆盖层（歌词模式）激活期间背景层被 z-index:5 不透明容器完全盖住：
+   tick/tickSlow 整段跳过，rAF 空转保留（每帧一次函数调用，成本可忽略），
+   退出覆盖层后下一帧自然续跑（dt 有 0.1s clamp，不会跳变）。 */
+function visualizerBgCoveredByOverlay() {
+  return typeof activeVisualizerOverlay === 'function' && !!activeVisualizerOverlay();
+}
+
 function startVisualizerBgLoops(impl) {
   var host = visualizerBgHost();
   if (!host || !impl) return;
@@ -129,6 +136,7 @@ function startVisualizerBgLoops(impl) {
   // 低速上下文轮询：封面/取色/seed 变化（全部实现共享，~1.4Hz）
   visualizerBgSlowTimer = setInterval(function () {
     if (!visualizerBgActiveImpl) return;
+    if (visualizerBgCoveredByOverlay()) return;
     try {
       visualizerBgActiveImpl.tickSlow(visualizerBackgroundContext());
     } catch (e) {
@@ -139,6 +147,11 @@ function startVisualizerBgLoops(impl) {
   // 绘制循环 ~30fps（低速漂浮场景足够，与 aurora/rainy 同档）
   function frame(now) {
     if (!visualizerBgActiveImpl) return;
+    if (visualizerBgCoveredByOverlay()) {
+      visualizerBgLastFrame = 0;
+      visualizerBgRafId = requestAnimationFrame(frame);
+      return;
+    }
     var dt = visualizerBgLastFrame ? Math.min(0.1, (now - visualizerBgLastFrame) / 1000) : 1 / 30;
     visualizerBgLastFrame = now;
     if (now - visualizerBgLastTick > 33) {

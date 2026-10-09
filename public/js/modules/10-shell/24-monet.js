@@ -13,7 +13,6 @@
 
 var MONET_STORE_KEY = 'orangesea-monet-v1';
 var monetMode = readBooleanPreference(MONET_STORE_KEY, false);
-var monetPrevQuality = null;
 var monetTimer = 0;
 var monetLinesKey = '';
 var monetRowsDom = [];
@@ -412,6 +411,7 @@ function stopMonet() {
   if (monetTimer) { clearTimeout(monetTimer); monetTimer = 0; }
   monetLinesKey = '';
   monetBgCache.key = '';
+  monetBgCache.url = '';   /* 海报 dataURL（1920×1080 jpeg）退出即释放引用，重进按 key 失配自然重建 */
   monetRowsDom = [];
   monetLastActiveIdx = -99;
 }
@@ -427,16 +427,8 @@ function applyMonetMode(on, opts) {
   if (overlay) overlay.setAttribute('aria-hidden', monetMode ? 'false' : 'true');
   if (opts.save) saveBooleanPreference(MONET_STORE_KEY, monetMode);
   if (monetMode) {
-    if (typeof fx !== 'undefined' && fx && monetPrevQuality === null) {
-      monetPrevQuality = fx.performanceQuality || 'balanced';
-      fx.performanceQuality = 'eco';
-    }
     startMonet();
   } else {
-    if (monetPrevQuality !== null && typeof fx !== 'undefined' && fx) {
-      fx.performanceQuality = monetPrevQuality;
-      monetPrevQuality = null;
-    }
     stopMonet();
   }
   if (typeof refreshPresetGrid === 'function') refreshPresetGrid();

@@ -17,7 +17,6 @@
 
 var CAPPELLA_STORE_KEY = 'orangesea-cappella-v1';
 var cappellaMode = readBooleanPreference(CAPPELLA_STORE_KEY, false);
-var cappellaPrevQuality = null;
 var cappellaTimer = 0;
 var cappellaLinesKey = '';
 var cappellaMessages = [];
@@ -531,16 +530,8 @@ function applyCappellaMode(on, opts) {
   if (overlay) overlay.setAttribute('aria-hidden', cappellaMode ? 'false' : 'true');
   if (opts.save) saveBooleanPreference(CAPPELLA_STORE_KEY, cappellaMode);
   if (cappellaMode) {
-    if (typeof fx !== 'undefined' && fx && cappellaPrevQuality === null) {
-      cappellaPrevQuality = fx.performanceQuality || 'balanced';
-      fx.performanceQuality = 'eco';
-    }
     startCappella();
   } else {
-    if (cappellaPrevQuality !== null && typeof fx !== 'undefined' && fx) {
-      fx.performanceQuality = cappellaPrevQuality;
-      cappellaPrevQuality = null;
-    }
     stopCappella();
   }
   if (typeof refreshPresetGrid === 'function') refreshPresetGrid();

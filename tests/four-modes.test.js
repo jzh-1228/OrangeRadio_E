@@ -140,18 +140,21 @@ function loadSandbox(file) {
   for (const css of ['diorama.css', 'sonnet.css', 'tempera.css', 'lumiere.css']) {
     assert.ok(html.includes(css), 'missing css link ' + css);
   }
+  const registry = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'modules', '02-visual', '90-visualizer-registry.js'), 'utf8');
   const loader = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'index-loader.js'), 'utf8');
-  for (const mod of ['25-diorama.js', '26-sonnet.js', '27-tempera.js', '28-lumiere.js']) {
+  for (const mod of ['25-diorama.js', '26-sonnet.js', '28-lumiere.js']) {
     assert.ok(loader.includes(mod), 'missing loader entry ' + mod);
   }
-  const registry = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'modules', '02-visual', '90-visualizer-registry.js'), 'utf8');
+  // 凝彩为懒加载试点：不在启动 loader 中，由注册表 entry.lazy 协议按需注入
+  assert.ok(!loader.includes('27-tempera.js'), 'tempera should be lazy (not in startup loader)');
+  assert.ok(registry.includes("lazy: true, storeKey: 'orangesea-tempera-v1'"), 'tempera entry must be lazy');
   for (const id of ['diorama', 'sonnet', 'tempera', 'lumiere']) {
     assert.ok(registry.includes("id: '" + id + "'"), 'missing registry entry ' + id);
   }
+  // 网格卡片已收敛为注册表驱动的通用 builder（per-mode builder 移除）
   const grid = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'modules', '07-fx', '04-preset-grid-uniforms.js'), 'utf8');
-  for (const fn of ['buildDioramaPresetCard', 'buildSonnetPresetCard', 'buildTemperaPresetCard', 'buildLumierePresetCard']) {
-    assert.ok(grid.includes(fn + '()'), 'missing grid card call ' + fn);
-  }
+  assert.ok(grid.includes('buildOverlayPresetCard'), 'grid must use generic overlay card builder');
+  assert.ok(!grid.includes('buildTemperaPresetCard'), 'per-mode builders should be gone');
 }
 
 console.log('four-modes.test.js: all assertions passed');

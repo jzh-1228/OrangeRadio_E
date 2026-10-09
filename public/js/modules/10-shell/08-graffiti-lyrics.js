@@ -16,7 +16,6 @@ var graffitiLastLineIdx = -99;
 var graffitiCurrentLine = null;
 var graffitiChars = [];          /* [{ el, reveal }] reveal=相对行开始的秒数 */
 var graffitiLineStartT = 0;
-var graffitiPrevQuality = null;
 var graffitiObserver = null;
 var graffitiLyricsObserverToken = 0;
 var graffitiResizeTimer = 0;
@@ -45,17 +44,8 @@ function applyGraffitiMode(on, opts) {
   if (opts.save) saveBooleanPreference(GRAFFITI_STORE_KEY, graffitiMode);
   if (graffitiMode) {
     startGraffiti();
-    /* 3D 场景已被覆盖层盖住：临时切 eco 质量档让出帧预算 */
-    if (typeof fx !== 'undefined' && fx && graffitiPrevQuality === null) {
-      graffitiPrevQuality = fx.performanceQuality || 'balanced';
-      fx.performanceQuality = 'eco';
-    }
   } else {
     stopGraffiti();
-    if (graffitiPrevQuality !== null && typeof fx !== 'undefined' && fx) {
-      fx.performanceQuality = graffitiPrevQuality;
-      graffitiPrevQuality = null;
-    }
   }
   if (typeof refreshPresetGrid === 'function') refreshPresetGrid();
   if (opts.toast) showToast(graffitiMode ? '涂鸦墙已开启' : '已切回标准模式');

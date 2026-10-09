@@ -31,7 +31,6 @@
 var PENDOLO_STORE_KEY = 'orangesea-pendolo-v1';
 var pendoloMode = (typeof readBooleanPreference === 'function') ? readBooleanPreference(PENDOLO_STORE_KEY, false) : false;
 var pendoloRafId = 0;
-var pendoloPrevQuality = null;
 var pendoloResizeTimer = 0;
 var pendoloLyricsToken = 0;
 var pendoloLastLyricsSig = '';
@@ -1409,17 +1408,8 @@ function applyPendoloMode(on, opts) {
   if (opts.save) saveBooleanPreference(PENDOLO_STORE_KEY, pendoloMode);
   if (pendoloMode) {
     startPendolo();
-    /* 3D 场景已被覆盖层盖住：临时切 eco 质量档让出帧预算（退出时恢复） */
-    if (typeof fx !== 'undefined' && fx && pendoloPrevQuality === null) {
-      pendoloPrevQuality = fx.performanceQuality || 'balanced';
-      fx.performanceQuality = 'eco';
-    }
   } else {
     stopPendolo();
-    if (pendoloPrevQuality !== null && typeof fx !== 'undefined' && fx) {
-      fx.performanceQuality = pendoloPrevQuality;
-      pendoloPrevQuality = null;
-    }
   }
   if (typeof refreshPresetGrid === 'function') refreshPresetGrid();
   if (opts.toast) showToast(pendoloMode ? '钟摆已开启' : '已切回标准模式');

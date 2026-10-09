@@ -10,7 +10,7 @@
    transform（transition 全部落在 CSS，评估路径 dom）。
 
    形态（照 09-aurora-flow.js 范本）：body.tilt + localStorage + 覆盖层
-   互斥经 90-visualizer-registry；进入临时切 eco 质量档、退出恢复。
+   互斥经 90-visualizer-registry；eco 质量档由 91-overlay-transition 统一管理。
    本模式不消费音频特征（Folia Tilt 为纯歌词模式），rAF 只推歌词时间。
 
    分层：L0 暖夜背景（CSS 渐变，无 canvas）/
@@ -20,7 +20,6 @@
 var TILT_STORE_KEY = 'orangesea-tilt-mode-v1';
 var tiltMode = readBooleanPreference(TILT_STORE_KEY, false);
 var tiltRafId = 0;
-var tiltPrevQuality = null;
 var tiltLyricsObserverToken = 0;
 var tiltResizeTimer = 0;
 var tiltLastFontKey = null;
@@ -68,17 +67,8 @@ function applyTiltMode(on, opts) {
   if (opts.save) saveBooleanPreference(TILT_STORE_KEY, tiltMode);
   if (tiltMode) {
     startTilt();
-    /* 3D 场景已被覆盖层盖住：临时切 eco 质量档让出帧预算（退出时恢复） */
-    if (typeof fx !== 'undefined' && fx && tiltPrevQuality === null) {
-      tiltPrevQuality = fx.performanceQuality || 'balanced';
-      fx.performanceQuality = 'eco';
-    }
   } else {
     stopTilt();
-    if (tiltPrevQuality !== null && typeof fx !== 'undefined' && fx) {
-      fx.performanceQuality = tiltPrevQuality;
-      tiltPrevQuality = null;
-    }
   }
   if (typeof refreshPresetGrid === 'function') refreshPresetGrid();
   if (opts.toast) showToast(tiltMode ? '斜排已开启' : '已切回标准模式');

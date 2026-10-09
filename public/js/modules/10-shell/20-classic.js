@@ -29,7 +29,6 @@
 var CLASSIC_STORE_KEY = 'orangesea-classic-luminous-v1';
 var classicMode = readBooleanPreference(CLASSIC_STORE_KEY, false);
 var classicRafId = 0;
-var classicPrevQuality = null;
 var classicLyricsWatchToken = 0;
 var classicLineKey = '';          /* idx:lineT —— 行身份，变化即重建 */
 var classicLineEl = null;         /* 当前行元素（双槽退场的"新槽"） */
@@ -66,17 +65,8 @@ function applyClassicMode(on, opts) {
   if (opts.save) saveBooleanPreference(CLASSIC_STORE_KEY, classicMode);
   if (classicMode) {
     startClassic();
-    /* 3D 场景已被覆盖层盖住：临时切 eco 质量档让出帧预算（退出时恢复） */
-    if (typeof fx !== 'undefined' && fx && classicPrevQuality === null) {
-      classicPrevQuality = fx.performanceQuality || 'balanced';
-      fx.performanceQuality = 'eco';
-    }
   } else {
     stopClassic();
-    if (classicPrevQuality !== null && typeof fx !== 'undefined' && fx) {
-      fx.performanceQuality = classicPrevQuality;
-      classicPrevQuality = null;
-    }
   }
   if (typeof refreshPresetGrid === 'function') refreshPresetGrid();
   if (opts.toast) showToast(classicMode ? '流萤辉光已开启' : '已切回标准模式');

@@ -7,14 +7,72 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const base = path.join(__dirname, '..', 'public', 'js', 'modules');
+const overlayEls = {};   /* fake DOM：data-leaving 状态 + 内联样式记录（协调器用例） */
+function makeFakeOverlayEl() {
+  const attrs = new Set();
+  /* Proxy 拦截：协调器混用 el.style.x = v 直赋与 setProperty/removeProperty，
+     统一落入同一存储供断言读取 */
+  const camel = (n) => String(n).replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+  const style = new Proxy({}, {
+    get(t, k) {
+      if (k === 'setProperty') return (n, v) => { t[camel(n)] = v; };
+      if (k === 'removeProperty') return (n) => { delete t[camel(n)]; };
+      return t[k];
+    },
+    set(t, k, v) { t[k] = v; return true; },
+  });
+  return {
+    style, props: style, attrs,
+    hasAttribute(n) { return attrs.has(n); },
+    setAttribute(n) { attrs.add(n); },
+    removeAttribute(n) { attrs.delete(n); },
+    offsetWidth: 0,
+  };
+}
 const sandbox = {
   console: { log() {}, warn() {}, error() {} },
-  setTimeout, clearTimeout, Promise, Map, Set, Math, JSON, Object, Array, Uint8Array,
+  /* setTimeout 保留宿主实现（信号/恢复用例依赖）；setInterval 用 no-op，
+     防 node --test 等待协调器的常驻轮询定时器 */
+  setTimeout, clearTimeout, setInterval: () => 0, clearInterval: () => {},
+  Promise, Map, Set, Math, JSON, Object, Array, Uint8Array,
+  getComputedStyle: () => ({ zIndex: '5' }),
+  document: {
+    getElementById(id) {
+      if (!/-overlay$/.test(id)) return null;
+      if (!overlayEls[id]) overlayEls[id] = makeFakeOverlayEl();
+      return overlayEls[id];
+    },
+    createElement: () => ({ text: '' }),
+    head: { appendChild() {} },
+  },
 };
 sandbox.window = sandbox;
 vm.createContext(sandbox);
-for (const file of ['00-state/12-motion-signals.js', '02-visual/90-visualizer-registry.js', '02-visual/92-background-registry.js']) {
+for (const file of ['00-state/12-motion-signals.js', '02-visual/90-visualizer-registry.js', '02-visual/91-overlay-transition.js', '02-visual/92-background-registry.js']) {
   vm.runInContext(fs.readFileSync(path.join(base, file), 'utf8'), sandbox, { filename: file });
+}
+
+/* ---------- 注册表扩展协议（icon/desc/cardClass/lazy/trimCache） ---------- */
+{
+  const modes = sandbox.listVisualizerOverlayModes();
+  // 全部模式带卡片元数据（通用 builder 依赖 icon/desc，缺失会渲染空卡片）
+  for (const m of modes) {
+    assert.ok(m.icon && m.icon.indexOf('<svg') === 0, m.id + ' entry must carry svg icon');
+    assert.ok(m.desc, m.id + ' entry must carry desc');
+  }
+  // 容器 id 约定：<id>-overlay 必须静态预埋在 index.html
+  const indexHtml = fs.readFileSync(path.join(__dirname, '..', 'public', 'index.html'), 'utf8');
+  for (const m of modes) {
+    assert.ok(indexHtml.includes('id="' + m.id + '-overlay"'), 'index.html must embed #' + m.id + '-overlay');
+  }
+  // lazy 试点协议：storeKey/src 齐备且 src 文件存在
+  for (const m of modes.filter((x) => x.lazy)) {
+    assert.ok(m.storeKey, m.id + ' lazy entry must carry storeKey');
+    assert.ok(Array.isArray(m.src) && m.src.length > 0, m.id + ' lazy entry must carry src');
+    for (const src of m.src) {
+      assert.ok(fs.existsSync(path.join(__dirname, '..', 'public', src)), 'lazy src must exist: ' + src);
+    }
+  }
 }
 
 /* ---------- 前景注册表 ---------- */
@@ -60,6 +118,57 @@ for (const file of ['00-state/12-motion-signals.js', '02-visual/90-visualizer-re
   sandbox.testMode = true;
   assert.equal(sandbox.activeVisualizerOverlay().id, 'test-mode');
 }
+
+/* ---------- toggleVisualizerOverlay 通用入口 ---------- */
+{
+  const toggled = [];
+  sandbox.applyStillMode = (on, opts) => { sandbox.stillMode = !!on; toggled.push(['still', on, opts.save, opts.toast]); };
+  sandbox.stillMode = false;
+  sandbox.toggleVisualizerOverlay('still');
+  assert.equal(JSON.stringify(toggled), JSON.stringify([['still', true, true, true]]));
+  sandbox.toggleVisualizerOverlay('still');
+  assert.equal(JSON.stringify(toggled[1]), JSON.stringify(['still', false, true, true]));
+  // 未知 id 静默忽略
+  sandbox.toggleVisualizerOverlay('no-such-mode');
+  assert.equal(toggled.length, 2);
+}
+
+/* ---------- 转场协调器（91-overlay-transition） ---------- */
+(async () => {
+  // eco 边沿：进入压 eco（记原档），退出恢复——幂等
+  sandbox.fx = { performanceQuality: 'ultra' };
+  sandbox.applyOverlayEco(true);
+  assert.equal(sandbox.fx.performanceQuality, 'eco');
+  sandbox.applyOverlayEco(true);
+  assert.equal(sandbox.fx.performanceQuality, 'eco');
+  sandbox.applyOverlayEco(false);
+  assert.equal(sandbox.fx.performanceQuality, 'ultra');
+  sandbox.applyOverlayEco(false);
+  assert.equal(sandbox.fx.performanceQuality, 'ultra');
+
+  // 退场续命：data-leaving 标记 + display/zIndex/opacity 内联接管，
+  // OVERLAY_EXIT_MS+40 后清理还原。fake 容器按 id 约定取。
+  const el = sandbox.document.getElementById('still-overlay');
+  sandbox.beginOverlayExitTransition(sandbox.getVisualizerOverlayMode('still'));
+  assert.equal(el.hasAttribute('data-leaving'), true);
+  assert.equal(el.props['display'], 'block');
+  assert.equal(el.props['zIndex'], '4');   /* 协调器以 CSSOM 驼峰赋值 */
+  assert.equal(el.props['opacity'], '0');
+  assert.ok(/0\.32s/.test(el.props['transition']), 'exit transition should be 0.32s');
+  await new Promise((r) => setTimeout(r, 420));
+  assert.equal(el.hasAttribute('data-leaving'), false);
+  assert.equal(el.props['display'], undefined);
+  assert.equal(el.props['opacity'], undefined);
+
+  // cancelOverlayExit：续命挂起期间重新进入，内联即刻清理（避免 opacity:0 压制入场动画结束态）
+  sandbox.beginOverlayExitTransition(sandbox.getVisualizerOverlayMode('still'));
+  assert.equal(el.hasAttribute('data-leaving'), true);
+  sandbox.cancelOverlayExit(sandbox.getVisualizerOverlayMode('still'));
+  assert.equal(el.hasAttribute('data-leaving'), false);
+  assert.equal(el.props['zIndex'], undefined);
+  await new Promise((r) => setTimeout(r, 420));   /* 等 40ms 偏移的旧定时器落空 */
+  console.log('OK overlay-transition');
+})().catch((err) => { console.error(err); process.exitCode = 1; });
 
 /* ---------- 背景注册表 ---------- */
 {

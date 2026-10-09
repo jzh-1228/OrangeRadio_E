@@ -10575,6 +10575,23 @@ body.desktop-shell.diy-mode #bottom-bar.stage-mode {
   margin-bottom: 10px
 }
 
+.preset-section-title {
+  grid-column: 1 / -1;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: rgba(255, 255, 255, .55);
+  padding: 4px 2px 0;
+  user-select: none
+}
+
+.preset-section-title span {
+  font-weight: 500;
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, .3);
+  margin-left: 6px
+}
+
 .preset-card {
   position: relative;
   min-height: 94px;

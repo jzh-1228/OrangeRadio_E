@@ -13,7 +13,6 @@
 
 var LUMIERE_STORE_KEY = 'orangesea-lumiere-v1';
 var lumiereMode = readBooleanPreference(LUMIERE_STORE_KEY, false);
-var lumierePrevQuality = null;
 var lumiereTimer = 0;
 var lumiereRafId = 0;
 var lumiereCanvas = null;
@@ -311,16 +310,8 @@ function applyLumiereMode(on, opts) {
   if (overlay) overlay.setAttribute('aria-hidden', lumiereMode ? 'false' : 'true');
   if (opts.save) saveBooleanPreference(LUMIERE_STORE_KEY, lumiereMode);
   if (lumiereMode) {
-    if (typeof fx !== 'undefined' && fx && lumierePrevQuality === null) {
-      lumierePrevQuality = fx.performanceQuality || 'balanced';
-      fx.performanceQuality = 'eco';
-    }
     startLumiere();
   } else {
-    if (lumierePrevQuality !== null && typeof fx !== 'undefined' && fx) {
-      fx.performanceQuality = lumierePrevQuality;
-      lumierePrevQuality = null;
-    }
     stopLumiere();
   }
   if (typeof refreshPresetGrid === 'function') refreshPresetGrid();

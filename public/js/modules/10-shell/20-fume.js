@@ -24,13 +24,12 @@
      · framer-motion MotionValue → motionSignalGet('audioPower'/'bands')，
        覆盖层期间主循环被保温门控暂停信号写入 → frequencyData 自算回退
      · 歌词时间 = getAdjustedLyricPlaybackTime(audio.currentTime)（歌词坐标系）
-     · 覆盖层互斥经视觉模式注册表；进入临时切 eco 质量档，退出恢复
+     · 覆盖层互斥经视觉模式注册表；eco 质量档由 91-overlay-transition 统一管理
    ========================================================================= */
 
 var FUME_STORE_KEY = 'orangesea-fume-v1';
 var fumeMode = readBooleanPreference(FUME_STORE_KEY, false);
 var fumeRafId = 0;
-var fumePrevQuality = null;
 var fumeObserver = null;
 var fumeResizeTimer = 0;
 var fumeLastLineIdx = -99;
@@ -2761,17 +2760,8 @@ function applyFumeMode(on, opts) {
   if (opts.save) saveBooleanPreference(FUME_STORE_KEY, fumeMode);
   if (fumeMode) {
     startFume();
-    /* 3D 场景已被覆盖层盖住：临时切 eco 质量档让出帧预算（退出时恢复） */
-    if (typeof fx !== 'undefined' && fx && fumePrevQuality === null) {
-      fumePrevQuality = fx.performanceQuality || 'balanced';
-      fx.performanceQuality = 'eco';
-    }
   } else {
     stopFume();
-    if (fumePrevQuality !== null && typeof fx !== 'undefined' && fx) {
-      fx.performanceQuality = fumePrevQuality;
-      fumePrevQuality = null;
-    }
   }
   if (typeof refreshPresetGrid === 'function') refreshPresetGrid();
   if (opts.toast) showToast(fumeMode ? '烟纸已开启' : '已切回标准模式');

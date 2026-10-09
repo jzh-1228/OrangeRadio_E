@@ -15,7 +15,6 @@
 var AURORA_STORE_KEY = 'orangesea-aurora-flow-v1';
 var auroraMode = readBooleanPreference(AURORA_STORE_KEY, false);
 var auroraRafId = 0;
-var auroraPrevQuality = null;
 var auroraObserver = null;
 var auroraLyricsObserverToken = 0;
 var auroraLastLineIdx = -99;
@@ -57,17 +56,8 @@ function applyAuroraMode(on, opts) {
   if (opts.save) saveBooleanPreference(AURORA_STORE_KEY, auroraMode);
   if (auroraMode) {
     startAurora();
-    /* 3D 场景已被覆盖层盖住：临时切 eco 质量档让出帧预算（退出时恢复） */
-    if (typeof fx !== 'undefined' && fx && auroraPrevQuality === null) {
-      auroraPrevQuality = fx.performanceQuality || 'balanced';
-      fx.performanceQuality = 'eco';
-    }
   } else {
     stopAurora();
-    if (auroraPrevQuality !== null && typeof fx !== 'undefined' && fx) {
-      fx.performanceQuality = auroraPrevQuality;
-      auroraPrevQuality = null;
-    }
   }
   if (typeof refreshPresetGrid === 'function') refreshPresetGrid();
   if (opts.toast) showToast(auroraMode ? '流光已开启' : '已切回标准模式');

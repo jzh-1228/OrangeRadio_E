@@ -222,12 +222,13 @@ sandbox.lyricsLines = [];
 mockNow = 20; sandbox.partitaTickLyrics();
 assert.ok(emptyEl._classes.has('show'), '无歌词时显示空态');
 
-// eco 质量档进出
+// eco 质量档已收编到 91-overlay-transition 统一管理（activeOverlay 边沿驱动），
+// 模块自身进出不再读写 performanceQuality——保持调用方档位不变。
 sandbox.fx = { performanceQuality: 'balanced' };
 sandbox.applyPartitaMode(true, { save: false });
-assert.equal(sandbox.fx.performanceQuality, 'eco', '进入时临时切 eco');
+assert.equal(sandbox.fx.performanceQuality, 'balanced', '模块不再自管 eco');
 sandbox.applyPartitaMode(false, { save: false });
-assert.equal(sandbox.fx.performanceQuality, 'balanced', '退出恢复 balanced');
+assert.equal(sandbox.fx.performanceQuality, 'balanced', '模块不再自管恢复');
 assert.equal(bodyClassToggled, null, '退出后 body class 移除');
 
 console.log('OK partita');

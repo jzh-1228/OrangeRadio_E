@@ -63,7 +63,6 @@ function claddaghSyncTheme() {
 /* ---------- 模块状态 ---------- */
 var claddaghMode = readBooleanPreference(CLADDAGH_STORE_KEY, false);
 var claddaghRafId = 0;
-var claddaghPrevQuality = null;
 var claddaghResizeTimer = 0;
 var claddaghLyricsObserverToken = 0;
 var claddaghLastFontKey = null;
@@ -1087,17 +1086,8 @@ function applyCladdaghMode(on, opts) {
   if (opts.save) saveBooleanPreference(CLADDAGH_STORE_KEY, claddaghMode);
   if (claddaghMode) {
     startCladdagh();
-    /* 3D 场景已被覆盖层盖住：临时切 eco 质量档让出帧预算（退出时恢复） */
-    if (typeof fx !== 'undefined' && fx && claddaghPrevQuality === null) {
-      claddaghPrevQuality = fx.performanceQuality || 'balanced';
-      fx.performanceQuality = 'eco';
-    }
   } else {
     stopCladdagh();
-    if (claddaghPrevQuality !== null && typeof fx !== 'undefined' && fx) {
-      fx.performanceQuality = claddaghPrevQuality;
-      claddaghPrevQuality = null;
-    }
   }
   if (typeof refreshPresetGrid === 'function') refreshPresetGrid();
   if (opts.toast) showToast(claddaghMode ? '环歌已开启' : '已切回标准模式');

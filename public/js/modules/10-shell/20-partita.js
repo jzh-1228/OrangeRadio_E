@@ -12,7 +12,7 @@
    transition/animation（spring(200,20) 以近似贝塞尔实现）。
 
    形态（照 09-aurora-flow.js 范式）：body.partita 全屏覆盖 + DOM 歌词 +
-   音频特征自算回退 + 进入临时切 eco 质量档退出恢复 + 互斥经视觉模式注册表。
+   音频特征自算回退 + eco 质量档由 91-overlay-transition 统一管理 + 互斥经视觉模式注册表。
 
    分层：L0 日落夜空渐变（CSS）/ L0.5 暖色地平线辉光（--pt-energy 驱动）/
          L1 暗角 / L2 歌词（列/块错落 + 词阶 stagger + 逐字流光）。
@@ -26,8 +26,6 @@
 var PARTITA_STORE_KEY = 'orangesea-partita-v1';
 var partitaMode = readBooleanPreference(PARTITA_STORE_KEY, false);
 var partitaRafId = 0;
-var partitaPrevQuality = null;
-
 /* Folia DEFAULT_PARTITA_TUNING（types.ts）——本项目无 tuning 面板，取默认值固定 */
 var partitaTuning = { showGuideLines: true, useSemanticLayout: true, staggerMin: 20, staggerMax: 100 };
 /* Folia PARTITA_PREHEAT_WINDOW（VisualizerPartita.tsx） */
@@ -984,17 +982,8 @@ function applyPartitaMode(on, opts) {
   if (opts.save) saveBooleanPreference(PARTITA_STORE_KEY, partitaMode);
   if (partitaMode) {
     startPartita();
-    /* 3D 场景已被覆盖层盖住：临时切 eco 质量档让出帧预算（退出时恢复） */
-    if (typeof fx !== 'undefined' && fx && partitaPrevQuality === null) {
-      partitaPrevQuality = fx.performanceQuality || 'balanced';
-      fx.performanceQuality = 'eco';
-    }
   } else {
     stopPartita();
-    if (partitaPrevQuality !== null && typeof fx !== 'undefined' && fx) {
-      fx.performanceQuality = partitaPrevQuality;
-      partitaPrevQuality = null;
-    }
   }
   if (typeof refreshPresetGrid === 'function') refreshPresetGrid();
   if (opts.toast) showToast(partitaMode ? '云阶已开启' : '已切回标准模式');

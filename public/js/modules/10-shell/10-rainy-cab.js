@@ -18,7 +18,6 @@
 var RAINY_STORE_KEY = 'orangesea-rainy-cab-v1';
 var rainyMode = readBooleanPreference(RAINY_STORE_KEY, false);
 var rainyRafId = 0;
-var rainyPrevQuality = null;
 var rainyObserver = null;
 var rainyLyricsObserverToken = 0;
 var rainyLastLineIdx = -99;
@@ -73,16 +72,8 @@ function applyRainyMode(on, opts) {
   if (opts.save) saveBooleanPreference(RAINY_STORE_KEY, rainyMode);
   if (rainyMode) {
     startRainy();
-    if (typeof fx !== 'undefined' && fx && rainyPrevQuality === null) {
-      rainyPrevQuality = fx.performanceQuality || 'balanced';
-      fx.performanceQuality = 'eco';
-    }
   } else {
     stopRainy();
-    if (rainyPrevQuality !== null && typeof fx !== 'undefined' && fx) {
-      fx.performanceQuality = rainyPrevQuality;
-      rainyPrevQuality = null;
-    }
   }
   if (typeof refreshPresetGrid === 'function') refreshPresetGrid();
   /* 控制台「雨夜车窗」设置组随模式显隐 */

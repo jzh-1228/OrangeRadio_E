@@ -12,7 +12,6 @@
 
 var TEMPERA_STORE_KEY = 'orangesea-tempera-v1';
 var temperaMode = readBooleanPreference(TEMPERA_STORE_KEY, false);
-var temperaPrevQuality = null;
 var temperaTimer = 0;
 var temperaBlocksDom = [];
 var temperaLastSeed = '';
@@ -231,6 +230,12 @@ function temperaBlockSprite(shape, color, w, h) {
   } catch (e) { return 'none'; }
 }
 
+/* 注册表 trimCache 钩子：退出凝彩后延迟调用，释放烘焙贴图 dataURL 常驻内存。
+   重新进入时缓存缺失按 key 自然重建，无行为差异。 */
+function trimTemperaSpriteCache() {
+  temperaSpriteCache = {};
+}
+
 /* ---------- 能量驱动（副歌更实更亮） ---------- */
 
 function temperaTickEnergy() {
@@ -360,16 +365,8 @@ function applyTemperaMode(on, opts) {
   if (overlay) overlay.setAttribute('aria-hidden', temperaMode ? 'false' : 'true');
   if (opts.save) saveBooleanPreference(TEMPERA_STORE_KEY, temperaMode);
   if (temperaMode) {
-    if (typeof fx !== 'undefined' && fx && temperaPrevQuality === null) {
-      temperaPrevQuality = fx.performanceQuality || 'balanced';
-      fx.performanceQuality = 'eco';
-    }
     startTempera();
   } else {
-    if (temperaPrevQuality !== null && typeof fx !== 'undefined' && fx) {
-      fx.performanceQuality = temperaPrevQuality;
-      temperaPrevQuality = null;
-    }
     stopTempera();
   }
   if (typeof refreshPresetGrid === 'function') refreshPresetGrid();

@@ -16,8 +16,6 @@
 
 var LATTICE_STORE_KEY = 'orangesea-lattice-mode-v1';
 var latticeMode = readBooleanPreference(LATTICE_STORE_KEY, false);
-var latticePrevQuality = null;
-
 /* ---------- 几何常量（Folia PosterWall: CELL_SIZE=128 GAP=8） ---------- */
 var LT_CELL = 128;
 var LT_GAP = 8;
@@ -642,16 +640,8 @@ function applyLatticeMode(on, opts) {
   if (overlay) overlay.setAttribute('aria-hidden', latticeMode ? 'false' : 'true');
   if (opts.save) saveBooleanPreference(LATTICE_STORE_KEY, latticeMode);
   if (latticeMode) {
-    if (typeof fx !== 'undefined' && fx && latticePrevQuality === null) {
-      latticePrevQuality = fx.performanceQuality || 'balanced';
-      fx.performanceQuality = 'eco';
-    }
     startLattice();
   } else {
-    if (latticePrevQuality !== null && typeof fx !== 'undefined' && fx) {
-      fx.performanceQuality = latticePrevQuality;
-      latticePrevQuality = null;
-    }
     stopLattice();
   }
   if (typeof refreshPresetGrid === 'function') refreshPresetGrid();

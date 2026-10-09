@@ -49,6 +49,7 @@
     'js/modules/02-visual/14-stage-lyrics-rendering.js',
     'js/modules/02-visual/15-ripples-cover-depth.js',
     'js/modules/02-visual/90-visualizer-registry.js',
+    'js/modules/02-visual/91-overlay-transition.js',
     'js/modules/02-visual/92-background-registry.js',
     'js/modules/02-visual/93-three-resource-tiers.js',
     'js/modules/02-visual/94-background-presets.js',
@@ -162,13 +163,12 @@
     'js/modules/10-shell/20-pendolo.js',
     'js/modules/10-shell/20-partita.js',
     'js/modules/10-shell/21-cadenza.js',
-    'js/modules/10-shell/22a-lattice-blocks.js',
-    'js/modules/10-shell/22-lattice.js',
+    /* 凝彩(27-tempera) 与队列拼贴(22a/22-lattice) 改为懒加载试点：
+       注册表 entry.lazy + ensureOverlayModeLoaded 按需注入（90-visualizer-registry） */
     'js/modules/10-shell/23-cappella.js',
     'js/modules/10-shell/24-monet.js',
     'js/modules/10-shell/25-diorama.js',
     'js/modules/10-shell/26-sonnet.js',
-    'js/modules/10-shell/27-tempera.js',
     'js/modules/10-shell/28-lumiere.js',
     'js/modules/10-shell/10-support.js',
     'js/modules/10-shell/11-feedback.js',

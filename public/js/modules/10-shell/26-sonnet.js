@@ -13,7 +13,6 @@
 
 var SONNET_STORE_KEY = 'orangesea-sonnet-v1';
 var sonnetMode = readBooleanPreference(SONNET_STORE_KEY, false);
-var sonnetPrevQuality = null;
 var sonnetTimer = 0;
 var sonnetRows = [];                 /* DOM 行栈（复用，最多 7） */
 var sonnetLastLinesKey = '';
@@ -226,16 +225,8 @@ function applySonnetMode(on, opts) {
   if (overlay) overlay.setAttribute('aria-hidden', sonnetMode ? 'false' : 'true');
   if (opts.save) saveBooleanPreference(SONNET_STORE_KEY, sonnetMode);
   if (sonnetMode) {
-    if (typeof fx !== 'undefined' && fx && sonnetPrevQuality === null) {
-      sonnetPrevQuality = fx.performanceQuality || 'balanced';
-      fx.performanceQuality = 'eco';
-    }
     startSonnet();
   } else {
-    if (sonnetPrevQuality !== null && typeof fx !== 'undefined' && fx) {
-      fx.performanceQuality = sonnetPrevQuality;
-      sonnetPrevQuality = null;
-    }
     stopSonnet();
   }
   if (typeof refreshPresetGrid === 'function') refreshPresetGrid();

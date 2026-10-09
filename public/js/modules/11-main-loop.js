@@ -364,14 +364,14 @@ function animate() {
     if (perfProbe && perfProbe.mark) perfProbe.mark('frame.total', splashFrameCostMs);
     return;
   }
-  // 胶片电台/涂鸦墙覆盖 3D：降频渲染（约 0.5fps 保持温热），跳过节拍/粒子模拟省 GPU
+  // 胶片电台/涂鸦墙覆盖 3D：降频渲染（约 0.25fps 保持温热，防 GPU 资源回收），跳过节拍/粒子模拟省 GPU
   if (isMainSceneCoveredByOverlay()) {
     // 频谱原始数据必须继续采集（胶片电台底部频谱依赖 frequencyData），仅这一步廉价 CPU 读取
     if (typeof analyser !== 'undefined' && analyser && typeof frequencyData !== 'undefined' && frequencyData) {
       try { analyser.getByteFrequencyData(frequencyData); } catch (e) { }
       if (typeof timeDomainData !== 'undefined' && timeDomainData) { try { analyser.getByteTimeDomainData(timeDomainData); } catch (e) { } }
     }
-    if (now - overlayCoverRenderLast > 2000) {
+    if (now - overlayCoverRenderLast > 4000) {
       overlayCoverRenderLast = now;
       var overlayRenderPerfStart = performance.now();
       renderer.render(scene, camera);

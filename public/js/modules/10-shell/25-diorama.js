@@ -14,7 +14,6 @@
 
 var DIORAMA_STORE_KEY = 'orangesea-diorama-v1';
 var dioramaMode = readBooleanPreference(DIORAMA_STORE_KEY, false);
-var dioramaPrevQuality = null;
 var dioramaTimer = 0;
 var dioramaRafId = 0;
 var dioramaCanvas = null;
@@ -248,16 +247,8 @@ function applyDioramaMode(on, opts) {
   if (overlay) overlay.setAttribute('aria-hidden', dioramaMode ? 'false' : 'true');
   if (opts.save) saveBooleanPreference(DIORAMA_STORE_KEY, dioramaMode);
   if (dioramaMode) {
-    if (typeof fx !== 'undefined' && fx && dioramaPrevQuality === null) {
-      dioramaPrevQuality = fx.performanceQuality || 'balanced';
-      fx.performanceQuality = 'eco';
-    }
     startDiorama();
   } else {
-    if (dioramaPrevQuality !== null && typeof fx !== 'undefined' && fx) {
-      fx.performanceQuality = dioramaPrevQuality;
-      dioramaPrevQuality = null;
-    }
     stopDiorama();
   }
   if (typeof refreshPresetGrid === 'function') refreshPresetGrid();
