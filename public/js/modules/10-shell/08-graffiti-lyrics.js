@@ -171,8 +171,9 @@ function fitGraffitiFontSize(container) {
   if (!container) return;
   var maxH = (window.innerHeight - 124) * 0.74;   /* 减控制栏后的可视区高度 */
   var maxW = container.clientWidth || Math.round(window.innerWidth * 0.84);
-  var lo = 32;
-  var hi = Math.round(window.innerHeight * 0.46);  /* 上限 ≈ 半屏高 */
+  var gwFS = (typeof overlayModeFontScale === 'function') ? overlayModeFontScale() : 1;   /* 字号跟随「歌词大小」 */
+  var lo = 32 * gwFS;
+  var hi = Math.round(window.innerHeight * 0.46 * gwFS);  /* 上限 ≈ 半屏高 */
   /* 测量期间以 is-measuring 中和入场独立属性：scale/translate 与 transform 一样
      计入祖先 scrollable overflow，未点亮字符的初始态（rise 的 0.72em 位移、
      zoom 的 1.85 倍放大等）会撑大 scrollHeight/scrollWidth 读数导致字号偏小 */

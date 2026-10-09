@@ -393,6 +393,8 @@ function monetTick() {
 /* ---------- 生命周期 ---------- */
 
 function startMonet() {
+  /* 字号跟随「歌词大小」设置（--mfs，CSS 主行乘算） */
+  if (typeof applyOverlayModeFontScale === "function") applyOverlayModeFontScale(document.getElementById("monet-overlay"));
   monetLinesKey = '';
   monetBgCache.key = '';
   monetRefreshBackground();

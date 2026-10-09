@@ -2429,7 +2429,7 @@ function fumeRebuildLayout() {
   var cacheKey = fumeBuildLayoutCacheKey(lines, vp, fumeTheme, 1, fumeTuning);
   var article = (fumeLastLayoutCache && fumeLastLayoutCache.key === cacheKey)
     ? fumeLastLayoutCache.article
-    : fumeBuildArticleLayout(lines, vp, fumeTheme, 1, fumeTuning);
+    : fumeBuildArticleLayout(lines, vp, fumeTheme, (typeof overlayModeFontScale === 'function') ? overlayModeFontScale() : 1, fumeTuning);   /* 字号跟随「歌词大小」 */
   fumeLastLayoutCache = { key: cacheKey, article: article };
   fumeHasResolvedArticle = article !== null;
   fumeState.article = article;

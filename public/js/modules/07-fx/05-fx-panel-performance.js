@@ -450,7 +450,7 @@ function flushStageLyricRealtimeRefresh() {
   refreshStageLyricDisplayMode();
   /* 覆盖层歌词模式同步字号缩放（--mfs：cadenza/diorama/sonnet/tempera/lumiere/classic 主行 clamp 乘算） */
   if (typeof applyOverlayModeFontScale === 'function') {
-    var ids = ['cadenza-overlay', 'diorama-overlay', 'sonnet-overlay', 'tempera-overlay', 'lumiere-overlay', 'classic-overlay', 'partita-overlay'];
+    var ids = ['cadenza-overlay', 'diorama-overlay', 'sonnet-overlay', 'tempera-overlay', 'lumiere-overlay', 'classic-overlay', 'partita-overlay', 'film-radio-overlay', 'aurora-overlay', 'rainy-overlay', 'still-overlay', 'monet-overlay'];
     for (var i = 0; i < ids.length; i++) applyOverlayModeFontScale(document.getElementById(ids[i]));
   }
 }

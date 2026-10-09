@@ -244,7 +244,7 @@ body.film-radio.wallpaper-engine-active #wallpaper-engine-layer {
   opacity: 0.82;
 }
 .fr-title {
-  font-size: clamp(24px, 2.9vw, 34px);
+  font-size: calc(clamp(24px, 2.9vw, 34px) * var(--mfs, 1));
   font-weight: 700;
   color: var(--fr-ink);
   line-height: 1.18;

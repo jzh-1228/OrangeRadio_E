@@ -88,7 +88,7 @@ body.still #empty-home {
 /* ---------- 主文本（Folia drop-shadow-md text-center tracking-[0.02em]） ---------- */
 .still-text {
   font-family: var(--st-font);
-  font-size: 2.5rem;               /* text-[2.5rem] */
+  font-size: calc(2.5rem * var(--mfs, 1));   /* text-[2.5rem] × 歌词缩放 */
   font-weight: 700;
   line-height: 1.25;               /* leading-tight */
   letter-spacing: 0.02em;          /* tracking-[0.02em] */

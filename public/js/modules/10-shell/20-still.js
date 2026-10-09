@@ -61,6 +61,8 @@ function toggleStillMode() {
 
 /* ---------- 启动 / 停止 ---------- */
 function startStill() {
+  /* 字号跟随「歌词大小」设置（--mfs，CSS 主行乘算） */
+  if (typeof applyOverlayModeFontScale === "function") applyOverlayModeFontScale(document.getElementById("still-overlay"));
   stillFontStack();
   invalidateStillSignature();
   startStillLoop();

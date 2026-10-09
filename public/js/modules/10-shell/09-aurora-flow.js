@@ -69,6 +69,8 @@ function toggleAuroraMode() {
 
 /* ---------- 启动 / 停止 ---------- */
 function startAurora() {
+  /* 字号跟随「歌词大小」设置（--mfs，CSS 主行乘算） */
+  if (typeof applyOverlayModeFontScale === "function") applyOverlayModeFontScale(document.getElementById("aurora-overlay"));
   ensureAuroraCanvases();
   auroraFontStack();
   syncAuroraBadge();

@@ -100,7 +100,7 @@ body.monet #empty-home { display: none; }
 /* ---------- 左栏 · 标题 ---------- */
 .monet-title-wrap { margin-bottom: 22px; animation: monetEnterTitle 1.3s cubic-bezier(0.25, 1, 0.5, 1) 0.3s both; }
 .monet-title {
-  font-size: clamp(23.2px, 3.3vw, 44.8px);    /* clamp(1.45rem,3.3vw,2.8rem) */
+  font-size: calc(clamp(23.2px, 3.3vw, 44.8px) * var(--mfs, 1));    /* clamp(1.45rem,3.3vw,2.8rem) × 歌词缩放 */
   font-weight: 600;
   line-height: 1.06;                           /* Folia leading-[1.06] */
   letter-spacing: 0;

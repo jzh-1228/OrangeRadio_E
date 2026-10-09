@@ -127,7 +127,7 @@ body.rainy #empty-home {
 
 /* 上一行：淡出远去 */
 .aurora-line-prev {
-  font-size: clamp(14px, 1.7vw, 22px);
+  font-size: calc(clamp(14px, 1.7vw, 22px) * var(--mfs, 1));
   font-weight: 500;
   letter-spacing: 0.06em;
   color: rgba(222, 230, 244, 0.34);
