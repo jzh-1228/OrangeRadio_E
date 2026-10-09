@@ -70,6 +70,27 @@ var PENDOLO_ACCENT = '#ff7a3d';
 var PENDOLO_SECONDARY = '#c9b393';
 var pendoloAlphaCache = {};
 
+/* 主题跟随（Folia: 表盘机械配色 = theme.primaryColor/accentColor/backgroundColor） */
+var pendoloLastThemeKey = '';
+function pendoloSyncTheme() {
+  if (typeof themeServiceActiveTheme !== 'function') return;
+  var t = null;
+  try { t = themeServiceActiveTheme(); } catch (e) { return; }
+  if (!t) return;
+  var key = (t.primaryColor || '') + '|' + (t.accentColor || '') + '|' + (t.backgroundColor || '');
+  if (key === pendoloLastThemeKey) return;
+  pendoloLastThemeKey = key;
+  if (t.backgroundColor) PENDOLO_BG_COLOR = t.backgroundColor;
+  if (t.primaryColor) PENDOLO_PRIMARY = t.primaryColor;
+  if (t.accentColor) PENDOLO_ACCENT = t.accentColor;
+  if (t.secondaryColor) PENDOLO_SECONDARY = t.secondaryColor;
+  /* 派生色与齿轮配色组重算；中央渐变缓存失效 */
+  PENDOLO_FILL_NORMAL = pendoloMixHex(PENDOLO_PRIMARY, PENDOLO_ACCENT, 0.32);
+  PENDOLO_FILL_CHORUS = pendoloMixHex(PENDOLO_PRIMARY, PENDOLO_ACCENT, 0.58);
+  pendoloBuildGearColors();
+  pendoloCenterGrad = null;
+}
+
 /* hex → rgba 字符串（colorMix.colorWithAlpha 等价，进入时预计算后零每帧分配） */
 function pendoloAlpha(hex, alpha) {
   var a = Math.max(0, Math.min(1, alpha));
@@ -862,6 +883,7 @@ function pendoloBinAvg(from, to) {
   return n ? (sum / n) / 255 : 0;
 }
 function pendoloTickAudio(dt) {
+  pendoloSyncTheme();
   var bassRaw = pendoloBinAvg(1, 8);
   pendoloBass = pendoloBass + (bassRaw - pendoloBass) * Math.min(1, dt * 9);
   var energyRaw = pendoloBinAvg(2, 160) * 0.7 + pendoloBinAvg(161, 300) * 0.3;

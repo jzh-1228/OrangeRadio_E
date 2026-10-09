@@ -43,6 +43,23 @@ var CLADDAGH_CORE = '#fff6e8';         /* 副歌三层辉光内核 */
 var CLADDAGH_AXIS_FROM = '#fff1de';    /* 轴线基色 */
 var CLADDAGH_AXIS_TO = '#ff9c6e';      /* 轴线节拍色（项目视觉主色） */
 
+/* 主题跟随（Folia: 环排基底 = theme.primaryColor、已唱高亮 = theme.accentColor） */
+var claddaghLastThemeKey = '';
+function claddaghSyncTheme() {
+  if (typeof themeServiceActiveTheme !== 'function') return;
+  var t = null;
+  try { t = themeServiceActiveTheme(); } catch (e) { return; }
+  if (!t) return;
+  var key = (t.primaryColor || '') + '|' + (t.accentColor || '');
+  if (key === claddaghLastThemeKey) return;
+  claddaghLastThemeKey = key;
+  if (t.primaryColor) CLADDAGH_PRIMARY = t.primaryColor;
+  if (t.accentColor) {
+    CLADDAGH_ACCENT = t.accentColor;
+    CLADDAGH_AXIS_TO = t.accentColor;
+  }
+}
+
 /* ---------- 模块状态 ---------- */
 var claddaghMode = readBooleanPreference(CLADDAGH_STORE_KEY, false);
 var claddaghRafId = 0;
@@ -651,6 +668,7 @@ function claddaghSpringStep(spring, target, k, c, dt, mass) {
 }
 
 function tickCladdaghAudio(dtSec) {
+  claddaghSyncTheme();
   var bassRaw = claddaghBinAvg(1, 8);
   var vocalRaw = claddaghBinAvg(9, 140);      /* 对齐主循环 vocal 频段 bin 9-140 */
   var paused = (typeof audio !== 'undefined' && audio && audio.paused) || !claddaghMode;

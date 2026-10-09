@@ -2268,7 +2268,7 @@ var fumeTheme = {
   accentColor: '#ff9c6e',
   secondaryColor: '#d98e6a',
   animationIntensity: 'normal',
-  fontFamilyStack: '"PingFang SC", "HarmonyOS Sans SC", "MiSans", "Microsoft YaHei UI", "Source Han Sans SC", system-ui, sans-serif'
+  fontFamilyStack: '"Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", "SimSun", Georgia, "Iowan Old Style", "Times New Roman", serif'
 };
 
 function fumeSyncTheme() {
@@ -2287,11 +2287,15 @@ function fumeSyncTheme() {
   fumeRequestLayout();   /* 主题色变了 → 纸面重排重绘 */
 }
 
+/* 报纸的排版语言是衬线（Folia serif 栈：思源宋/Songti/Georgia；
+   试验场与 README 参照均衬线观感），用户在 DIY 控制台选了歌词字体则用用户的 */
+var FUME_SERIF_STACK = '"Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", "SimSun", Georgia, "Iowan Old Style", "Times New Roman", serif';
+
 function fumeFontStack() {
   var fontKey = (typeof fx !== 'undefined' && fx && fx.lyricFont) ? fx.lyricFont : '';
   var stack = (fontKey && typeof lyricFontStackForKey === 'function')
     ? lyricFontStackForKey(fontKey)
-    : '"PingFang SC", "HarmonyOS Sans SC", "MiSans", "Microsoft YaHei UI", "Source Han Sans SC", system-ui, sans-serif';
+    : FUME_SERIF_STACK;
   fumeTheme.fontFamilyStack = stack;
   return stack;
 }

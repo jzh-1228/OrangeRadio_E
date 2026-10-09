@@ -162,6 +162,7 @@
     'js/modules/10-shell/20-pendolo.js',
     'js/modules/10-shell/20-partita.js',
     'js/modules/10-shell/21-cadenza.js',
+    'js/modules/10-shell/22a-lattice-blocks.js',
     'js/modules/10-shell/22-lattice.js',
     'js/modules/10-shell/23-cappella.js',
     'js/modules/10-shell/24-monet.js',

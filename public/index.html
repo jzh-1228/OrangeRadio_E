@@ -32,7 +32,7 @@
   <link rel="stylesheet" href="css/claddagh.css?v=20261008-claddagh">
   <link rel="stylesheet" href="css/tilt.css?v=20261008-tilt">
   <link rel="stylesheet" href="css/fume.css?v=20261008-fume">
-  <link rel="stylesheet" href="css/lattice.css?v=20261008-lattice">
+  <link rel="stylesheet" href="css/lattice.css?v=20261009a">
   <link rel="stylesheet" href="css/cappella.css?v=20261008c-cappella">
   <link rel="stylesheet" href="css/monet.css?v=20261008b-monet">
   <link rel="stylesheet" href="css/pendolo.css?v=20261008-pendolo">
@@ -1781,8 +1781,9 @@
       </div>
     </div>
 
-    <!-- 队列拼贴覆盖层（Lattice · 播放队列封面海报墙）：整个队列排成编号海报墙，
-         已播/在播/待播三态 + 当前播放自动居中；中央浮正在播放卡片（封面+原词翻译对照歌词+走带）。
+    <!-- 队列拼贴覆盖层（Lattice · 播放队列封面海报墙）：12×8 混合槽位（2×2~6×6）的
+         无限晶格平铺，队列环绕填充；当前播放海报自动 6×6 展开（同块让位重排）并实时
+         显示歌词；拖拽平移整面墙，点击任意海报从该曲播放（墙不改队列）。
          （源自 Folia lattice 队列展示面，AGPL-3.0，见 NOTICE.md） -->
     <div id="lattice-overlay" aria-hidden="true">
       <div class="lattice-top">
@@ -1792,7 +1793,9 @@
         </button>
         <div class="lattice-heading" id="lattice-heading">队列拼贴 · <b>正在播放的歌单</b></div>
       </div>
-      <div class="lattice-wall" id="lattice-wall"></div>
+      <div class="lattice-field" id="lattice-field">
+        <div class="lattice-world" id="lattice-world"></div>
+      </div>
       <div class="lattice-empty" id="lattice-empty">
         <div class="lattice-empty-title">队列为空</div>
         <div>去搜索或打开一个歌单，把歌装进来</div>

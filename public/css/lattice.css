@@ -1,25 +1,27 @@
 /* =========================================================================
-   OrangeSea · 队列拼贴（Lattice · 播放队列封面海报墙）
+   OrangeSea · 队列拼贴（Lattice · 播放队列封面海报墙 · 无限晶格版）
    Portions Copyright (c) 2025 chthollyphile and Folia contributors
-   — adapted from folia-major (AGPL-3.0)
-   body.lattice 命名空间。三条铁律：平铺不叠压 / 墙不改队列 /
-   当前播放海报在墙中原位展开为横向大卡（实时歌词 + 走带）。
+   — adapted from folia-major (AGPL-3.0): src/components/app/lattice/
+     Lattice.css / PosterWall.tsx / LatticePoster.tsx
+
+   body.lattice 命名空间。12×8 混合槽位平铺（2×2~6×6 海报），队列环绕
+   填满整面墙；当前播放海报 6×6 展开（同块让位重排），展开卡内实时歌词。
    ========================================================================= */
 
 #lattice-overlay {
+  --lt-ink: #f2e6d4;
+  --lt-ink-dim: rgba(242, 230, 212, 0.55);
+  --lt-accent: #ff9c6e;
+  --lt-shade-rgb: 8, 6, 5;
+
   position: fixed;
   inset: 0;
   z-index: 5;                       /* 与 fume/aurora 同层：盖主场景，底部控制栏(z:6)悬浮其上 */
   display: none;
   overflow: hidden;
   background:
-    radial-gradient(ellipse 120% 84% at 50% 40%, rgba(52, 34, 20, 0.55) 0%, rgba(12, 9, 7, 0.55) 46%, rgba(5, 4, 3, 0.92) 100%),
+    radial-gradient(ellipse 120% 84% at 50% 40%, rgba(52, 34, 20, 0.45) 0%, rgba(12, 9, 7, 0.55) 46%, rgba(5, 4, 3, 0.92) 100%),
     linear-gradient(180deg, #0e0b08 0%, #0a0806 42%, #060504 100%);
-  --lt-accent: #ff9c6e;             /* 日落橙，与全项目一致 */
-  --lt-ink: #f2e6d4;
-  --lt-ink-dim: rgba(242, 230, 212, 0.55);
-  --lt-poster-w: 300px;             /* 原版观感：海报占屏宽 ~20%，一行 4-5 张 */
-  --lt-gap: 14px;
 }
 
 body.lattice #lattice-overlay {
@@ -36,172 +38,139 @@ body.lattice #empty-home {
   to { opacity: 1; }
 }
 
-/* ---------- 顶栏：返回 + 标题 ---------- */
+/* ---------- 顶栏 ---------- */
 .lattice-top {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
+  z-index: 30;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   padding: 18px 26px;
-  z-index: 4;
-  background: linear-gradient(180deg, rgba(9, 7, 6, 0.82) 0%, rgba(9, 7, 6, 0) 100%);
   pointer-events: none;
 }
 .lattice-top > * { pointer-events: auto; }
-
 .lattice-back {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  border: 1px solid rgba(242, 230, 212, 0.16);
+  gap: 6px;
+  padding: 7px 14px;
   border-radius: 999px;
-  background: rgba(20, 15, 11, 0.55);
+  border: 1px solid rgba(242, 230, 212, 0.18);
+  background: rgba(10, 8, 6, 0.55);
   color: var(--lt-ink);
-  font-size: 13px;
+  font-size: 12.5px;
   cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease;
-  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
 }
-.lattice-back:hover { background: rgba(46, 32, 22, 0.72); border-color: rgba(255, 156, 110, 0.45); }
-
+.lattice-back:hover { border-color: rgba(242, 230, 212, 0.4); }
 .lattice-heading {
-  font-size: 14px;
-  letter-spacing: 0.12em;
+  font-size: 13px;
   color: var(--lt-ink-dim);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  letter-spacing: 0.04em;
 }
 .lattice-heading b { color: var(--lt-ink); font-weight: 600; }
 
-/* ---------- 海报墙：严格平铺网格（无缩放、无叠压、等距间隙） ---------- */
-.lattice-wall {
+/* ---------- 墙（field 视口 + world 相机层） ---------- */
+.lattice-field {
   position: absolute;
   inset: 0;
-  padding: 92px max(34px, calc(50% - 780px)) 150px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scroll-behavior: smooth;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(var(--lt-poster-w), 1fr));
-  grid-auto-flow: row dense;        /* 展开卡占双列后，后续海报自动回填空位，保持平铺 */
-  grid-auto-rows: minmax(0, auto);
-  gap: var(--lt-gap);
-  align-content: start;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 156, 110, 0.28) transparent;
-  mask-image: linear-gradient(180deg, transparent 0, #000 76px, #000 calc(100% - 96px), transparent 100%);
-  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 76px, #000 calc(100% - 96px), transparent 100%);
+  cursor: grab;
+  overflow: hidden;
+  touch-action: none;
 }
-.lattice-wall::-webkit-scrollbar { width: 6px; }
-.lattice-wall::-webkit-scrollbar-thumb { background: rgba(255, 156, 110, 0.28); border-radius: 3px; }
+.lattice-field:active { cursor: grabbing; }
+.lattice-world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* 尺寸无限：海报按世界坐标绝对定位，超出视口由 field 裁剪 */
+  width: 100%;
+  height: 100%;
+  will-change: transform;
+}
 
+/* ---------- 海报卡（Folia LatticePoster.css 直译） ---------- */
 .lattice-poster {
-  position: relative;
-  aspect-ratio: 1 / 1.22;
-  border-radius: 16px;
-  background-color: #17110c;
+  position: absolute;
+  overflow: hidden;
+  border-radius: 10px;
   background-size: cover;
   background-position: center;
-  box-shadow:
-    0 2px 6px rgba(0, 0, 0, 0.3),
-    0 14px 34px rgba(0, 0, 0, 0.45);
   cursor: pointer;
-  overflow: hidden;
   outline: none;
-  transition: filter 0.3s ease, box-shadow 0.3s ease;
+  transition: left 0.45s cubic-bezier(0.32, 0.72, 0, 1),
+              top 0.45s cubic-bezier(0.32, 0.72, 0, 1),
+              width 0.45s cubic-bezier(0.32, 0.72, 0, 1),
+              height 0.45s cubic-bezier(0.32, 0.72, 0, 1),
+              box-shadow 0.24s ease;
+  animation: latticePosterIn 0.4s ease backwards;
   contain: content;
-  animation: latticePosterIn 0.5s ease backwards;
 }
 @keyframes latticePosterIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1); }
 }
 @media (prefers-reduced-motion: reduce) {
   .lattice-poster { animation: none; transition: none; }
-  .lattice-wall { scroll-behavior: auto; }
 }
 
-.lattice-poster::after {                 /* 底部渐隐，让文字可读 */
-  content: '';
+/* 底部压暗叠色（Folia poster-shade：5%→24%→92%） */
+.lattice-poster-shade {
   position: absolute;
-  inset: 42% 0 0 0;
-  background: linear-gradient(180deg, rgba(8, 6, 5, 0) 0%, rgba(8, 6, 5, 0.62) 62%, rgba(8, 6, 5, 0.9) 100%);
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg,
+    rgba(var(--lt-shade-rgb) / 0.05) 34%,
+    rgba(var(--lt-shade-rgb) / 0.24) 56%,
+    rgba(var(--lt-shade-rgb) / 0.92) 100%);
 }
-.lattice-poster:hover {
-  filter: brightness(1.12);
-  box-shadow:
-    0 2px 6px rgba(0, 0, 0, 0.3),
-    0 14px 34px rgba(0, 0, 0, 0.45),
-    0 0 0 1.5px rgba(242, 230, 212, 0.35);
-}
-.lattice-poster:focus-visible {
-  box-shadow: 0 0 0 2px var(--lt-accent), 0 14px 34px rgba(0, 0, 0, 0.45);
+.lattice-poster.is-expanded .lattice-poster-shade {
+  background: linear-gradient(180deg,
+    rgba(var(--lt-shade-rgb) / 0) 40%,
+    rgba(var(--lt-shade-rgb) / 0.35) 72%,
+    rgba(var(--lt-shade-rgb) / 0.96) 100%);
 }
 
-.lattice-poster.is-played { filter: saturate(0.42) brightness(0.5); }
-.lattice-poster.is-played:hover { filter: saturate(0.7) brightness(0.75); }
-
-.lattice-poster-num {
+/* 编号徽章 */
+.lattice-poster-badge {
   position: absolute;
-  top: 12px;
+  top: 10px;
   left: 12px;
-  z-index: 1;
-  min-width: 34px;
-  padding: 4px 10px;
-  border-radius: 10px;
-  background: rgba(9, 7, 6, 0.66);
-  backdrop-filter: blur(6px);
-  color: var(--lt-ink);
-  font-size: 14px;
+  z-index: 4;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.06em;
-  text-align: center;
   font-variant-numeric: tabular-nums;
-}
-
-.lattice-poster-now {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 1;
-  display: none;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 11px;
-  border-radius: 999px;
-  background: var(--lt-accent);
-  color: #221208;
-  font-size: 12.5px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-}
-.lattice-poster-now .dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #221208;
-  animation: latticeNowPulse 1.6s ease-in-out infinite;
-}
-@keyframes latticeNowPulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.35; transform: scale(0.7); }
-}
-
-.lattice-poster-meta {
-  position: absolute;
-  left: 14px;
-  right: 14px;
-  bottom: 13px;
-  z-index: 1;
   color: var(--lt-ink);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
+  opacity: 0.85;
+  white-space: nowrap;
 }
-.lattice-poster-title {
-  font-size: 15.5px;
+.lattice-poster.is-current:not(.is-expanded) .lattice-poster-badge {
+  color: var(--lt-accent);
+  opacity: 1;
+}
+
+/* 标题/歌手（底部） */
+.lattice-poster-copy {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 10px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--lt-ink);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
+.lattice-poster-copy b {
+  font-size: 13px;
   font-weight: 600;
   line-height: 1.3;
   display: -webkit-box;
@@ -209,180 +178,143 @@ body.lattice #empty-home {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.lattice-poster-artist {
-  margin-top: 3px;
-  font-size: 12.5px;
-  color: var(--lt-ink-dim);
-  white-space: nowrap;
+.lattice-poster-copy small {
+  font-size: 11px;
+  opacity: 0.62;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* ---------- 展开卡：当前播放海报在墙中原位放大（占两列，横向布局） ---------- */
-.lattice-poster.is-expanded {
-  grid-column: span 2;
-  aspect-ratio: auto;
-  min-height: 430px;
-  display: flex;
-  gap: 0;
-  cursor: default;
-  background-color: rgba(24, 17, 12, 0.96);
+/* 正在播放卡（非展开副本）：accent 光环（Folia is-current 焦点环） */
+.lattice-poster.is-current:not(.is-expanded) {
   box-shadow:
-    0 0 0 2px var(--lt-accent),
-    0 0 30px rgba(255, 156, 110, 0.28),
-    0 22px 56px rgba(0, 0, 0, 0.6);
+    0 0 0 1px rgba(0, 0, 0, 0.62),
+    0 0 0 3px var(--lt-accent),
+    0 0 0 4px rgba(0, 0, 0, 0.38),
+    0 18px 46px rgba(0, 0, 0, 0.5);
 }
-.lattice-poster.is-expanded::after { display: none; }
-@media (max-width: 760px) {
-  .lattice-poster.is-expanded { grid-column: span 1; min-height: 440px; }
-}
-
-.lattice-expanded-art {
-  flex: 0 0 44%;
-  background-size: cover;
-  background-position: center;
-  border-radius: 16px 0 0 16px;
+.lattice-poster:hover {
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.62),
+    0 0 0 3px rgba(242, 230, 212, 0.85),
+    0 0 0 4px rgba(0, 0, 0, 0.38),
+    0 22px 54px rgba(0, 0, 0, 0.55);
+  z-index: 2;
 }
 
-.lattice-expanded-body {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  padding: 20px 22px 18px 24px;
+/* ---------- 展开卡（当前播放 · 6×6） ---------- */
+.lattice-poster.is-expanded {
+  z-index: 20;
+  cursor: default;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 0 0 3px var(--lt-accent),
+    0 42px 110px rgba(0, 0, 0, 0.62);
 }
-
-.lattice-expanded-info { flex: 0 0 auto; }
-.lattice-expanded-now {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: 999px;
-  background: var(--lt-accent);
-  color: #221208;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
+.lattice-poster.is-expanded .lattice-poster-copy {
+  bottom: 86px;                     /* 给走带留位 */
 }
-.lattice-expanded-now .dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #221208;
-  animation: latticeNowPulse 1.6s ease-in-out infinite;
+.lattice-poster.is-expanded .lattice-poster-copy b {
+  font-size: 22px;
+  -webkit-line-clamp: 1;
 }
-.lattice-expanded-title {
-  margin-top: 10px;
-  font-size: 21px;
-  font-weight: 650;
-  line-height: 1.25;
-  color: var(--lt-ink);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.lattice-expanded-artist {
-  margin-top: 4px;
-  font-size: 13.5px;
-  color: var(--lt-ink-dim);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* ---------- 实时歌词（滚动区，当前行高亮居中） ---------- */
-.lattice-lyrics {
-  flex: 1 1 auto;
-  min-height: 120px;
-  margin-top: 12px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  mask-image: linear-gradient(180deg, transparent 0, #000 26px, #000 calc(100% - 26px), transparent 100%);
-  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 26px, #000 calc(100% - 26px), transparent 100%);
-  scrollbar-width: none;
-}
-.lattice-lyrics::-webkit-scrollbar { display: none; }
-
-.lattice-lyrics-empty {
-  padding: 18px 4px;
-  color: var(--lt-ink-dim);
+.lattice-poster.is-expanded .lattice-poster-copy small {
   font-size: 13px;
+  opacity: 0.72;
 }
 
-.lattice-lyrics-row {
-  padding: 7px 10px;
-  border-radius: 10px;
-  transition: opacity 0.3s ease, background-color 0.3s ease;
-  opacity: 0.46;
+/* 展开卡歌词（DOM 滚动区） */
+.lattice-poster-lyrics {
+  position: absolute;
+  left: 26px;
+  right: 26px;
+  bottom: 150px;
+  top: 70px;
+  z-index: 6;
+  overflow-y: auto;
+  scrollbar-width: none;
+  mask-image: linear-gradient(180deg, transparent 0, #000 12%, #000 86%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 12%, #000 86%, transparent 100%);
 }
-.lattice-lyrics-text {
-  font-size: 15.5px;
+.lattice-poster-lyrics::-webkit-scrollbar { display: none; }
+.lattice-lyrics-row {
+  padding: 7px 0;
+  opacity: 0.38;
+  transition: opacity 0.3s ease;
+}
+.lattice-lyrics-row.is-now { opacity: 1; }
+.lattice-lyrics-main {
+  font-size: 19px;
+  font-weight: 600;
   line-height: 1.4;
   color: var(--lt-ink);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+}
+.lattice-lyrics-row:not(.is-now) .lattice-lyrics-main {
+  font-size: 15px;
+  font-weight: 400;
 }
 .lattice-lyrics-tr {
   margin-top: 2px;
   font-size: 12.5px;
-  line-height: 1.35;
   color: var(--lt-ink-dim);
 }
-.lattice-lyrics-row.is-now {
-  opacity: 1;
-  background: rgba(255, 156, 110, 0.1);
-}
-.lattice-lyrics-row.is-now .lattice-lyrics-text {
-  color: var(--lt-accent);
-  font-weight: 650;
-  text-shadow: 0 0 18px rgba(255, 156, 110, 0.35);
-}
-.lattice-lyrics-row.is-now .lattice-lyrics-tr { color: rgba(242, 230, 212, 0.78); }
 
-/* ---------- 展开卡底部：进度 + 走带 ---------- */
-.lattice-expanded-bottom { flex: 0 0 auto; margin-top: 12px; }
-.lattice-expanded-progress {
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(242, 230, 212, 0.14);
-  overflow: hidden;
-}
-.lattice-expanded-progress-bar {
-  height: 100%;
-  width: 0%;
-  border-radius: 2px;
-  background: linear-gradient(90deg, rgba(255, 156, 110, 0.75), var(--lt-accent));
-}
-.lattice-expanded-controls {
-  margin-top: 10px;
+/* 展开卡走带 */
+.lattice-poster-controls {
+  position: absolute;
+  left: 26px;
+  right: 26px;
+  bottom: 26px;
+  z-index: 7;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+  color: var(--lt-ink);
+  animation: latticeControlsIn 0.24s ease 0.14s backwards;
 }
-.lattice-ctrl {
+@keyframes latticeControlsIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.lattice-poster-controls button {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(242, 230, 212, 0.22);
+  background: rgba(10, 8, 6, 0.5);
+  color: var(--lt-ink);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border: none;
-  border-radius: 50%;
-  background: rgba(242, 230, 212, 0.08);
-  color: var(--lt-ink);
   cursor: pointer;
-  transition: background 0.18s ease;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
 }
-.lattice-ctrl:hover { background: rgba(255, 156, 110, 0.22); }
-.lattice-ctrl.is-main { width: 42px; height: 42px; background: var(--lt-accent); color: #221208; }
-.lattice-ctrl.is-main:hover { background: #ffb088; }
-.lattice-expanded-time {
-  margin-left: auto;
-  font-size: 12px;
-  color: var(--lt-ink-dim);
+.lattice-poster-controls button:hover { border-color: var(--lt-accent); color: var(--lt-accent); }
+.lattice-time {
+  font-size: 11.5px;
   font-variant-numeric: tabular-nums;
+  color: var(--lt-ink-dim);
+  white-space: nowrap;
+}
+.lattice-progress {
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(242, 230, 212, 0.16);
+  overflow: hidden;
+}
+.lattice-progress-bar {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: var(--lt-accent);
 }
 
-/* ---------- 空队列占位 ---------- */
+/* ---------- 空态 ---------- */
 .lattice-empty {
   position: absolute;
   inset: 0;
@@ -390,9 +322,13 @@ body.lattice #empty-home {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   color: var(--lt-ink-dim);
-  z-index: 2;
 }
-.lattice-empty.is-shown { display: flex; }
-.lattice-empty-title { font-size: 15px; color: var(--lt-ink); }
+.lattice-empty-title { font-size: 17px; font-weight: 600; color: var(--lt-ink); }
+
+@media (max-width: 760px) {
+  .lattice-poster-copy b { font-size: 11.5px; }
+  .lattice-poster.is-expanded .lattice-poster-lyrics { left: 14px; right: 14px; }
+  .lattice-poster.is-expanded .lattice-poster-controls { left: 14px; right: 14px; }
+}

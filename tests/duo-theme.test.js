@@ -135,10 +135,16 @@ const HEX = /^#[0-9a-f]{6}$/i;
   assert.equal(themeCurrentPresetSetting(), 'cover');
   sandbox.fx.themePreset = 'base';
   assert.equal(themeCurrentPresetSetting(), 'base');
+  sandbox.fx.themeMode = 'dark';                                       // 钉死夜档：默认 auto 会随昼夜漂移
   assert.equal(themeServiceActiveTheme().backgroundColor, '#09090b');  // base·夜（沙箱无取色）
   sandbox.fx.themeMode = 'light';
   assert.equal(themeServiceActiveTheme().backgroundColor, '#f5f5f4'); // base·昼
+  /* auto 按真实昼夜解析（7-19 点为昼）——断言与当前时段一致，测试不依赖运行时刻 */
   sandbox.fx.themeMode = 'auto';
+  const autoBg = themeServiceActiveTheme().backgroundColor;
+  const hour = new Date().getHours();
+  assert.equal(autoBg, hour >= 7 && hour < 19 ? '#f5f5f4' : '#09090b');
+  sandbox.fx.themeMode = 'dark';
 
   // 保存当前（cover 无取色 → 存的是基础对的颜色）
   const entry = themeLibrarySaveCurrent('我的夜航');

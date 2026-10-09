@@ -48,6 +48,20 @@ var CADENZA_ACCENT = '#ff9c6e';    /* theme.accentColor：词色（日落橙） 
 var CADENZA_ACTIVE_PULSE_FREQUENCY = 10;
 var CADENZA_MAX_PREPARED_CACHE = 24;
 
+/* 主题跟随（Folia: 词色/基色 = theme.accentColor/primaryColor，随封面派生主题换色） */
+var cadenzaLastThemeKey = '';
+function cadenzaSyncTheme() {
+  if (typeof themeServiceActiveTheme !== 'function') return;
+  var t = null;
+  try { t = themeServiceActiveTheme(); } catch (e) { return; }
+  if (!t) return;
+  var key = (t.primaryColor || '') + '|' + (t.accentColor || '');
+  if (key === cadenzaLastThemeKey) return;
+  cadenzaLastThemeKey = key;
+  if (t.primaryColor) CADENZA_PRIMARY = t.primaryColor;
+  if (t.accentColor) CADENZA_ACCENT = t.accentColor;
+}
+
 /* 运行时缓存与宿主元素 */
 var cadenzaPreparedCache = null;        /* Map<lineKey, preparedState> */
 var cadenzaPreparedContextKey = '';
@@ -1251,6 +1265,7 @@ function cadenzaSetEmpty(show, text) {
 
 function cadenzaTickFrame(dt) {
   cadenzaFrameNo++;
+  cadenzaSyncTheme();
   if (!cadenzaLayerEl || !cadenzaWordsEl || !cadenzaCanvasEl) return;
   if (!cadenzaCanvasCtx) cadenzaCanvasCtx = cadenzaCanvasEl.getContext('2d');
   var ctx = cadenzaCanvasCtx;

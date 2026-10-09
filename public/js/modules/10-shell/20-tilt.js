@@ -116,6 +116,25 @@ function tiltFontStack() {
   return stack;
 }
 
+/* 主题跟随（Folia: 水平段 = theme.primaryColor、大斜体段 = theme.accentColor） */
+var tiltLastThemeKey = '';
+function tiltSyncTheme() {
+  if (typeof themeServiceActiveTheme !== 'function') return;
+  var t = null;
+  try { t = themeServiceActiveTheme(); } catch (e) { return; }
+  if (!t) return;
+  var key = (t.primaryColor || '') + '|' + (t.accentColor || '');
+  if (key === tiltLastThemeKey) return;
+  tiltLastThemeKey = key;
+  var overlay = document.getElementById('tilt-overlay');
+  if (!overlay) return;
+  if (t.primaryColor) {
+    overlay.style.setProperty('--tl-normal', t.primaryColor);
+    overlay.style.setProperty('--tl-idle', 'color-mix(in srgb, ' + t.primaryColor + ' 34%, transparent)');
+  }
+  if (t.accentColor) overlay.style.setProperty('--tl-tilt', t.accentColor);
+}
+
 function checkTiltFontChange() {
   var fontKey = (typeof fx !== 'undefined' && fx && fx.lyricFont) ? fx.lyricFont : '';
   if (tiltLastFontKey !== fontKey) {
@@ -887,6 +906,7 @@ function tiltNowLyricTime() {
 
 function tickTiltLyrics() {
   if (!tiltMode) return;
+  tiltSyncTheme();
   var hasReal = lyricsLines && lyricsLines.length && lyricsLines.some(function (l) { return !l.fallback; });
   if (!hasReal) {
     if (tiltLastLineIdx !== -98) {

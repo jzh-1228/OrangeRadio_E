@@ -37,6 +37,26 @@ var PARTITA_LAYOUT_CACHE_LIMIT = 48;
 /* 主题映射：Folia Theme（normal 强度）→ 本项目日落暖色（--home-accent/#ff9c6e 系） */
 var PARTITA_ACCENT = '#ff9c6e';
 var PARTITA_BASE_COLOR = '#e3d5c2';
+
+/* 主题跟随（Folia: 词激活色 = theme.accentColor、静息色 = theme.primaryColor） */
+var partitaLastThemeKey = '';
+function partitaSyncTheme() {
+  if (typeof themeServiceActiveTheme !== 'function') return;
+  var t = null;
+  try { t = themeServiceActiveTheme(); } catch (e) { return; }
+  if (!t) return;
+  var key = (t.primaryColor || '') + '|' + (t.accentColor || '');
+  if (key === partitaLastThemeKey) return;
+  partitaLastThemeKey = key;
+  if (t.accentColor) PARTITA_ACCENT = t.accentColor;
+  if (t.primaryColor) PARTITA_BASE_COLOR = t.primaryColor;
+  var overlay = document.getElementById('partita-overlay');
+  if (overlay) {
+    overlay.style.setProperty('--pt-accent', PARTITA_ACCENT);
+    overlay.style.setProperty('--pt-base', PARTITA_BASE_COLOR);
+  }
+}
+
 /* spring(stiffness 200, damping 20) 的近似贝塞尔（阻尼比≈0.707，轻度过冲） */
 var PARTITA_SPRING_BEZ = '.55s cubic-bezier(.3, 1.32, .42, 1)';
 
@@ -819,6 +839,7 @@ function partitaTickAudio(dt) {
 }
 
 function partitaTickLyrics() {
+  partitaSyncTheme();
   var hasReal = lyricsLines && lyricsLines.length &&
     lyricsLines.some(function (l) { return !l.fallback; });
   if (!hasReal) {
