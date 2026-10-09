@@ -484,7 +484,9 @@ function partitaBuildLayout(line, words, windowHeight, tuning) {
     /* stagger 是云阶的核心：块位置错落有致但仍读作一行 */
     var staggerMagnitude = tuning.staggerMin + random() * Math.max(tuning.staggerMax - tuning.staggerMin, 0);
     var staggerX = isStaggeredLeft ? -staggerMagnitude : staggerMagnitude;
-    var staggerScale = 0.8 + random() * 0.9;
+    /* staggerScale 收敛 0.9~1.35：原版 0.8~1.7 在大字号下 scale 溢出布局高度
+       （transform 不改布局盒），相邻块视觉重叠不可读；缩幅保留错落节奏 */
+    var staggerScale = 0.9 + random() * 0.45;
 
     rows.push({
       rowIndex: rowIndex,
@@ -496,7 +498,9 @@ function partitaBuildLayout(line, words, windowHeight, tuning) {
         y: rowBias * 2.5,
         rotate: 0,
         scale: staggerScale,
-        marginBottom: '0.6rem',
+        /* 间距按 scale 补偿：scale 溢出布局高的部分 ≈ (scale-1)*块高/2 每侧，
+           预留 72px 字高基准的补偿量防视觉叠字 */
+        marginBottom: 'calc(0.6rem + ' + ((staggerScale - 1) * 44).toFixed(1) + 'px)',
         passedRotate: (rowIndex % 2 === 0 ? 1 : -1) * 3
       }
     });
