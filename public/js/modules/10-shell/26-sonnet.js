@@ -20,6 +20,7 @@ var sonnetLastActiveIdx = -99;
 var sonnetLastThemeKey = '';
 var sonnetLinesCache = [];
 var SONNET_STACK_DEPTH = 7;
+var sonnetLastChorus = false;
 
 /* ---------- 主题 ---------- */
 var sonnetTheme = { primary: '#f6efe2', accent: '#ffcf9e', bg: '#0c0907' };
@@ -172,6 +173,19 @@ function sonnetRenderLines() {
     row.classList.toggle('is-chorus', depth === 0 && !!(line && line.isChorus));
   }
 
+  /* 副歌光台（原版 chorus 光强调升档）：当前行 isChorus → 聚光灯转暖转亮、
+     光束增强；主歌回落。CSS 侧经 --sn-chorus（0/1 渐变过渡）消费。 */
+  var curLine = (idx >= 0 && idx < sonnetLinesCache.length) ? sonnetLinesCache[idx] : null;
+  var chorus = !!(curLine && curLine.isChorus);
+  if (chorus !== sonnetLastChorus) {
+    sonnetLastChorus = chorus;
+    var snOv = document.getElementById('sonnet-overlay');
+    if (snOv) {
+      snOv.style.setProperty('--sn-chorus', chorus ? '1' : '0');
+      snOv.classList.toggle('is-chorus-show', chorus);
+    }
+  }
+
   /* 两遍布局：内容就位后实测各行高 → 累计占高模型定位
      （主行换行 ×2 高度、内嵌翻译再加高，固定栅格会压住邻句——用户实测 bug） */
   var half = Math.floor(SONNET_STACK_DEPTH / 2);
@@ -242,6 +256,110 @@ function sonnetTickWords() {
   if (!words && spans.length === 1) {
     spans[0].classList.toggle('is-lit', t >= (Number(line.t) || 0) - 0.05);
   }
+  /* 唱词进度（镜头 zoom 数据源）：当前行时间跨度内 0→1 */
+  var spanT = Math.max(0.4, (Number(line.duration) || 0) || 3);
+  sonnetCamera.lineProgress = Math.max(0, Math.min(1, (t - (Number(line.t) || 0)) / spanT));
+}
+
+/* ---------- 镜边装饰线稿（原版 9 族 ShotMg 简化：4 族 CSS 线稿）----------
+   歌曲种子选族与摆位；SVG 描边生长（dashoffset），只在进歌时重绘一次。 */
+var sonnetDecorSongKey = null;
+function sonnetRenderDecor() {
+  var host = document.getElementById('sonnet-decor');
+  if (!host) return;
+  var songKey = '';
+  try { songKey = String(lyricCurrentCoverPaletteKey ? lyricCurrentCoverPaletteKey() : currentIdx || 0); } catch (e) { songKey = '0'; }
+  if (songKey === sonnetDecorSongKey) return;
+  sonnetDecorSongKey = songKey;
+  var seedU = sonnetSeededUnit('decor' + songKey);
+  var seedU2 = sonnetSeededUnit('decor2' + songKey);
+  var family = ['star', 'flora', 'wave', 'staff'][Math.floor(seedU * 4) % 4];
+  var W = window.innerWidth || 1440, H = window.innerHeight || 810;
+  var ink = 'rgba(246, 239, 226, 0.34)';
+  var accent = 'rgba(255, 207, 158, 0.4)';
+  var svgs = [];
+  var S = function (inner, x, y, w, h, dly) {
+    svgs.push('<svg width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" style="left:' + x + 'px;top:' + y + 'px" fill="none" stroke-linecap="round">' + inner + '</svg>');
+  };
+  var st = function (d, color, w2, dly) {
+    return '<path data-stroke d="' + d + '" stroke="' + color + '" stroke-width="' + w2 + '" style="--ln:1200;--dly:' + dly + 's"/>';
+  };
+  if (family === 'star') {
+    /* 星轨：右上角两段弧 + 三颗星点 */
+    var x0 = W * (0.68 + seedU2 * 0.18), y0 = H * (0.08 + seedU * 0.1);
+    S(st('M0 60 Q 90 -10 180 44 Q 240 78 300 30', ink, 1.2, 0.2) + st('M40 110 Q 140 70 230 96', accent, 1, 0.7), x0, y0, 320, 130, 0);
+  } else if (family === 'flora') {
+    /* 植物枝：左下角主茎 + 三叶 */
+    var x0 = W * (0.04 + seedU2 * 0.08), y0 = H * (0.58 + seedU * 0.2);
+    S(st('M20 160 C 34 110 30 60 52 10', ink, 1.4, 0.2) + st('M33 96 C 10 84 6 62 20 48 C 36 60 40 82 33 96Z', accent, 1, 0.8) + st('M40 56 C 58 44 60 24 48 12 C 32 24 32 44 40 56Z', accent, 1, 1.2), x0, y0, 90, 180, 0);
+  } else if (family === 'wave') {
+    /* 波纹：底部三重浪 */
+    var x0 = W * (0.06 + seedU2 * 0.1), y0 = H * (0.86 - seedU * 0.05);
+    S(st('M0 24 Q 45 0 90 24 T 180 24 T 270 24 T 360 24', ink, 1.2, 0.2) + st('M0 44 Q 45 22 90 44 T 180 44 T 270 44 T 360 44', ink, 1, 0.55) + st('M0 64 Q 45 44 90 64 T 180 64 T 270 64 T 360 64', accent, 1, 0.9), x0, y0, 380, 80, 0);
+  } else {
+    /* 谱线：右上角五线谱短句 + 符头 */
+    var x0 = W * (0.7 - seedU2 * 0.1), y0 = H * (0.1 + seedU * 0.12);
+    var lines = '';
+    for (var li = 0; li < 5; li++) lines += st('M0 ' + (li * 9 + 8) + ' H 200', ink, 0.9, 0.15 + li * 0.08);
+    lines += '<circle cx="64" cy="30" r="5" fill="' + accent + '"/><circle cx="128" cy="21" r="5" fill="' + ink + '"/>';
+    S(lines, x0, y0, 220, 52, 0);
+  }
+  host.innerHTML = svgs.join('');
+}
+
+/* ---------- 镜头系统（原版 sonnetCameraTracking + 防冻结 pan 思想） ----------
+   zoom：当前行随唱词进度 1.0 → 1.07 缓推（原版 zoomBase 1.22 的温和版）；
+   pan：8.5s 周期的慢漂移（原版「镜头间隙缓慢平移防冻结」），舞台整体微动。
+   30fps rAF 独立于歌词 220ms 轮询；退出模式即停。 */
+var sonnetCamera = { rafId: 0, last: 0, zoom: 1, panX: 0, panY: 0, lineT0: 0, lineT1: 0, lineProgress: 0 };
+function sonnetCameraStart() {
+  sonnetCameraStop();
+  sonnetCamera.last = 0;
+  var stage = document.getElementById('sonnet-stack');
+  var spot = document.getElementById('sonnet-spot') || document.querySelector('.sonnet-spot');
+  function frame(now) {
+    if (!sonnetMode) return;
+    var c = sonnetCamera;
+    if (!c.last) c.last = now;
+    var dt = Math.min(0.1, (now - c.last) / 1000);
+    c.last = now;
+    /* zoom：唱词进度驱动（lineProgress 由 sonnetTickWords 更新），缓入缓出 */
+    var targetZoom = 1 + c.lineProgress * 0.07;
+    c.zoom += (targetZoom - c.zoom) * Math.min(1, dt * 2.2);
+    /* pan：双频正弦慢漂移（±10px / ±6px），原版 driftSpeed 思想 */
+    var tSec = now / 1000;
+    c.panX = Math.sin(tSec * 0.42) * 10 + Math.sin(tSec * 0.17) * 4;
+    c.panY = Math.cos(tSec * 0.31) * 6 + Math.sin(tSec * 0.11) * 3;
+    if (stage) stage.style.transform = 'translate(calc(-50% + ' + c.panX.toFixed(2) + 'px), ' + c.panY.toFixed(2) + 'px)';
+    if (spot) spot.style.setProperty('--sn-cam-zoom', (c.zoom * 1.012).toFixed(4));
+    /* 能量微漂移（原版 audioBands 驱动的手稿纸页浮动）：非激活行按 audioPower
+       正弦浮动 ±3px，行种子错相——纸页在气流里轻轻颤，激活行不动（焦点稳定） */
+    var power = 0;
+    try { power = (typeof motionSignalGet === 'function') ? (motionSignalGet('audioPower') || 0) : 0; } catch (e) { }
+    var amp = Math.min(3.2, power * 6);   /* audioPower 0~1 → 0~3.2px */
+    if (amp > 0.15) {
+      var tS = tSec * 1.9;
+      for (var r2 = 0; r2 < sonnetRows.length; r2++) {
+        var rowEl = sonnetRows[r2];
+        if (rowEl.classList.contains('is-active')) { rowEl.style.marginTop = ''; continue; }
+        var ph = sonnetSeededUnit('drift' + rowEl.dataset.lineIndex) * Math.PI * 2;
+        rowEl.style.marginTop = (Math.sin(tS + ph) * amp).toFixed(2) + 'px';
+      }
+    } else if (c.driftOn) {
+      for (var r3 = 0; r3 < sonnetRows.length; r3++) sonnetRows[r3].style.marginTop = '';
+    }
+    c.driftOn = amp > 0.15;
+    c.rafId = requestAnimationFrame(frame);
+  }
+  sonnetCamera.rafId = requestAnimationFrame(frame);   /* 首帧启动 */
+}
+function sonnetCameraStop() {
+  if (sonnetCamera.rafId) { cancelAnimationFrame(sonnetCamera.rafId); sonnetCamera.rafId = 0; }
+  sonnetCamera.last = 0;
+  var stage = document.getElementById('sonnet-stack');
+  var spot = document.querySelector('.sonnet-spot');
+  if (stage) stage.style.transform = '';
+  if (spot) spot.style.transform = '';
 }
 
 /* ---------- 生命周期 ---------- */
@@ -253,10 +371,13 @@ function startSonnet() {
   sonnetLastLinesKey = '';
   sonnetSyncTheme();
   sonnetRenderLines();
+  sonnetRenderDecor();
+  sonnetCameraStart();
   (function loop() {
     if (!sonnetMode) return;
     sonnetSyncTheme();
     sonnetRenderLines();
+    sonnetRenderDecor();
     sonnetTickWords();
     sonnetTimer = setTimeout(loop, 220);
   })();
@@ -264,6 +385,10 @@ function startSonnet() {
 
 function stopSonnet() {
   if (sonnetTimer) { clearTimeout(sonnetTimer); sonnetTimer = 0; }
+  sonnetCameraStop();
+  sonnetLastChorus = false;
+  var snOv = document.getElementById('sonnet-overlay');
+  if (snOv) { snOv.style.setProperty('--sn-chorus', '0'); snOv.classList.remove('is-chorus-show'); }
   var host = document.getElementById('sonnet-stack');
   if (host) host.textContent = '';
   sonnetRows = [];

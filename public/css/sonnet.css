@@ -51,13 +51,15 @@ body.sonnet #empty-home { display: none; }
   top: 33%;
   width: min(56vh, 42vw);
   height: min(56vh, 42vw);
-  transform: translate(-50%, -50%);
+  /* 镜头 zoom 由 26-sonnet.js 写 --sn-cam-zoom（唱词进度缓推），
+     与 CSS 呼吸动画（keyframes 内乘变量）共存不打架 */
+  transform: translate(-50%, -50%) scale(var(--sn-cam-zoom, 1));
   border-radius: 50%;
   pointer-events: none;
 }
 @keyframes sonnetSpotBreath {
-  0%, 100% { opacity: 0.9; transform: translate(-50%, -50%) scale(1); }
-  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.035); }
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 1; }
 }
 .sonnet-spot-core {
   position: absolute;
@@ -71,6 +73,30 @@ body.sonnet #empty-home { display: none; }
   inset: 0;
   border-radius: 50%;
   box-shadow: 0 0 0 1px rgba(255, 207, 158, 0.16), 0 0 0 14px rgba(255, 207, 158, 0.04), inset 0 0 60px rgba(0, 0, 0, 0.35);
+  transition: box-shadow 0.9s ease;
+}
+
+/* 副歌光台（原版 chorus 光强调升档）：光核转暖变亮、光环描边增强、
+   光束加一道暖色。--sn-chorus 由 26-sonnet.js 按当前行 isChorus 切换 */
+.sonnet-spot-core {
+  transition: opacity 0.9s ease, filter 0.9s ease;
+}
+.sonnet-overlay-chorus .sonnet-spot-core,
+#sonnet-overlay.is-chorus-show .sonnet-spot-core {
+  opacity: 1;
+  filter: brightness(1.35) saturate(1.15);
+}
+#sonnet-overlay.is-chorus-show .sonnet-spot-ring {
+  box-shadow: 0 0 0 1px rgba(255, 214, 164, 0.30), 0 0 0 20px rgba(255, 190, 130, 0.08), inset 0 0 60px rgba(0, 0, 0, 0.28);
+}
+#sonnet-overlay.is-chorus-show .sonnet-beam {
+  filter: brightness(1.28) saturate(1.1);
+}
+.sonnet-beam { transition: filter 0.9s ease; }
+
+/* 副歌当前行金光再抬一档 */
+.sonnet-line.is-active.is-chorus {
+  text-shadow: 0 0 30px rgba(255, 214, 158, 0.4), 0 3px 22px rgba(0, 0, 0, 0.55);
 }
 /* 底部光束（从光台洒向歌词区） */
 .sonnet-beam {
@@ -166,6 +192,34 @@ body.sonnet #empty-home { display: none; }
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
 }
 .sonnet-line.is-active .sonnet-tr-inline { color: rgba(246, 239, 226, 0.62); }
+
+
+/* ---------- 镜边装饰线稿（原版 9 族 ShotMg 的简化版）----------
+   按歌曲种子选一族（star 星轨 / flora 植物枝 / wave 波纹 / staff 谱线），
+   SVG stroke 描边生长（dashoffset）+ 缓慢呼吸，z 垫在歌词之下、光台之上 */
+.sonnet-decor {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.5;
+  transition: opacity 1.2s ease;
+}
+.sonnet-decor svg {
+  position: absolute;
+  overflow: visible;
+}
+.sonnet-decor svg [data-stroke] {
+  stroke-dasharray: var(--ln, 300);
+  stroke-dashoffset: var(--ln, 300);
+  animation: sonnet-decor-grow 2.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  animation-delay: var(--dly, 0s);
+}
+@keyframes sonnet-decor-grow { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .sonnet-decor svg [data-stroke] { animation: none; stroke-dashoffset: 0; }
+  .sonnet-decor { opacity: 0.35; }
+}
 
 @media (max-width: 760px) {
   .sonnet-line { font-size: clamp(24px, 4vh, 34px); }

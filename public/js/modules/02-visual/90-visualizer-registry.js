@@ -28,7 +28,7 @@ var VISUALIZER_OVERLAY_MODES = [
     desc: '满屏歌词 · 暗夜墨光',
     icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20c2-6 5-10 9-13"/><path d="M13 7l3 3"/><path d="M16 4l4 4-3 3-4-4z"/><path d="M6 18l2 2"/></svg>' },
   { id: 'aurora', label: '流光', stateVar: 'auroraMode', applyFn: 'applyAuroraMode', order: 92,
-    desc: '封面极光 · 逐字点亮',
+    desc: '夜航极光 · 流光逐字',
     icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 14c2.5-4.5 5-7 8-8"/><path d="M8 18c3-6 7-10 13-12"/><path d="M13 18c2-3.5 4.5-6 8-7.5"/><circle cx="19" cy="19" r="1.6"/></svg>' },
   { id: 'rainy', label: '雨夜车窗', stateVar: 'rainyMode', applyFn: 'applyRainyMode', order: 93,
     desc: '窗外霓虹 · 雾玻璃歌词',

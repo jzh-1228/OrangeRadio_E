@@ -26,7 +26,7 @@
   <link rel="stylesheet" href="css/index.css?v=20260814-splash-video">
   <link rel="stylesheet" href="css/film-radio.css?v=20260728-vinyl-radio">
   <link rel="stylesheet" href="css/graffiti-lyrics.css?v=20260813-multilang-anim">
-  <link rel="stylesheet" href="css/aurora-flow.css?v=20260910-aurora-flow">
+  <link rel="stylesheet" href="css/aurora-flow.css?v=20261009-aurora-flow">
   <link rel="stylesheet" href="css/rainy-cab.css?v=20260910-rainy-cab">
   <link rel="stylesheet" href="css/still.css?v=20261008b-still">
   <link rel="stylesheet" href="css/claddagh.css?v=20261008-claddagh">
@@ -1645,10 +1645,12 @@
       </div>
     </div>
 
-    <!-- 流光覆盖层（Aurora Flow · 封面极光氛围）：取色色雾 + 逐字点亮歌词 + 呼吸波形线 -->
+    <!-- 流光覆盖层（Aurora Flow · 夜航极光）：谐和色极光绸带 + 星尘 + 逐字点亮歌词 + 流光扫带 + 地平线波形 -->
     <div id="aurora-overlay" aria-hidden="true">
       <canvas class="aurora-bg" id="aurora-bg-canvas"></canvas>
+      <canvas class="aurora-stars" id="aurora-stars-canvas"></canvas>
       <div class="aurora-vignette" aria-hidden="true"></div>
+      <div class="aurora-grain" aria-hidden="true"></div>
       <div class="aurora-badge" aria-hidden="true">
         <div class="aurora-badge-cover cover-empty" id="aurora-badge-cover"></div>
         <div class="aurora-badge-meta">
@@ -1883,6 +1885,7 @@
         <div class="sonnet-spot-ring"></div>
       </div>
       <div class="sonnet-beam" aria-hidden="true"></div>
+      <div class="sonnet-decor" id="sonnet-decor" aria-hidden="true"></div>
       <div class="sonnet-stack" id="sonnet-stack" aria-live="polite"></div>
       <div class="sonnet-tr" id="sonnet-line-tr"></div>
     </div>
