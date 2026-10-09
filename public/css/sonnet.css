@@ -151,6 +151,9 @@ body.sonnet #empty-home { display: none; }
   text-shadow: 0 0 26px rgba(255, 207, 158, 0.55);
 }
 
+/* 主行容器：块级（内嵌翻译在下方随动），限宽换行 */
+.sonnet-main { display: block; }
+
 /* 翻译行（内嵌主行下方，随主行移动——原独立定位撞行栈已废） */
 .sonnet-tr-inline {
   display: block;

@@ -58,8 +58,10 @@ function sonnetSeededUnit(seed) {
   return sonnetHashString(String(seed)) / 0xffffffff;
 }
 
-/* depth：0=当前行，负=已唱（向下沉），正=未唱（上方浮现） */
-function sonnetRowStyle(depth, lineIndex) {
+/* depth：0=当前行，负=已唱（向下沉），正=未唱（上方浮现）。
+   stackOffsets：各行累计占高表（主行换行/内嵌翻译会加高），offsetY 按
+   「到当前行的累计距离」排布而非固定 78px 栅格——换行长句不再压住邻句。 */
+function sonnetRowStyle(depth, lineIndex, stackOffsets) {
   var u = sonnetSeededUnit('row' + lineIndex);
   var u2 = sonnetSeededUnit('col' + lineIndex);
   var rotate = (u - 0.5) * 3.4;                 /* ±1.7° 手稿错位 */
@@ -67,7 +69,23 @@ function sonnetRowStyle(depth, lineIndex) {
   var d = Math.abs(depth);
   var scale = depth === 0 ? 1 : Math.max(0.52, 0.86 - (d - 1) * 0.09);
   var opacity = depth === 0 ? 1 : Math.max(0.1, 0.5 - (d - 1) * 0.075);
-  var offsetY = depth * 78 - d * d * 3.2;   /* 78px ≈ 1.86×字高：42px 字号下不叠字 */
+  var offsetY;
+  if (stackOffsets) {
+    /* 累计模型：offsets[i] 为行 i 的半高（中心到边缘），相邻行间距 =
+       自身半高 + 邻行半高 + 呼吸 18px；从 depth 0 向两侧累加 */
+    var center = stackOffsets.center;
+    var step = 0;
+    for (var s2 = 1; s2 <= d; s2++) {
+      var idxSide = depth > 0 ? (center - s2) : (center + s2);
+      var prevSide = depth > 0 ? (center - s2 + 1) : (center + s2 - 1);
+      var halfA = stackOffsets.half[idxSide] || 0;
+      var halfB = stackOffsets.half[prevSide] || 0;
+      step += halfA + halfB + 18;
+    }
+    offsetY = (depth > 0 ? -step : step) - d * d * 3.2;
+  } else {
+    offsetY = depth * 78 - d * d * 3.2;
+  }
   var blur = depth === 0 ? 0 : Math.min(3.2, 0.6 + (d - 1) * 0.55);
   return {
     transform: 'translate(-50%,0) translateX(' + (shiftX * (depth === 0 ? 0.2 : 1)).toFixed(1) + 'px) translateY(' + offsetY.toFixed(1) + 'px) rotate(' + rotate.toFixed(2) + 'deg) scale(' + scale.toFixed(3) + ')',
@@ -147,12 +165,30 @@ function sonnetRenderLines() {
       void row.offsetWidth;
       row.classList.add('is-arriving');
     }
-    var st = sonnetRowStyle(depth, lineIdx >= 0 ? lineIdx : s - 99);
-    row.style.transform = st.transform;
-    row.style.opacity = st.opacity;
-    row.style.filter = st.filter;
+    row.style.opacity = depth === 0 ? '1' : row.style.opacity;
     row.classList.toggle('is-active', depth === 0 && !!text);
     row.classList.toggle('is-chorus', depth === 0 && !!(line && line.isChorus));
+  }
+
+  /* 两遍布局：内容就位后实测各行高 → 累计占高模型定位
+     （主行换行 ×2 高度、内嵌翻译再加高，固定栅格会压住邻句——用户实测 bug） */
+  var half = Math.floor(SONNET_STACK_DEPTH / 2);
+  var offsets = { center: half, half: [] };
+  for (var m2 = 0; m2 < sonnetRows.length; m2++) {
+    var rowH = sonnetRows[m2].getBoundingClientRect().height || 78;
+    /* scale 缩小会等比缩视觉高度：栅格用「布局高度×scale」防缩放行间距过大 */
+    var st0 = sonnetRowStyle(m2 - half, -1000 + m2, null);
+    var scMatch = /scale\(([\d.]+)\)/.exec(st0.transform);
+    var sc = scMatch ? parseFloat(scMatch[1]) : 1;
+    offsets.half[m2] = (rowH * sc) / 2;
+  }
+  for (var s3 = 0; s3 < SONNET_STACK_DEPTH; s3++) {
+    var depth2 = half - s3;
+    var lineIdx2 = idx + depth2;
+    var st = sonnetRowStyle(depth2, lineIdx2 >= 0 ? lineIdx2 : s3 - 99, offsets);
+    sonnetRows[s3].style.transform = st.transform;
+    sonnetRows[s3].style.opacity = st.opacity;
+    sonnetRows[s3].style.filter = st.filter;
   }
 }
 
