@@ -168,6 +168,7 @@
     'js/modules/10-shell/23-cappella.js',
     'js/modules/10-shell/24-monet.js',
     'js/modules/10-shell/25-diorama.js',
+    'js/modules/10-shell/26a-sonnet-pixi-bridge.js',
     'js/modules/10-shell/26-sonnet.js',
     'js/modules/10-shell/28-lumiere.js',
     'js/modules/10-shell/10-support.js',

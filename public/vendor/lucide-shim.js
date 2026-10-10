@@ -1,0 +1,33 @@
+// OrangeSea · lucide 图标垫片（11 个常用图标内联，替换 lucide-react+react 1.17MB 依赖）
+// 图标数据 from lucide-react v1.48.0 (ISC License) dist esm —— 本项目主题 lyricsIcons
+// 恒为空（走默认 Flower），垫片覆盖默认+常用名；未知名返回 null 与原语义一致。
+(function (global) {
+"use strict";
+var ICON_NODES = {"Flower": [["circle", {"cx": "12", "cy": "12", "r": "3"}], ["path", {"d": "M12 16.5A4.5 4.5 0 1 1 7.5 12 4.5 4.5 0 1 1 12 7.5a4.5 4.5 0 1 1 4.5 4.5 4.5 4.5 0 1 1-4.5 4.5"}], ["path", {"d": "M12 7.5V9"}], ["path", {"d": "M7.5 12H9"}], ["path", {"d": "M16.5 12H15"}], ["path", {"d": "M12 16.5V15"}], ["path", {"d": "m8 8 1.88 1.88"}], ["path", {"d": "M14.12 9.88 16 8"}], ["path", {"d": "m8 16 1.88-1.88"}], ["path", {"d": "M14.12 14.12 16 16"}]], "Star": [["path", {"d": "M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"}]], "Sparkles": [["path", {"d": "M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"}], ["path", {"d": "M20 2v4"}], ["path", {"d": "M22 4h-4"}], ["circle", {"cx": "4", "cy": "20", "r": "2"}]], "Sun": [["circle", {"cx": "12", "cy": "12", "r": "4"}], ["path", {"d": "M12 2v2"}], ["path", {"d": "M12 20v2"}], ["path", {"d": "m4.93 4.93 1.41 1.41"}], ["path", {"d": "m17.66 17.66 1.41 1.41"}], ["path", {"d": "M2 12h2"}], ["path", {"d": "M20 12h2"}], ["path", {"d": "m6.34 17.66-1.41 1.41"}], ["path", {"d": "m19.07 4.93-1.41 1.41"}]], "Moon": [["path", {"d": "M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"}]], "Cloud": [["path", {"d": "M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"}]], "Heart": [["path", {"d": "M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"}]], "Music": [["path", {"d": "M9 18V5l12-2v13"}], ["circle", {"cx": "6", "cy": "18", "r": "3"}], ["circle", {"cx": "18", "cy": "16", "r": "3"}]], "Leaf": [["path", {"d": "M11 20a10 10 0 0010-10 25.9 25.9 0 00-1.04-7.281 1 1 0 00-1.755-.325C15.833 5.5 13 5.5 9.8 6.1A7 7 0 0011 20"}], ["path", {"d": "M2 21a5 5 0 012.911-4.544C7.613 15.212 8.351 15.24 11 13"}]], "Bird": [["path", {"d": "M16 7h.01"}], ["path", {"d": "M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"}], ["path", {"d": "m20 7 2 .5-2 .5"}], ["path", {"d": "M10 18v3"}], ["path", {"d": "M14 17.75V21"}], ["path", {"d": "M7 18a6 6 0 0 0 3.84-10.61"}]], "Feather": [["path", {"d": "M14.086 18.412A2 2 0 0112.67 19H5v-7.672a2 2 0 01.586-1.414L11.75 3.75a6 6 0 118.49 8.49z"}], ["path", {"d": "M16 8 2 22"}], ["path", {"d": "M17.488 15H9"}]]};
+var BY_LOWER = {};
+Object.keys(ICON_NODES).forEach(function (k) { BY_LOWER[k.toLowerCase()] = k; });
+global.LucideIcons = {};
+Object.keys(ICON_NODES).forEach(function (k) {
+  global.LucideIcons[k] = function (props) {
+    var size = (props && props.size) || 24;
+    var color = (props && props.color) || "currentColor";
+    var sw = (props && props.strokeWidth) || 2;
+    var nodes = ICON_NODES[k]; var parts = [];
+    for (var i = 0; i < nodes.length; i++) {
+      var t = nodes[i][0], a = nodes[i][1]; var s = "";
+      for (var kk in a) { s += kk + "=\"" + a[kk] + "\" "; }
+      parts.push("<" + t + " " + s + "/>");
+    }
+    return { __svg: "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" + size + "\" height=\"" + size + "\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"" + color + "\" stroke-width=\"" + sw + "\" stroke-linecap=\"round\" stroke-linejoin=\"round\">" + parts.join("") + "</svg>",
+      key: null, props: props || {} };
+  };
+});
+global.renderToStaticMarkupShim = function (el) { return el && el.__svg ? el.__svg : ""; };
+global.resolveLucideIconNames = function (names) {
+  var out = []; (names || []).forEach(function (n) {
+    var k = BY_LOWER[String(n).toLowerCase()];
+    if (k && out.indexOf(k) < 0) out.push(k);
+  });
+  return out;
+};
+})(typeof window !== "undefined" ? window : this);

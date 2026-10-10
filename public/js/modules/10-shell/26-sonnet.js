@@ -20,6 +20,7 @@ var sonnetLastActiveIdx = -99;
 var sonnetLastThemeKey = '';
 var sonnetLinesCache = [];
 var SONNET_STACK_DEPTH = 7;
+var sonnetUsePixi = false;   /* 原版 Pixi 引擎接管渲染（false = DOM 版降级） */
 var sonnetLastChorus = false;
 
 /* ---------- 主题 ---------- */
@@ -370,21 +371,46 @@ function startSonnet() {
   sonnetLastActiveIdx = -99;
   sonnetLastLinesKey = '';
   sonnetSyncTheme();
-  sonnetRenderLines();
-  sonnetRenderDecor();
-  sonnetCameraStart();
-  (function loop() {
-    if (!sonnetMode) return;
-    sonnetSyncTheme();
-    sonnetRenderLines();
-    sonnetRenderDecor();
-    sonnetTickWords();
-    sonnetTimer = setTimeout(loop, 220);
-  })();
+  /* 原版 Pixi 引擎优先（镜头/排版/MG 图形/后期全量）；
+     创建失败（无 WebGL 等）自动降级 DOM 版并保底可用 */
+  var boot = (typeof sonnetPixiStart === 'function') ? sonnetPixiStart() : Promise.resolve(false);
+  boot.then(function (ok) {
+    if (!sonnetMode) { if (ok) sonnetPixiStop(); return; }
+    sonnetUsePixi = !!ok;
+    var ov = document.getElementById('sonnet-overlay');
+    if (ov) ov.classList.toggle('pixi-on', sonnetUsePixi);
+    if (!sonnetUsePixi) {
+      /* DOM 降级版全链路（原实现） */
+      sonnetRenderLines();
+      sonnetRenderDecor();
+      sonnetCameraStart();
+      (function loop() {
+        if (!sonnetMode || sonnetUsePixi) return;
+        sonnetSyncTheme();
+        sonnetRenderLines();
+        sonnetRenderDecor();
+        sonnetTickWords();
+        sonnetTimer = setTimeout(loop, 220);
+      })();
+    } else {
+      /* Pixi 版：轻量同步循环（换歌/主题/字号 swapSong + 暂停跟随） */
+      (function loop() {
+        if (!sonnetMode || !sonnetUsePixi) return;
+        if (typeof sonnetPixiSync === 'function') sonnetPixiSync();
+        var paused = !((typeof playing !== 'undefined') && playing);
+        if (typeof sonnetPixiSetPaused === 'function') sonnetPixiSetPaused(paused);
+        sonnetTimer = setTimeout(loop, 700);
+      })();
+    }
+  });
 }
 
 function stopSonnet() {
   if (sonnetTimer) { clearTimeout(sonnetTimer); sonnetTimer = 0; }
+  sonnetUsePixi = false;
+  if (typeof sonnetPixiStop === 'function') sonnetPixiStop();
+  var ov0 = document.getElementById('sonnet-overlay');
+  if (ov0) ov0.classList.remove('pixi-on');
   sonnetCameraStop();
   sonnetLastChorus = false;
   var snOv = document.getElementById('sonnet-overlay');

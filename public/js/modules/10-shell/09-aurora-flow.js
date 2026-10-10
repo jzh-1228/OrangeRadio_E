@@ -586,9 +586,9 @@ function tickAuroraBg(now) {
   var gain = Math.min(1.5, (auroraPalette && auroraPalette.gain) || 1);
   var chorusLift = 1 + auroraChorus * 0.5;
   var defs = [
-    { baseY: 0.26, tall: 0.15, amp1: 0.020, f1: 1.9, spd1: 0.088, ph1: 0.0, amp2: 0.011, f2: 4.3, spd2: 0.052, ph2: 2.1, rayF: 9.0, rayS: 0.050, alpha: 0.24, edge: 0.16 },
-    { baseY: 0.38, tall: 0.19, amp1: 0.027, f1: 1.4, spd1: 0.066, ph1: 2.4, amp2: 0.014, f2: 3.6, spd2: 0.044, ph2: 4.4, rayF: 7.0, rayS: 0.040, alpha: 0.32, edge: 0.30 },
-    { baseY: 0.50, tall: 0.23, amp1: 0.033, f1: 1.1, spd1: 0.050, ph1: 4.8, amp2: 0.016, f2: 2.9, spd2: 0.036, ph2: 1.2, rayF: 5.4, rayS: 0.030, alpha: 0.40, edge: 0.44 }
+    { baseY: 0.26, tall: 0.12, amp1: 0.020, f1: 1.9, spd1: 0.088, ph1: 0.0, amp2: 0.011, f2: 4.3, spd2: 0.052, ph2: 2.1, rayF: 9.0, rayS: 0.050, alpha: 0.22, edge: 0.16 },
+    { baseY: 0.38, tall: 0.155, amp1: 0.027, f1: 1.4, spd1: 0.066, ph1: 2.4, amp2: 0.014, f2: 3.6, spd2: 0.044, ph2: 4.4, rayF: 7.0, rayS: 0.040, alpha: 0.28, edge: 0.30 },
+    { baseY: 0.50, tall: 0.19, amp1: 0.033, f1: 1.1, spd1: 0.050, ph1: 4.8, amp2: 0.016, f2: 2.9, spd2: 0.036, ph2: 1.2, rayF: 5.4, rayS: 0.030, alpha: 0.34, edge: 0.44 }
   ];
   var N = 30;
   for (var i = 0; i < defs.length; i++) {
@@ -605,7 +605,7 @@ function tickAuroraBg(now) {
         + Math.sin(x / w * d.f1 * 6.2832 + t * d.spd1 + d.ph1) * h * d.amp1
         + Math.sin(x / w * d.f2 * 6.2832 - t * d.spd2 + d.ph2) * h * d.amp2;
       /* 帘高条纹：高频正弦让帘幕出现光柱感（blur 后成柔和竖纹） */
-      var tall = tallBase * (1 + 0.30 * Math.sin(x / w * d.rayF * 6.2832 + t * d.rayS + d.ph1 * 2));
+      var tall = tallBase * (1 + 0.55 * Math.sin(x / w * d.rayF * 6.2832 + t * d.rayS + d.ph1 * 2));
       if (tall < h * 0.04) tall = h * 0.04;
       xs[s] = x; yb[s] = yBase; yt[s] = yBase - tall;
     }
@@ -616,7 +616,7 @@ function tickAuroraBg(now) {
     for (s = N; s >= 0; s--) ctx.lineTo(xs[s], yt[s]);
     var gg = ctx.createLinearGradient(0, baseY - h * d.tall * 1.3, 0, baseY + h * 0.02);
     gg.addColorStop(0, 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',0)');
-    gg.addColorStop(0.55, 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',' + (alpha * 0.45).toFixed(3) + ')');
+    gg.addColorStop(0.62, 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',' + (alpha * 0.32).toFixed(3) + ')');
     gg.addColorStop(0.90, 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',' + alpha.toFixed(3) + ')');
     gg.addColorStop(1, 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',' + (alpha * 0.9).toFixed(3) + ')');
     ctx.fillStyle = gg;
@@ -662,13 +662,13 @@ function tickAuroraWave() {
   /* 地平线：一根极细的横向微光，中央最亮 */
   var hg = ctx.createLinearGradient(0, 0, w, 0);
   hg.addColorStop(0, 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',0)');
-  hg.addColorStop(0.5, 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',' + (0.20 + glow * 0.35).toFixed(3) + ')');
+  hg.addColorStop(0.5, 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',' + (0.30 + glow * 0.5).toFixed(3) + ')');
   hg.addColorStop(1, 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',0)');
   ctx.beginPath();
   ctx.moveTo(0, horizonY);
   ctx.lineTo(w, horizonY);
   ctx.strokeStyle = hg;
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 1.25;
   ctx.stroke();
 
   /* 波形点平滑 */
@@ -704,9 +704,9 @@ function tickAuroraWave() {
     ctx.stroke();
   }
   /* 宽淡辉光 + 细亮主线 + 水下倒影 */
-  waveStroke(glow * 0.4, 4.5, false);
-  waveStroke(glow, 1.3, false);
-  waveStroke(glow * 0.20, 3, true);
+  waveStroke(glow * 0.55, 4.5, false);
+  waveStroke(glow * 1.35, 1.3, false);
+  waveStroke(glow * 0.30, 3, true);
 }
 
 /* ---------- 歌词（三行布局：上淡出 / 当前行逐字点亮+流光 / 下预览） ---------- */
@@ -840,6 +840,8 @@ function tickAuroraLyrics() {
         main.classList.add('empty');
         main.classList.remove('has-live');
       }
+      setAuroraSideLine('aurora-line-prev', null);   /* 间奏/无词时侧行一并清空 */
+      setAuroraSideLine('aurora-line-next', null);
       auroraChars = [];
       auroraCharRects = [];
       auroraHeadIdx = -1;

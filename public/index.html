@@ -1886,6 +1886,8 @@
       </div>
       <div class="sonnet-beam" aria-hidden="true"></div>
       <div class="sonnet-decor" id="sonnet-decor" aria-hidden="true"></div>
+      <!-- 原版 Pixi 引擎宿主（26a-sonnet-pixi-bridge 创建；DOM 版行栈在 pixi-on 时隐藏） -->
+      <div class="sonnet-pixi-host" id="sonnet-pixi-host" aria-hidden="true"></div>
       <div class="sonnet-stack" id="sonnet-stack" aria-live="polite"></div>
       <div class="sonnet-tr" id="sonnet-line-tr"></div>
     </div>
@@ -2390,6 +2392,10 @@
     </div>
   </div>
 
+  <script src='vendor/pixi.min.js?v=8.21.0'></script>
+  <script src='vendor/pretext/pretext.bundle.js?v=0.0.9'></script>
+  <script src='vendor/lucide-shim.js?v=1'></script>
+  <script src='js/modules/10-shell-sonnet-engine/sonnet-engine.js?v=1'></script>
   <script src="js/index-loader.js"></script>
 </body>
 

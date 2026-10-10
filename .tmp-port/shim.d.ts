@@ -1,0 +1,7 @@
+// 外部依赖类型 shim（转译用，产物中不保留）
+declare module 'pixi.js' { export const Application: any; export const Container: any; export const Graphics: any; export const Text: any; export const Sprite: any; export const Texture: any; export const BlurFilter: any; export const Color: any; export const TextStyle: any; export const Ticker: any; const _x: any; export default _x; export const BitmapText: any; export const Mesh: any; export const MeshGeometry: any; export const RenderTexture: any; }
+declare module '@chenglou/pretext' { export function prepareWithSegments(...a: any[]): any; export function layoutWithLines(...a: any[]): any; export function layout(...a: any[]): any; export function prepare(...a: any[]): any; export function measureLineStats(...a: any[]): any; export function measureNaturalWidth(...a: any[]): any; export const _: any; }
+declare module 'framer-motion' { export type MotionValue<T = any> = { get(): T; set(v: T): void; on(c: string, cb: (v: any) => void): () => void; }; export const motion: any; export const AnimatePresence: any; export const useMotionValueEvent: any; }
+declare module 'lucide-react' { const icons: any; export = icons; }
+declare module 'react' { export const createElement: any; export const useState: any; export const useMemo: any; export const useRef: any; export const useEffect: any; export default { createElement: any }; }
+declare module 'react-dom/server' { export const renderToStaticMarkup: any; }

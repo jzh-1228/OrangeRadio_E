@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "es2020",
+    "outDir": "out",
+    "rootDir": "src",
+    "strict": false,
+    "noEmitOnError": false,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "jsx": "react-jsx"
+  },
+  "include": [
+    "src/**/*"
+  ]
+}

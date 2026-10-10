@@ -194,6 +194,22 @@ body.sonnet #empty-home { display: none; }
 .sonnet-line.is-active .sonnet-tr-inline { color: rgba(246, 239, 226, 0.62); }
 
 
+/* ---------- 原版 Pixi 引擎层（26a 桥接管）---------- */
+.sonnet-pixi-host {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: none;              /* 仅 pixi-on 时显示（引擎失败走 DOM 版时保持隐藏） */
+  pointer-events: none;
+}
+#sonnet-overlay.pixi-on .sonnet-pixi-host { display: block; }
+#sonnet-overlay.pixi-on .sonnet-stack,
+#sonnet-overlay.pixi-on .sonnet-decor,
+#sonnet-overlay.pixi-on .sonnet-spot,
+#sonnet-overlay.pixi-on .sonnet-rays,
+#sonnet-overlay.pixi-on .sonnet-beam,
+#sonnet-overlay.pixi-on .sonnet-vignette { display: none; }   /* DOM 版元素让位 */
+
 /* ---------- 镜边装饰线稿（原版 9 族 ShotMg 的简化版）----------
    按歌曲种子选一族（star 星轨 / flora 植物枝 / wave 波纹 / staff 谱线），
    SVG stroke 描边生长（dashoffset）+ 缓慢呼吸，z 垫在歌词之下、光台之上 */
