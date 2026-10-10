@@ -6285,7 +6285,7 @@ const createLyricEcho = (pixi, options) => {
 
 // ======== components/visualizer/lumiere/text/lineWrap ========
 // Copyright (c) 2026 chthollyphile
-var  measureNaturalWidth, prepareWithSegments  = pretext;
+var {  measureNaturalWidth, prepareWithSegments  } = pretext;
 var  measureRichInlineStats, prepareRichInline, walkRichInlineLineRanges  = pretext;
 /** 画框四角括号的边距（逻辑像素）：边缘可能被运镜推近、后处理的镜头畸变往外推，留足。overlay 也用它。 */
 const frameInsets = (width, height) => ({

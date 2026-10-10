@@ -38,7 +38,7 @@ for p in glob.glob('out/**/*.js', recursive=True):
 
 def deps_of(rel):
     out = []
-    for m in re.finditer(r"import[^'\"]*from\s*'(\.{1,2}/[^']*)'", files[rel]):
+    for m in re.finditer(r"(?:import|export)[^'\"]*from\s*'(\.{1,2}/[^']*)'", files[rel]):
         tgt = os.path.normpath(os.path.join(os.path.dirname(rel), m.group(1))).replace(os.sep, '/')
         if tgt in files and tgt != rel:
             out.append(tgt)
@@ -80,10 +80,10 @@ print('dupes:', sorted(dupes)[:8])
 # —— 跨文件一致的改名：先记录 import 绑定（本地名 → 源模块），再分配唯一名 ——
 # 符号真名：file_key(rel, name) = 唯一标识；decl_owner[(name, rel)] 分配 name__N
 # 引用解析：文件里名字 X → 若 import 自 S 则 S 的 X，否则本文件的 X
-import_bindings = {}   # rel -> {local: source_module_key}
+import_bindings = {}   # rel -> {local: (source_module, orig_name)}
 for rel in order:
     binds = {}
-    for m in re.finditer(r"import\s*\{([^}]*)\}\s*from\s*'(\.{1,2}/[^']*)'", files[rel]):
+    for m in re.finditer(r"(?:import|export)\s*\{([^}]*)\}\s*from\s*'(\.{1,2}/[^']*)'", files[rel]):
         names, mod = m.group(1), m.group(2)
         tgt = os.path.normpath(os.path.join(os.path.dirname(rel), mod)).replace(os.sep, '/')
         if tgt in files:
@@ -94,7 +94,9 @@ for rel in order:
                     orig, local = [x.strip() for x in part.split(' as ')]
                 else:
                     local = orig = part
-                binds[local] = (tgt, orig)
+                # re-export：local 在本文件无 import，绑定到 (tgt, orig) 使别名解析取源模块声明
+                if local not in binds:
+                    binds[local] = (tgt, orig)
     import_bindings[rel] = binds
 
 # 唯一名分配：dupes 符号按 (声明文件) 编号
@@ -122,9 +124,9 @@ for rel in order:
     src = re.sub(r"^import\s*\{[^}]*\}\s*from\s*'(\.{3}/[^']*)';?\s*$", '', src, flags=re.M)
     src = re.sub(r"^import\s*\*\s*as\s+(\w+)\s+from\s*'pixi\.js';?\s*$", r'var \1 = PIXI;', src, flags=re.M)
     src = re.sub(r"^import\s*\{([^}]*)\}\s*from\s*'pixi\.js';?\s*$",
-                 lambda m: 'var ' + m.group(1).replace(' as ', ': ') + ' = PIXI;', src, flags=re.M)
+                 lambda m: 'var { ' + m.group(1) + ' } = PIXI;', src, flags=re.M)
     src = re.sub(r"^import\s*\{([^}]*)\}\s*from\s*'@chenglou/pretext';?\s*$",
-                 lambda m: 'var ' + m.group(1).replace(' as ', ': ') + ' = pretext;', src, flags=re.M)
+                 lambda m: 'var { ' + m.group(1) + ' } = pretext;', src, flags=re.M)
     src = re.sub(r"^import\s+type\s*\{[^}]*\}\s*from\s*'[^']*';?\s*$", '', src, flags=re.M)
     src = re.sub(r"^import\s*\{([^}]*)\}\s*from\s*'@chenglou/pretext/rich-inline';?\s*$",
                  lambda m: 'var ' + m.group(1).replace(' as ', ': ') + ' = pretext;', src, flags=re.M)
@@ -192,7 +194,7 @@ for rel in order:
 print('program compiler:', comp)
 if comp:
     chunks.append(f'env.{comp} = (typeof {comp} !== "undefined") ? {comp} : null;')
-chunks.append('})(typeof PIXI !== "undefined" ? PIXI : null, typeof pretext !== "undefined" ? pretext : null, typeof window !== "undefined" ? window : this);')
+chunks.append('})(typeof PIXI !== "undefined" ? PIXI : {}, typeof pretext !== "undefined" ? pretext : {}, typeof window !== "undefined" ? window : this);')
 blob = '\n'.join(chunks)
 blob = re.sub(r"^import\s+'[^']+';?\s*$", '', blob, flags=re.M)
 open(f'{MODE}-engine.js', 'w', encoding='utf-8', newline='\n').write(blob)

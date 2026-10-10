@@ -3,7 +3,7 @@ src = open('tempera-engine.js', encoding='utf-8').read()
 # 1) loadPixi 适配
 src = src.replace('const pixi = await loadPixi();', 'const pixi = await Promise.resolve(PIXI);', 1)
 # 2) 注入 sonnet 滤镜（重名 vertex/fragment 预改名）
-if 'createSonnetLensFilter' not in src:
+if 'function createSonnetLensFilter' not in src and 'const createSonnetLensFilter' not in src:
     def strip_esm(s):
         s = re.sub(r'^import\s+type[^;]*;?\s*$', '', s, flags=re.M)
         s = re.sub(r"^import\s*\{[^}]*\}\s*from\s*'(\.{1,2}/[^']*)';?\s*$", '', s, flags=re.M)
