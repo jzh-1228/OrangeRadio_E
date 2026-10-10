@@ -10,6 +10,7 @@
    亮）。歌词居中大字逐字点亮，上下行暗淡。主题跟随。
    ========================================================================= */
 
+var temperaUsePixi = false;   /* 原版 Pixi 引擎接管（false = DOM 版降级） */
 var TEMPERA_STORE_KEY = 'orangesea-tempera-v1';
 var temperaMode = readBooleanPreference(TEMPERA_STORE_KEY, false);
 var temperaTimer = 0;
@@ -339,10 +340,31 @@ function startTempera() {
   temperaLastActiveIdx = -99;
   temperaLastLinesKey = '';
   temperaSyncTheme();
-  temperaRebuildBlocks();
-  temperaRenderLines();
+  /* 原版 Pixi 引擎优先；失败自动降级 DOM 版（原链路） */
+  var boot = (typeof temperaPixiStart === 'function') ? temperaPixiStart() : Promise.resolve(false);
+  boot.then(function (ok) {
+    if (!temperaMode) { if (ok) temperaPixiStop(); return; }
+    temperaUsePixi = !!ok;
+    var ov = document.getElementById('tempera-overlay');
+    if (ov) ov.classList.toggle('pixi-on', temperaUsePixi);
+    if (temperaUsePixi) {
+      (function ploop() {
+        if (!temperaMode || !temperaUsePixi) return;
+        var paused = !((typeof playing !== 'undefined') && playing);
+        temperaPixiSetPaused(paused);
+        temperaTimer = setTimeout(ploop, 700);
+      })();
+      return;
+    }
+    temperaRebuildBlocks();
+    temperaRenderLines();
+    temperaDomLoop();
+  });
+}
+
+function temperaDomLoop() {
   (function loop() {
-    if (!temperaMode) return;
+    if (!temperaMode || temperaUsePixi) return;
     if (temperaSyncTheme()) temperaRebuildBlocks();
     temperaRebuildBlocks();
     temperaRenderLines();
@@ -354,6 +376,10 @@ function startTempera() {
 
 function stopTempera() {
   if (temperaTimer) { clearTimeout(temperaTimer); temperaTimer = 0; }
+  temperaUsePixi = false;
+  if (typeof temperaPixiStop === 'function') temperaPixiStop();
+  var ov = document.getElementById('tempera-overlay');
+  if (ov) ov.classList.remove('pixi-on');
 }
 
 function applyTemperaMode(on, opts) {

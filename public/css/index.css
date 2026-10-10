@@ -10568,6 +10568,16 @@ body.desktop-shell.diy-mode #bottom-bar.stage-mode {
 }
 
 /* --- 预设卡片网格 --- */
+.pixi-host {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: none;
+  pointer-events: none;
+}
+*[id$="-overlay"].pixi-on .pixi-host { display: block; }
+*[id$="-overlay"].pixi-on > *:not(.pixi-host) { display: none !important; }   /* DOM 版元素让位 */
+
 .preset-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

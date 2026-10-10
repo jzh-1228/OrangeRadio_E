@@ -75,7 +75,7 @@ var VISUALIZER_OVERLAY_MODES = [
     icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3.4M5.6 6.2l2 2.4M18.4 6.2l-2 2.4"/><circle cx="12" cy="15" r="5.6" opacity=".55"/><path d="M4 21l3-4.6M20 21l-3-4.6" opacity=".4"/></svg>' },
   { id: 'tempera', label: '凝彩', stateVar: 'temperaMode', applyFn: 'applyTemperaMode', order: 107, trimCache: 'trimTemperaSpriteCache',
     desc: '剪纸色块 · 拼贴构图',
-    lazy: true, storeKey: 'orangesea-tempera-v1', src: ['js/modules/10-shell/27-tempera.js'],
+    lazy: true, storeKey: 'orangesea-tempera-v1', src: ['js/modules/10-shell/27a-tempera-pixi-bridge.js', 'js/modules/10-shell/27-tempera.js'],
     icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.4" cy="9" r="4.4"/><rect x="11.6" y="9.6" width="8" height="6" rx="1.4" transform="rotate(-8 15.6 12.6)" opacity=".75"/><path d="M4 18.4h10" opacity=".5"/></svg>' },
   { id: 'lumiere', label: '绘光', stateVar: 'lumiereMode', applyFn: 'applyLumiereMode', order: 108,
     desc: '霓虹光丝 · 星尘',

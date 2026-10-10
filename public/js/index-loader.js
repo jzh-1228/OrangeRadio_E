@@ -170,6 +170,7 @@
     'js/modules/10-shell/25-diorama.js',
     'js/modules/10-shell/26a-sonnet-pixi-bridge.js',
     'js/modules/10-shell/26-sonnet.js',
+    'js/modules/10-shell/28a-lumiere-pixi-bridge.js',
     'js/modules/10-shell/28-lumiere.js',
     'js/modules/10-shell/10-support.js',
     'js/modules/10-shell/11-feedback.js',

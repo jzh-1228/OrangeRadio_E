@@ -283,9 +283,31 @@ function lumiereFrame(now) {
 
 /* ---------- 生命周期 ---------- */
 
+var lumiereUsePixi = false;   /* 原版 Pixi 引擎接管（false = canvas 版降级） */
+
 function startLumiere() {
   /* 字号跟随「歌词大小」设置（--mfs，CSS 主行 clamp 乘算） */
   if (typeof applyOverlayModeFontScale === "function") applyOverlayModeFontScale(document.getElementById("lumiere-overlay"));
+  /* 原版 Pixi 引擎优先；失败自动降级 canvas 版 */
+  var boot = (typeof lumierePixiStart === 'function') ? lumierePixiStart() : Promise.resolve(false);
+  boot.then(function (ok) {
+    if (!lumiereMode) { if (ok) lumierePixiStop(); return; }
+    lumiereUsePixi = !!ok;
+    var ov = document.getElementById('lumiere-overlay');
+    if (ov) ov.classList.toggle('pixi-on', lumiereUsePixi);
+    if (lumiereUsePixi) {
+      (function ploop() {
+        if (!lumiereMode || !lumiereUsePixi) return;
+        lumierePixiSetPaused(!((typeof playing !== 'undefined') && playing));
+        setTimeout(ploop, 700);
+      })();
+      return;
+    }
+    lumiereDomStart();
+  });
+}
+
+function lumiereDomStart() {
   lumiereCanvas = document.getElementById('lumiere-canvas');
   lumiereCtx = lumiereCanvas ? lumiereCanvas.getContext('2d') : null;
   lumiereBuildStrands();
@@ -299,6 +321,10 @@ function startLumiere() {
 function stopLumiere() {
   if (lumiereRafId) { cancelAnimationFrame(lumiereRafId); lumiereRafId = 0; }
   if (lumiereTimer) { clearTimeout(lumiereTimer); lumiereTimer = 0; }
+  lumiereUsePixi = false;
+  if (typeof lumierePixiStop === 'function') lumierePixiStop();
+  var ov = document.getElementById('lumiere-overlay');
+  if (ov) ov.classList.remove('pixi-on');
 }
 
 function applyLumiereMode(on, opts) {

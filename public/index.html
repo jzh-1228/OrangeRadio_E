@@ -1895,6 +1895,8 @@
     <!-- 凝彩覆盖层（Tempera · 剪纸色块）：马蒂斯式大色块拼贴（按歌曲 seed 选构图）+
          能量驱动明暗 + 居中大字逐字点亮（源自 Folia tempera 模式，AGPL-3.0，见 NOTICE.md） -->
     <div id="tempera-overlay" aria-hidden="true">
+      <!-- 原版 Pixi 引擎宿主（27a 桥） -->
+      <div class="pixi-host" id="tempera-pixi-host" aria-hidden="true"></div>
       <div class="tempera-field" id="tempera-field" aria-hidden="true"></div>
       <div class="tempera-veil" aria-hidden="true"></div>
       <div class="tempera-lyrics">
@@ -1908,6 +1910,8 @@
     <!-- 绘光覆盖层（Lumiere · 霓虹光丝）：暗场流动光丝 + 光点串 + 上浮星尘 + 星落 +
          居中柔光大字逐字点亮（源自 Folia lumiere 模式，AGPL-3.0，见 NOTICE.md） -->
     <div id="lumiere-overlay" aria-hidden="true">
+      <!-- 原版 Pixi 引擎宿主（28a 桥） -->
+      <div class="pixi-host" id="lumiere-pixi-host" aria-hidden="true"></div>
       <canvas id="lumiere-canvas" aria-hidden="true"></canvas>
       <div class="lumiere-lyrics">
         <div class="lumiere-line" id="lumiere-line-prev"></div>
@@ -2394,8 +2398,11 @@
 
   <script src='vendor/pixi.min.js?v=8.21.0'></script>
   <script src='vendor/pretext/pretext.bundle.js?v=0.0.9'></script>
+  <script src='vendor/pixi-init.js?v=3'></script>
   <script src='vendor/lucide-shim.js?v=1'></script>
-  <script src='js/modules/10-shell-sonnet-engine/sonnet-engine.js?v=1'></script>
+  <script src='js/modules/10-shell-sonnet-engine/sonnet-engine.js?v=3'></script>
+  <script src='js/modules/10-shell-sonnet-engine/tempera-engine.js?v=4'></script>
+  <script src='js/modules/10-shell-sonnet-engine/lumiere-engine.js?v=7'></script>
   <script src="js/index-loader.js"></script>
 </body>
 
