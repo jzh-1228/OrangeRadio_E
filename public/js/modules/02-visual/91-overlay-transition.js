@@ -93,6 +93,17 @@ function applyOverlayEco(active) {
   }
 }
 
+/* 覆盖层激活/退出边沿：宿主 3D 歌词舞台整体让位与恢复。
+   Folia 语义：歌词呈现归模式自己（Shell 承载）；宿主播放态视觉（含无歌词时的
+   「歌名大字」兜底行）不得透过模式背景外泄。主循环在覆盖层激活期间走保温分支
+   提前 return，帧内检查不可达——所以挂在这里（边沿一次，保温帧按当前状态渲染）。 */
+function syncStageLyricsYield(active) {
+  try {
+    if (typeof stageLyrics === 'undefined' || !stageLyrics || !stageLyrics.group) return;
+    stageLyrics.group.visible = !active;
+  } catch (e) { }
+}
+
 /* 轮询边沿检测：激活模式 id 变化时处理 eco/续命兜底/退出补帧 */
 function overlayEdgeTick() {
   var active = (typeof activeVisualizerOverlay === 'function') ? activeVisualizerOverlay() : null;
@@ -100,6 +111,10 @@ function overlayEdgeTick() {
   if (activeId === overlayEdgeLastId) return;
   var prevId = overlayEdgeLastId;
   overlayEdgeLastId = activeId;
+  /* 通用「覆盖层激活中」body class：主页浮层等跨模式层级规则只认这个 class，
+     新增注册模式自动被覆盖（此前只有 film-radio/graffiti 两条硬编码规则）。 */
+  try { document.body.classList.toggle('overlay-mode-active', !!active); } catch (e) { }
+  syncStageLyricsYield(!!active);
   if (active) {
     cancelOverlayExit(active);   /* 重新进入：清掉可能挂着的退场续命 */
     applyOverlayEco(true);

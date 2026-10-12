@@ -1,0 +1,2894 @@
+{
+  "_comment": "移植管线模式配置。每段 = 一个模式：entryKind auto（从入口符号追依赖闭包）| files（显式文件清单，React 组件树模式用）。wrapper.args 按需注入（引擎 IIFE 形参）；wrapper.defaults 是各形参的运行时取值表达式。aliasExports 把闭包内（可能被重名改名过的）符号以稳定别名注入 env.<alias>，供手工段与测试直接调用。manualParts 按序拼接在自动段之后（Folia 渲染核心的手工 DOM 落地段放这里）。finish 是产物后处理脚本（部署适配），依次执行。",
+  "sonnet": {
+    "entryKind": "auto",
+    "entryFile": "components/visualizer/sonnet/createSonnetPixiRuntime.ts",
+    "extraShared": [],
+    "wrapper": {
+      "args": [
+        "PIXI",
+        "pretext",
+        "env"
+      ],
+      "defaults": {
+        "PIXI": "typeof PIXI !== \"undefined\" ? PIXI : {}",
+        "pretext": "typeof pretext !== \"undefined\" ? pretext : {}",
+        "env": "typeof window !== \"undefined\" ? window : this"
+      }
+    },
+    "prologue": [
+      "// 跨模式符号：tempera 复用 sonnet 的滤镜（引擎 bundle 全局先行加载）",
+      "var TemperaLensFilterMixin = null;   // 占位：actual classes injected via window.__sonnetFilters if present"
+    ],
+    "exports": [
+      {
+        "symbol": "SonnetPixiRuntime",
+        "kind": "class"
+      },
+      {
+        "symbol": "compileSonnetProgram",
+        "kind": "const"
+      }
+    ],
+    "aliasExports": [],
+    "manualParts": [],
+    "finish": [
+      "finish-sonnet.py"
+    ]
+  },
+  "tempera": {
+    "entryKind": "auto",
+    "entryFile": "components/visualizer/tempera/createTemperaPixiRuntime.ts",
+    "extraShared": [],
+    "wrapper": {
+      "args": [
+        "PIXI",
+        "pretext",
+        "env"
+      ],
+      "defaults": {
+        "PIXI": "typeof PIXI !== \"undefined\" ? PIXI : null",
+        "pretext": "typeof pretext !== \"undefined\" ? pretext : null",
+        "env": "typeof window !== \"undefined\" ? window : this"
+      }
+    },
+    "prologue": [
+      "// 跨模式符号：tempera 复用 sonnet 的滤镜（引擎 bundle 全局先行加载）",
+      "var TemperaLensFilterMixin = null;   // 占位：actual classes injected via window.__sonnetFilters if present"
+    ],
+    "exports": [
+      {
+        "symbol": "TemperaPixiRuntime",
+        "kind": "class"
+      },
+      {
+        "symbol": "compileTemperaProgram",
+        "kind": "const"
+      }
+    ],
+    "aliasExports": [],
+    "manualParts": [],
+    "finish": [
+      "finish-tempera.py"
+    ]
+  },
+  "lumiere": {
+    "entryKind": "auto",
+    "entryFile": "components/visualizer/lumiere/createLumierePixiRuntime.ts",
+    "extraShared": [],
+    "wrapper": {
+      "args": [
+        "PIXI",
+        "pretext",
+        "env"
+      ],
+      "defaults": {
+        "PIXI": "typeof PIXI !== \"undefined\" ? PIXI : null",
+        "pretext": "typeof pretext !== \"undefined\" ? pretext : null",
+        "env": "typeof window !== \"undefined\" ? window : this"
+      }
+    },
+    "prologue": [
+      "// 跨模式符号：tempera 复用 sonnet 的滤镜（引擎 bundle 全局先行加载）",
+      "var TemperaLensFilterMixin = null;   // 占位：actual classes injected via window.__sonnetFilters if present"
+    ],
+    "exports": [
+      {
+        "symbol": "LumierePixiRuntime",
+        "kind": "class"
+      },
+      {
+        "symbol": "compileLumiereProgram",
+        "kind": "const"
+      }
+    ],
+    "aliasExports": [],
+    "manualParts": [],
+    "finish": [],
+    "replacements": [
+      [
+        "const pixi = await loadPixi();",
+        "const pixi = await Promise.resolve(PIXI);"
+      ]
+    ],
+    "externalTable": {
+      "@chenglou/pretext/rich-inline": "NAMED:var { \\1 } = pretext"
+    }
+  },
+  "classic": {
+    "entryKind": "files",
+    "files": [
+      "utils/glowBlurQuantize.ts",
+      "components/visualizer/colorMix.ts",
+      "utils/lyrics/renderHints.ts",
+      "utils/lyrics/graphemeTiming.ts",
+      "utils/lyrics/wordSegmentation.ts",
+      "utils/lyrics/cjkSemanticLayout.ts",
+      "utils/fontStacks.ts",
+      "components/visualizer/wordColoring.ts",
+      "components/visualizer/subtitleFontSizes.ts"
+    ],
+    "extraShared": [],
+    "wrapper": {
+      "args": [
+        "env"
+      ],
+      "defaults": {
+        "env": "typeof window !== \"undefined\" ? window : this"
+      }
+    },
+    "prologue": [],
+    "exports": [
+      {
+        "symbol": "ClassicClassicEngine",
+        "kind": "manual"
+      }
+    ],
+    "aliasExports": [
+      {
+        "from": "utils/glowBlurQuantize",
+        "orig": "isGlowBlurQuantized",
+        "alias": "CM_isGlowBlurQuantized"
+      },
+      {
+        "from": "utils/glowBlurQuantize",
+        "orig": "GLOW_BLUR_QUANTIZE_STORAGE_KEY",
+        "alias": "CM_GLOW_BLUR_QUANTIZE_STORAGE_KEY"
+      },
+      {
+        "from": "components/visualizer/colorMix",
+        "orig": "colorWithAlpha",
+        "alias": "CM_colorWithAlpha"
+      },
+      {
+        "from": "components/visualizer/colorMix",
+        "orig": "parseColorChannels",
+        "alias": "CM_parseColorChannels"
+      },
+      {
+        "from": "components/visualizer/colorMix",
+        "orig": "mixColors",
+        "alias": "CM_mixColors"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "buildLineRenderHints",
+        "alias": "CM_buildLineRenderHints"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "getLineRenderHints",
+        "alias": "CM_getLineRenderHints"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "getLineRenderEndTime",
+        "alias": "CM_getLineRenderEndTime"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "MICRO_LINE_DURATION_THRESHOLD",
+        "alias": "CM_MICRO_LINE_DURATION_THRESHOLD"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "SHORT_LINE_DURATION_THRESHOLD",
+        "alias": "CM_SHORT_LINE_DURATION_THRESHOLD"
+      },
+      {
+        "from": "utils/lyrics/graphemeTiming",
+        "orig": "buildWordGraphemeTimings",
+        "alias": "CM_buildWordGraphemeTimings"
+      },
+      {
+        "from": "utils/lyrics/graphemeTiming",
+        "orig": "splitLyricGraphemes",
+        "alias": "CM_splitLyricGraphemes"
+      },
+      {
+        "from": "utils/lyrics/cjkSemanticLayout",
+        "orig": "buildPostLyricLayoutUnits",
+        "alias": "CM_buildPostLyricLayoutUnits"
+      },
+      {
+        "from": "utils/lyrics/cjkSemanticLayout",
+        "orig": "buildDisplayWordsFromLayoutUnits",
+        "alias": "CM_buildDisplayWordsFromLayoutUnits"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeFontStack",
+        "alias": "CM_resolveThemeFontStack"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeFontWeight",
+        "alias": "CM_resolveThemeFontWeight"
+      },
+      {
+        "from": "components/visualizer/wordColoring",
+        "orig": "resolveWordColor",
+        "alias": "CM_resolveWordColor"
+      },
+      {
+        "from": "components/visualizer/wordColoring",
+        "orig": "buildWordColorRanges",
+        "alias": "CM_buildWordColorRanges"
+      },
+      {
+        "from": "components/visualizer/wordColoring",
+        "orig": "prepareWordColorMatchers",
+        "alias": "CM_prepareWordColorMatchers"
+      },
+      {
+        "from": "components/visualizer/subtitleFontSizes",
+        "orig": "resolveSubtitleFontSizes",
+        "alias": "CM_resolveSubtitleFontSizes"
+      },
+      {
+        "from": "manual/mini-motion.js",
+        "orig": "mmZeroFormOf",
+        "alias": "CM_mmZeroFormOf"
+      },
+      {
+        "from": "manual/mini-motion.js",
+        "orig": "mmMixTokens",
+        "alias": "CM_mmMixTokens"
+      },
+      {
+        "from": "manual/mini-motion.js",
+        "orig": "mmMakeNoneKeyframesAnimatable",
+        "alias": "CM_mmMakeNoneKeyframesAnimatable"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeTranslationFontStack",
+        "alias": "CM_resolveThemeTranslationFontStack"
+      },
+      {
+        "from": "utils/glowBlurQuantize",
+        "orig": "setGlowBlurQuantized",
+        "alias": "CM_setGlowBlurQuantized"
+      },
+      {
+        "from": "manual/classic-engine-core.js",
+        "orig": "classicWordStatusAt",
+        "alias": "classicWordStatusAt"
+      },
+      {
+        "from": "manual/classic-engine-core.js",
+        "orig": "classicComputeLayouts",
+        "alias": "classicComputeLayouts"
+      },
+      {
+        "from": "manual/classic-engine-core.js",
+        "orig": "ClassicWordGlowVariants",
+        "alias": "ClassicWordGlowVariants"
+      },
+      {
+        "from": "manual/classic-engine-core.js",
+        "orig": "ClassicBodyVariants",
+        "alias": "ClassicBodyVariants"
+      },
+      {
+        "from": "manual/classic-engine-core.js",
+        "orig": "classicMakeLayoutVariants",
+        "alias": "classicMakeLayoutVariants"
+      },
+      {
+        "from": "manual/classic-engine-core.js",
+        "orig": "classicWordActiveEndTime",
+        "alias": "classicWordActiveEndTime"
+      },
+      {
+        "from": "manual/classic-engine-core.js",
+        "orig": "classicWordDisplayDuration",
+        "alias": "classicWordDisplayDuration"
+      },
+      {
+        "from": "manual/classic-engine-core.js",
+        "orig": "classicResolveLineRenderProfile",
+        "alias": "classicResolveLineRenderProfile"
+      },
+      {
+        "from": "manual/classic-engine-core.js",
+        "orig": "classicBuildDisplayWords",
+        "alias": "classicBuildDisplayWords"
+      },
+      {
+        "from": "manual/classic-engine-core.js",
+        "orig": "classicLineContainerMotion",
+        "alias": "classicLineContainerMotion"
+      },
+      {
+        "from": "manual/classic-engine-core.js",
+        "orig": "classicLyricContainerFloat",
+        "alias": "classicLyricContainerFloat"
+      }
+    ],
+    "manualParts": [
+      "manual/mini-motion.js",
+      "manual/classic-engine-core.js"
+    ],
+    "deploy": {
+      "target": "public/js/modules/10-shell-classic-engine/classic-engine.js",
+      "version": 1
+    },
+    "finish": []
+  },
+  "tilt": {
+    "entryKind": "files",
+    "files": [
+      "utils/fontStacks.ts",
+      "utils/lyrics/renderHints.ts",
+      "utils/lyrics/graphemeTiming.ts",
+      "utils/lyrics/cjkSemanticLayout.ts",
+      "utils/lyrics/sentenceLayout.ts",
+      "components/visualizer/colorMix.ts",
+      "components/visualizer/subtitleFontSizes.ts"
+    ],
+    "extraShared": [],
+    "wrapper": {
+      "args": [
+        "pretext",
+        "env"
+      ],
+      "defaults": {
+        "pretext": "typeof pretext !== \"undefined\" ? pretext : {}",
+        "env": "typeof window !== \"undefined\" ? window : this"
+      }
+    },
+    "prologue": [],
+    "exports": [
+      {
+        "symbol": "TiltTiltEngine",
+        "kind": "manual"
+      },
+      {
+        "symbol": "tiltFindLineIndexAtTime",
+        "kind": "manual"
+      },
+      {
+        "symbol": "tiltBuildTiltLayout",
+        "kind": "manual"
+      },
+      {
+        "symbol": "tiltBuildCharTimings",
+        "kind": "manual"
+      },
+      {
+        "symbol": "tiltFindSegmentWordRange",
+        "kind": "manual"
+      },
+      {
+        "symbol": "tiltCharPulseIntensity",
+        "kind": "manual"
+      },
+      {
+        "symbol": "tiltDetermineLineCount",
+        "kind": "manual"
+      },
+      {
+        "symbol": "tiltSeededRandom",
+        "kind": "manual"
+      },
+      {
+        "symbol": "TiltLatentBackground",
+        "kind": "manual"
+      },
+      {
+        "symbol": "tiltLatentDefaultTuning",
+        "kind": "manual"
+      },
+      {
+        "kind": "manual",
+        "symbol": "tiltBandsGetEnergy"
+      },
+      {
+        "kind": "manual",
+        "symbol": "tiltBandsProcess"
+      },
+      {
+        "kind": "manual",
+        "symbol": "tiltBandsCompute"
+      },
+      {
+        "kind": "manual",
+        "symbol": "tiltBandsBreath"
+      },
+      {
+        "symbol": "tiltLatentBroadbandEnergy",
+        "kind": "manual"
+      },
+      {
+        "symbol": "tiltLatentOnsetPulse",
+        "kind": "manual"
+      },
+      {
+        "symbol": "tiltLatentBeatSpeedTarget",
+        "kind": "manual"
+      },
+      {
+        "symbol": "tiltLatentAudioSpeedTarget",
+        "kind": "manual"
+      },
+      {
+        "symbol": "tiltLatentShaderSpeed",
+        "kind": "manual"
+      },
+      {
+        "symbol": "tiltLatentShaderColors",
+        "kind": "manual"
+      }
+    ],
+    "aliasExports": [
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeFontStack",
+        "alias": "CM_resolveThemeFontStack"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeFontWeight",
+        "alias": "CM_resolveThemeFontWeight"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "buildLineRenderHints",
+        "alias": "CM_buildLineRenderHints"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "getLineRenderEndTime",
+        "alias": "CM_getLineRenderEndTime"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "MICRO_LINE_DURATION_THRESHOLD",
+        "alias": "CM_MICRO_LINE_DURATION_THRESHOLD"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "SHORT_LINE_DURATION_THRESHOLD",
+        "alias": "CM_SHORT_LINE_DURATION_THRESHOLD"
+      },
+      {
+        "from": "utils/lyrics/graphemeTiming",
+        "orig": "buildWordGraphemeTimings",
+        "alias": "CM_buildWordGraphemeTimings"
+      },
+      {
+        "from": "utils/lyrics/cjkSemanticLayout",
+        "orig": "buildPostLyricLayoutUnits",
+        "alias": "CM_buildPostLyricLayoutUnits"
+      },
+      {
+        "from": "utils/lyrics/sentenceLayout",
+        "orig": "SentenceLayout",
+        "alias": "CM_SentenceLayout"
+      },
+      {
+        "from": "components/visualizer/colorMix",
+        "orig": "colorWithAlpha",
+        "alias": "CM_colorWithAlpha"
+      },
+      {
+        "from": "components/visualizer/subtitleFontSizes",
+        "orig": "resolveSubtitleFontSizes",
+        "alias": "CM_resolveSubtitleFontSizes"
+      },
+      {
+        "alias": "CM_resolveThemeTranslationFontStack",
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeTranslationFontStack"
+      }
+    ],
+    "manualParts": [
+      "manual/mini-motion.js",
+      "manual/tilt-engine-core.js",
+      "manual/tilt-background-core.js"
+    ],
+    "deploy": {
+      "target": "public/js/modules/10-shell-tilt-engine/tilt-engine.js",
+      "version": 4
+    },
+    "finish": []
+  },
+  "still": {
+    "entryKind": "files",
+    "files": [
+      "utils/fontStacks.ts",
+      "utils/lyrics/renderHints.ts"
+    ],
+    "extraShared": [],
+    "wrapper": {
+      "args": [
+        "env"
+      ],
+      "defaults": {
+        "env": "typeof window !== \"undefined\" ? window : this"
+      }
+    },
+    "prologue": [],
+    "exports": [
+      {
+        "symbol": "StillStillEngine",
+        "kind": "manual"
+      },
+      {
+        "symbol": "stillFindLineIndexAtTime",
+        "kind": "manual"
+      }
+    ],
+    "aliasExports": [
+      {
+        "from": "utils/fontStacks",
+        "orig": "normalizeFontWeight",
+        "alias": "CM_normalizeFontWeight"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeFontStack",
+        "alias": "CM_resolveThemeFontStack"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeTranslationFontStack",
+        "alias": "CM_resolveThemeTranslationFontStack"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeFontWeight",
+        "alias": "CM_resolveThemeFontWeight"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "buildLineRenderHints",
+        "alias": "CM_buildLineRenderHints"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "getLineRenderHints",
+        "alias": "CM_getLineRenderHints"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "getLineRenderEndTime",
+        "alias": "CM_getLineRenderEndTime"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "MICRO_LINE_DURATION_THRESHOLD",
+        "alias": "CM_MICRO_LINE_DURATION_THRESHOLD"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "SHORT_LINE_DURATION_THRESHOLD",
+        "alias": "CM_SHORT_LINE_DURATION_THRESHOLD"
+      }
+    ],
+    "manualParts": [
+      "manual/still-engine-core.js"
+    ],
+    "deploy": {
+      "target": "public/js/modules/10-shell-still-engine/still-engine.js",
+      "version": 1
+    },
+    "finish": []
+  },
+  "claddagh": {
+    "entryKind": "files",
+    "files": [
+      "utils/glowBlurQuantize.ts",
+      "components/visualizer/colorMix.ts",
+      "utils/lyrics/renderHints.ts",
+      "utils/lyrics/graphemeTiming.ts",
+      "utils/fontStacks.ts",
+      "components/visualizer/wordColoring.ts",
+      "components/visualizer/subtitleFontSizes.ts"
+    ],
+    "extraShared": [],
+    "wrapper": {
+      "args": [
+        "pretext",
+        "env"
+      ],
+      "defaults": {
+        "pretext": "typeof pretext !== \"undefined\" ? pretext : {}",
+        "env": "typeof window !== \"undefined\" ? window : this"
+      }
+    },
+    "prologue": [],
+    "exports": [
+      {
+        "symbol": "CladdaghCladdaghEngine",
+        "kind": "manual"
+      }
+    ],
+    "aliasExports": [
+      {
+        "from": "utils/glowBlurQuantize",
+        "orig": "isGlowBlurQuantized",
+        "alias": "CM_isGlowBlurQuantized"
+      },
+      {
+        "from": "utils/glowBlurQuantize",
+        "orig": "quantizeShadowBlur",
+        "alias": "CM_quantizeShadowBlur"
+      },
+      {
+        "from": "utils/glowBlurQuantize",
+        "orig": "GLOW_BLUR_QUANTIZE_STORAGE_KEY",
+        "alias": "CM_GLOW_BLUR_QUANTIZE_STORAGE_KEY"
+      },
+      {
+        "from": "components/visualizer/colorMix",
+        "orig": "colorWithAlpha",
+        "alias": "CM_colorWithAlpha"
+      },
+      {
+        "from": "components/visualizer/colorMix",
+        "orig": "parseColorChannels",
+        "alias": "CM_parseColorChannels"
+      },
+      {
+        "from": "components/visualizer/colorMix",
+        "orig": "mixColors",
+        "alias": "CM_mixColors"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "buildLineRenderHints",
+        "alias": "CM_buildLineRenderHints"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "getLineRenderEndTime",
+        "alias": "CM_getLineRenderEndTime"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "MICRO_LINE_DURATION_THRESHOLD",
+        "alias": "CM_MICRO_LINE_DURATION_THRESHOLD"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "SHORT_LINE_DURATION_THRESHOLD",
+        "alias": "CM_SHORT_LINE_DURATION_THRESHOLD"
+      },
+      {
+        "from": "utils/lyrics/graphemeTiming",
+        "orig": "buildLineGraphemeTimeline",
+        "alias": "CM_buildLineGraphemeTimeline"
+      },
+      {
+        "from": "utils/lyrics/graphemeTiming",
+        "orig": "buildWordGraphemeTimings",
+        "alias": "CM_buildWordGraphemeTimings"
+      },
+      {
+        "from": "utils/lyrics/graphemeTiming",
+        "orig": "splitLyricGraphemes",
+        "alias": "CM_splitLyricGraphemes"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeFontStack",
+        "alias": "CM_resolveThemeFontStack"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeTranslationFontStack",
+        "alias": "CM_resolveThemeTranslationFontStack"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeFontWeight",
+        "alias": "CM_resolveThemeFontWeight"
+      },
+      {
+        "from": "components/visualizer/wordColoring",
+        "orig": "resolveWordColor",
+        "alias": "CM_resolveWordColor"
+      },
+      {
+        "from": "components/visualizer/wordColoring",
+        "orig": "buildWordColorRanges",
+        "alias": "CM_buildWordColorRanges"
+      },
+      {
+        "from": "components/visualizer/wordColoring",
+        "orig": "prepareWordColorMatchers",
+        "alias": "CM_prepareWordColorMatchers"
+      },
+      {
+        "from": "components/visualizer/subtitleFontSizes",
+        "orig": "resolveSubtitleFontSizes",
+        "alias": "CM_resolveSubtitleFontSizes"
+      }
+    ],
+    "manualParts": [
+      "manual/mini-motion.js",
+      "manual/claddagh-engine-core.js"
+    ],
+    "deploy": {
+      "target": "public/js/modules/10-shell-claddagh-engine/claddagh-engine.js",
+      "version": 1
+    },
+    "finish": []
+  },
+  "cadenza": {
+    "entryKind": "files",
+    "files": [
+      "utils/glowBlurQuantize.ts",
+      "components/visualizer/colorMix.ts",
+      "utils/lyrics/renderHints.ts",
+      "utils/lyrics/graphemeTiming.ts",
+      "utils/fontStacks.ts",
+      "components/visualizer/wordColoring.ts",
+      "components/visualizer/subtitleFontSizes.ts"
+    ],
+    "extraShared": [],
+    "wrapper": {
+      "args": [
+        "pretext",
+        "env"
+      ],
+      "defaults": {
+        "pretext": "typeof pretext !== \"undefined\" ? pretext : {}",
+        "env": "typeof window !== \"undefined\" ? window : this"
+      }
+    },
+    "prologue": [],
+    "exports": [
+      {
+        "symbol": "CadenzaCadenzaEngine",
+        "kind": "manual"
+      },
+      {
+        "symbol": "cadenzaGetWordStatus",
+        "kind": "manual"
+      },
+      {
+        "symbol": "cadenzaGetWordProgress",
+        "kind": "manual"
+      },
+      {
+        "symbol": "cadenzaGetGlowEnvelope",
+        "kind": "manual"
+      },
+      {
+        "symbol": "cadenzaGetCharGlow",
+        "kind": "manual"
+      },
+      {
+        "symbol": "cadenzaGetBodyMix",
+        "kind": "manual"
+      },
+      {
+        "symbol": "cadenzaGetLineEnvelope",
+        "kind": "manual"
+      },
+      {
+        "symbol": "cadenzaChooseFontPx",
+        "kind": "manual"
+      },
+      {
+        "symbol": "cadenzaResolveLineRenderTiming",
+        "kind": "manual"
+      },
+      {
+        "symbol": "cadenzaBuildWordPlacements",
+        "kind": "manual"
+      },
+      {
+        "symbol": "cadenzaFindLineIndexAtTime",
+        "kind": "manual"
+      },
+      {
+        "symbol": "cadenzaGetUpcomingLine",
+        "kind": "manual"
+      },
+      {
+        "symbol": "cadenzaBuildDomTextShadow",
+        "kind": "manual"
+      }
+    ],
+    "aliasExports": [
+      {
+        "from": "utils/glowBlurQuantize",
+        "orig": "isGlowBlurQuantized",
+        "alias": "CM_isGlowBlurQuantized"
+      },
+      {
+        "from": "utils/glowBlurQuantize",
+        "orig": "quantizeShadowBlur",
+        "alias": "CM_quantizeShadowBlur"
+      },
+      {
+        "from": "utils/glowBlurQuantize",
+        "orig": "GLOW_BLUR_QUANTIZE_STORAGE_KEY",
+        "alias": "CM_GLOW_BLUR_QUANTIZE_STORAGE_KEY"
+      },
+      {
+        "from": "components/visualizer/colorMix",
+        "orig": "colorWithAlpha",
+        "alias": "CM_colorWithAlpha"
+      },
+      {
+        "from": "components/visualizer/colorMix",
+        "orig": "parseColorChannels",
+        "alias": "CM_parseColorChannels"
+      },
+      {
+        "from": "components/visualizer/colorMix",
+        "orig": "mixColors",
+        "alias": "CM_mixColors"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "buildLineRenderHints",
+        "alias": "CM_buildLineRenderHints"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "getLineRenderHints",
+        "alias": "CM_getLineRenderHints"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "getLineRenderEndTime",
+        "alias": "CM_getLineRenderEndTime"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "getLineTransitionTiming",
+        "alias": "CM_getLineTransitionTiming"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "MICRO_LINE_DURATION_THRESHOLD",
+        "alias": "CM_MICRO_LINE_DURATION_THRESHOLD"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "SHORT_LINE_DURATION_THRESHOLD",
+        "alias": "CM_SHORT_LINE_DURATION_THRESHOLD"
+      },
+      {
+        "from": "utils/lyrics/graphemeTiming",
+        "orig": "buildWordGraphemeTimings",
+        "alias": "CM_buildWordGraphemeTimings"
+      },
+      {
+        "from": "utils/lyrics/graphemeTiming",
+        "orig": "splitLyricGraphemes",
+        "alias": "CM_splitLyricGraphemes"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeFontStack",
+        "alias": "CM_resolveThemeFontStack"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeFontWeight",
+        "alias": "CM_resolveThemeFontWeight"
+      },
+      {
+        "from": "components/visualizer/wordColoring",
+        "orig": "resolveWordColor",
+        "alias": "CM_resolveWordColor"
+      },
+      {
+        "from": "components/visualizer/wordColoring",
+        "orig": "buildWordColorRanges",
+        "alias": "CM_buildWordColorRanges"
+      },
+      {
+        "from": "components/visualizer/wordColoring",
+        "orig": "prepareWordColorMatchers",
+        "alias": "CM_prepareWordColorMatchers"
+      },
+      {
+        "from": "components/visualizer/subtitleFontSizes",
+        "orig": "resolveSubtitleFontSizes",
+        "alias": "CM_resolveSubtitleFontSizes"
+      }
+    ],
+    "manualParts": [
+      "manual/mini-motion.js",
+      "manual/cadenza-engine-core.js"
+    ],
+    "deploy": {
+      "target": "public/js/modules/10-shell-cadenza-engine/cadenza-engine.js",
+      "version": 1
+    },
+    "finish": []
+  },
+  "partita": {
+    "entryKind": "files",
+    "files": [
+      "utils/glowBlurQuantize.ts",
+      "components/visualizer/colorMix.ts",
+      "utils/lyrics/renderHints.ts",
+      "utils/lyrics/graphemeTiming.ts",
+      "utils/lyrics/wordSegmentation.ts",
+      "utils/lyrics/cjkSemanticLayout.ts",
+      "utils/fontStacks.ts",
+      "components/visualizer/wordColoring.ts"
+    ],
+    "extraShared": [],
+    "wrapper": {
+      "args": [
+        "env"
+      ],
+      "defaults": {
+        "env": "typeof window !== \"undefined\" ? window : this"
+      }
+    },
+    "prologue": [],
+    "exports": [
+      {
+        "symbol": "PartitaPartitaEngine",
+        "kind": "manual"
+      }
+    ],
+    "aliasExports": [
+      {
+        "from": "utils/glowBlurQuantize",
+        "orig": "isGlowBlurQuantized",
+        "alias": "CM_isGlowBlurQuantized"
+      },
+      {
+        "from": "utils/glowBlurQuantize",
+        "orig": "GLOW_BLUR_QUANTIZE_STORAGE_KEY",
+        "alias": "CM_GLOW_BLUR_QUANTIZE_STORAGE_KEY"
+      },
+      {
+        "from": "components/visualizer/colorMix",
+        "orig": "colorWithAlpha",
+        "alias": "CM_colorWithAlpha"
+      },
+      {
+        "from": "components/visualizer/colorMix",
+        "orig": "parseColorChannels",
+        "alias": "CM_parseColorChannels"
+      },
+      {
+        "from": "components/visualizer/colorMix",
+        "orig": "mixColors",
+        "alias": "CM_mixColors"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "buildLineRenderHints",
+        "alias": "CM_buildLineRenderHints"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "getLineRenderHints",
+        "alias": "CM_getLineRenderHints"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "getLineRenderEndTime",
+        "alias": "CM_getLineRenderEndTime"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "MICRO_LINE_DURATION_THRESHOLD",
+        "alias": "CM_MICRO_LINE_DURATION_THRESHOLD"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "SHORT_LINE_DURATION_THRESHOLD",
+        "alias": "CM_SHORT_LINE_DURATION_THRESHOLD"
+      },
+      {
+        "from": "utils/lyrics/graphemeTiming",
+        "orig": "buildWordGraphemeTimings",
+        "alias": "CM_buildWordGraphemeTimings"
+      },
+      {
+        "from": "utils/lyrics/graphemeTiming",
+        "orig": "splitLyricGraphemes",
+        "alias": "CM_splitLyricGraphemes"
+      },
+      {
+        "from": "utils/lyrics/wordSegmentation",
+        "orig": "getWordSegmentationKey",
+        "alias": "CM_getWordSegmentationKey"
+      },
+      {
+        "from": "utils/lyrics/cjkSemanticLayout",
+        "orig": "buildPostLyricLayoutUnits",
+        "alias": "CM_buildPostLyricLayoutUnits"
+      },
+      {
+        "from": "utils/lyrics/cjkSemanticLayout",
+        "orig": "buildDisplayWordsFromLayoutUnits",
+        "alias": "CM_buildDisplayWordsFromLayoutUnits"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeFontStack",
+        "alias": "CM_resolveThemeFontStack"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeFontWeight",
+        "alias": "CM_resolveThemeFontWeight"
+      },
+      {
+        "from": "components/visualizer/wordColoring",
+        "orig": "resolveWordColor",
+        "alias": "CM_resolveWordColor"
+      },
+      {
+        "from": "components/visualizer/wordColoring",
+        "orig": "buildWordColorRanges",
+        "alias": "CM_buildWordColorRanges"
+      },
+      {
+        "from": "components/visualizer/wordColoring",
+        "orig": "prepareWordColorMatchers",
+        "alias": "CM_prepareWordColorMatchers"
+      }
+    ],
+    "manualParts": [
+      "manual/mini-motion.js",
+      "manual/partita-engine-core.js"
+    ],
+    "deploy": {
+      "target": "public/js/modules/10-shell-partita-engine/partita-engine.js",
+      "version": 1
+    },
+    "finish": []
+  },
+  "cappella": {
+    "entryKind": "files",
+    "files": [
+      "components/visualizer/colorMix.ts",
+      "utils/lyrics/renderHints.ts",
+      "utils/lyrics/graphemeTiming.ts",
+      "utils/fontStacks.ts",
+      "components/visualizer/cappella/cappellaMessageSenders.ts"
+    ],
+    "extraShared": [],
+    "wrapper": {
+      "args": [
+        "pretext",
+        "env"
+      ],
+      "defaults": {
+        "pretext": "typeof pretext !== \"undefined\" ? pretext : {}",
+        "env": "typeof window !== \"undefined\" ? window : this"
+      }
+    },
+    "prologue": [],
+    "exports": [
+      {
+        "symbol": "CappellaCappellaEngine",
+        "kind": "manual"
+      }
+    ],
+    "aliasExports": [
+      {
+        "from": "components/visualizer/colorMix",
+        "orig": "colorWithAlpha",
+        "alias": "CM_colorWithAlpha"
+      },
+      {
+        "from": "components/visualizer/colorMix",
+        "orig": "parseColorChannels",
+        "alias": "CM_parseColorChannels"
+      },
+      {
+        "from": "components/visualizer/colorMix",
+        "orig": "mixColors",
+        "alias": "CM_mixColors"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "buildLineRenderHints",
+        "alias": "CM_buildLineRenderHints"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "getLineRenderHints",
+        "alias": "CM_getLineRenderHints"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "getLineRenderEndTime",
+        "alias": "CM_getLineRenderEndTime"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "MICRO_LINE_DURATION_THRESHOLD",
+        "alias": "CM_MICRO_LINE_DURATION_THRESHOLD"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "SHORT_LINE_DURATION_THRESHOLD",
+        "alias": "CM_SHORT_LINE_DURATION_THRESHOLD"
+      },
+      {
+        "from": "utils/lyrics/graphemeTiming",
+        "orig": "buildLineGraphemeTimeline",
+        "alias": "CM_buildLineGraphemeTimeline"
+      },
+      {
+        "from": "utils/lyrics/graphemeTiming",
+        "orig": "buildWordGraphemeTimings",
+        "alias": "CM_buildWordGraphemeTimings"
+      },
+      {
+        "from": "utils/lyrics/graphemeTiming",
+        "orig": "splitLyricGraphemes",
+        "alias": "CM_splitLyricGraphemes"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeFontStack",
+        "alias": "CM_resolveThemeFontStack"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeTranslationFontStack",
+        "alias": "CM_resolveThemeTranslationFontStack"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeFontWeight",
+        "alias": "CM_resolveThemeFontWeight"
+      },
+      {
+        "from": "components/visualizer/cappella/cappellaMessageSenders",
+        "orig": "createCappellaAgentSenderResolver",
+        "alias": "CM_createCappellaAgentSenderResolver"
+      }
+    ],
+    "manualParts": [
+      "manual/mini-motion.js",
+      "manual/cappella-engine-core.js"
+    ],
+    "deploy": {
+      "target": "public/js/modules/10-shell-cappella-engine/cappella-engine.js",
+      "version": 1
+    },
+    "finish": []
+  },
+  "pendolo": {
+    "entryKind": "files",
+    "files": [
+      "utils/lyrics/subtitleTrackStyle.ts",
+      "utils/lyrics/alternateText.ts",
+      "utils/lyrics/graphemeTiming.ts",
+      "utils/lyrics/renderHints.ts",
+      "components/visualizer/colorMix.ts",
+      "utils/fontStacks.ts",
+      "components/visualizer/wordColoring.ts",
+      "components/visualizer/monet/monetLyricsModel.ts",
+      "components/visualizer/pendolo/pendoloGeometry.ts",
+      "components/visualizer/pendolo/pendoloTimeline.ts",
+      "components/visualizer/pendolo/pendoloMotionProfile.ts",
+      "components/visualizer/pendolo/pendoloTextLayout.ts",
+      "components/visualizer/pendolo/pendoloSubtitleTracks.ts",
+      "components/visualizer/pendolo/pendoloColorRuns.ts"
+    ],
+    "extraShared": [],
+    "wrapper": {
+      "args": [
+        "pretext",
+        "env"
+      ],
+      "defaults": {
+        "pretext": "typeof pretext !== \"undefined\" ? pretext : {}",
+        "env": "typeof window !== \"undefined\" ? window : this"
+      }
+    },
+    "externalTable": {
+      "@chenglou/pretext/rich-inline": "NAMED:var { \\1 } = pretext"
+    },
+    "prologue": [],
+    "exports": [
+      {
+        "symbol": "PendoloPendoloEngine",
+        "kind": "manual"
+      },
+      {
+        "symbol": "pendoloResolveTuning",
+        "kind": "manual"
+      },
+      {
+        "symbol": "PENDOLO_DEFAULT_TUNING",
+        "kind": "manual"
+      }
+    ],
+    "aliasExports": [
+      {
+        "from": "components/visualizer/colorMix",
+        "orig": "colorWithAlpha",
+        "alias": "CM_colorWithAlpha"
+      },
+      {
+        "from": "components/visualizer/colorMix",
+        "orig": "mixColors",
+        "alias": "CM_mixColors"
+      },
+      {
+        "from": "utils/lyrics/graphemeTiming",
+        "orig": "splitLyricGraphemes",
+        "alias": "CM_splitLyricGraphemes"
+      },
+      {
+        "from": "utils/lyrics/graphemeTiming",
+        "orig": "buildLineGraphemeTimeline",
+        "alias": "CM_buildLineGraphemeTimeline"
+      },
+      {
+        "from": "utils/lyrics/alternateText",
+        "orig": "resolveLyricSubtitleTracks",
+        "alias": "CM_resolveLyricSubtitleTracks"
+      },
+      {
+        "from": "utils/lyrics/alternateText",
+        "orig": "resolveSubtitleContentMode",
+        "alias": "CM_resolveSubtitleContentMode"
+      },
+      {
+        "from": "utils/lyrics/subtitleTrackStyle",
+        "orig": "SECONDARY_TRACK_SIZE_FACTOR",
+        "alias": "CM_SECONDARY_TRACK_SIZE_FACTOR"
+      },
+      {
+        "from": "utils/lyrics/subtitleTrackStyle",
+        "orig": "SECONDARY_TRACK_OPACITY",
+        "alias": "CM_SECONDARY_TRACK_OPACITY"
+      },
+      {
+        "from": "utils/lyrics/subtitleTrackStyle",
+        "orig": "SECONDARY_TRACK_FONT_WEIGHT_FALLBACK",
+        "alias": "CM_SECONDARY_TRACK_FONT_WEIGHT_FALLBACK"
+      },
+      {
+        "from": "utils/lyrics/subtitleTrackStyle",
+        "orig": "SECONDARY_TRACK_GAP_EM",
+        "alias": "CM_SECONDARY_TRACK_GAP_EM"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeFontStack",
+        "alias": "CM_resolveThemeFontStack"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeFontWeight",
+        "alias": "CM_resolveThemeFontWeight"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeTranslationFontStack",
+        "alias": "CM_resolveThemeTranslationFontStack"
+      },
+      {
+        "from": "components/visualizer/wordColoring",
+        "orig": "prepareWordColorMatchers",
+        "alias": "CM_prepareWordColorMatchers"
+      },
+      {
+        "from": "components/visualizer/wordColoring",
+        "orig": "buildWordColorRangesFromMatchers",
+        "alias": "CM_buildWordColorRangesFromMatchers"
+      },
+      {
+        "from": "components/visualizer/wordColoring",
+        "orig": "resolveTokenColorMap",
+        "alias": "CM_resolveTokenColorMap"
+      },
+      {
+        "from": "components/visualizer/monet/monetLyricsModel",
+        "orig": "measureMonetGraphemeOffsets",
+        "alias": "CM_measureMonetGraphemeOffsets"
+      },
+      {
+        "from": "components/visualizer/pendolo/pendoloGeometry",
+        "orig": "calculatePendoloWheelLayout",
+        "alias": "CM_calculatePendoloWheelLayout"
+      },
+      {
+        "from": "components/visualizer/pendolo/pendoloGeometry",
+        "orig": "measurePendoloLineWidth",
+        "alias": "CM_measurePendoloLineWidth"
+      },
+      {
+        "from": "components/visualizer/pendolo/pendoloTimeline",
+        "orig": "resolvePendoloFallbackAnchorIndex",
+        "alias": "CM_resolvePendoloFallbackAnchorIndex"
+      },
+      {
+        "from": "components/visualizer/pendolo/pendoloTimeline",
+        "orig": "resolvePendoloRotatingLineOpacity",
+        "alias": "CM_resolvePendoloRotatingLineOpacity"
+      },
+      {
+        "from": "components/visualizer/pendolo/pendoloMotionProfile",
+        "orig": "resolvePendoloMotionProfile",
+        "alias": "CM_resolvePendoloMotionProfile"
+      },
+      {
+        "from": "components/visualizer/pendolo/pendoloMotionProfile",
+        "orig": "resolvePendoloChorusPresentation",
+        "alias": "CM_resolvePendoloChorusPresentation"
+      },
+      {
+        "from": "components/visualizer/pendolo/pendoloTextLayout",
+        "orig": "buildPendoloTextLayout",
+        "alias": "CM_buildPendoloTextLayout"
+      },
+      {
+        "from": "components/visualizer/pendolo/pendoloSubtitleTracks",
+        "orig": "resolvePendoloSubtitleTracks",
+        "alias": "CM_resolvePendoloSubtitleTracks"
+      },
+      {
+        "from": "components/visualizer/pendolo/pendoloSubtitleTracks",
+        "orig": "buildPendoloSubtitleFontSpec",
+        "alias": "CM_buildPendoloSubtitleFontSpec"
+      },
+      {
+        "from": "components/visualizer/pendolo/pendoloSubtitleTracks",
+        "orig": "sumPendoloSubtitleTrackHeights",
+        "alias": "CM_sumPendoloSubtitleTrackHeights"
+      },
+      {
+        "from": "components/visualizer/pendolo/pendoloColorRuns",
+        "orig": "buildPendoloColorRuns",
+        "alias": "CM_buildPendoloColorRuns"
+      }
+    ],
+    "manualParts": [
+      "manual/mini-motion.js",
+      "manual/pendolo-engine-core.js"
+    ],
+    "deploy": {
+      "target": "public/js/modules/10-shell-pendolo-engine/pendolo-engine.js",
+      "version": 1
+    },
+    "finish": []
+  },
+  "fume": {
+    "entryKind": "files",
+    "files": [
+      "components/visualizer/fume/fumeMath.ts",
+      "components/visualizer/fume/fumeTypes.ts",
+      "components/visualizer/fume/fumeTextStyle.ts",
+      "components/visualizer/fume/fumeTextMeasure.ts",
+      "components/visualizer/fume/fumeReveal.ts",
+      "components/visualizer/fume/fumeCamera.ts",
+      "components/visualizer/fume/fumeCameraStep.ts",
+      "components/visualizer/fume/fumeBlockFrame.ts",
+      "components/visualizer/fume/fumeCanvasText.ts",
+      "components/visualizer/fume/fumeLiveRaster.ts",
+      "components/visualizer/fume/fumeArticleLayout.ts",
+      "components/visualizer/fume/fumeStage.ts",
+      "components/visualizer/FumeBackground.ts",
+      "components/visualizer/colorMix.ts",
+      "components/visualizer/wordColoring.ts",
+      "components/visualizer/subtitleFontSizes.ts",
+      "utils/glowBlurQuantize.ts",
+      "utils/fontStacks.ts",
+      "utils/lyrics/renderHints.ts",
+      "utils/lyrics/graphemeTiming.ts",
+      "utils/lyrics/alternateText.ts",
+      "utils/lyrics/subtitleTrackStyle.ts"
+    ],
+    "extraShared": [],
+    "wrapper": {
+      "args": [
+        "pretext",
+        "env"
+      ],
+      "defaults": {
+        "pretext": "typeof pretext !== \"undefined\" ? pretext : {}",
+        "env": "typeof window !== \"undefined\" ? window : this"
+      }
+    },
+    "prologue": [],
+    "exports": [
+      {
+        "symbol": "FumeFumeEngine",
+        "kind": "manual"
+      }
+    ],
+    "aliasExports": [
+      {
+        "from": "components/visualizer/fume/fumeMath",
+        "orig": "splitGraphemes",
+        "alias": "CM_FumeSplitGraphemes"
+      },
+      {
+        "from": "components/visualizer/fume/fumeMath",
+        "orig": "clamp",
+        "alias": "CM_FumeClamp"
+      },
+      {
+        "from": "components/visualizer/fume/fumeMath",
+        "orig": "mix",
+        "alias": "CM_FumeMix"
+      },
+      {
+        "from": "components/visualizer/fume/fumeMath",
+        "orig": "quadraticBezier",
+        "alias": "CM_FumeQuadraticBezier"
+      },
+      {
+        "from": "components/visualizer/fume/fumeMath",
+        "orig": "easeOutCubic",
+        "alias": "CM_FumeEaseOutCubic"
+      },
+      {
+        "from": "components/visualizer/fume/fumeMath",
+        "orig": "easeInCubic",
+        "alias": "CM_FumeEaseInCubic"
+      },
+      {
+        "from": "components/visualizer/fume/fumeMath",
+        "orig": "easeInOutCubic",
+        "alias": "CM_FumeEaseInOutCubic"
+      },
+      {
+        "from": "components/visualizer/fume/fumeMath",
+        "orig": "resolveDelayedGlowEnvelope",
+        "alias": "CM_FumeResolveDelayedGlowEnvelope"
+      },
+      {
+        "from": "components/visualizer/fume/fumeMath",
+        "orig": "isCJK",
+        "alias": "CM_FumeIsCJK"
+      },
+      {
+        "from": "components/visualizer/fume/fumeMath",
+        "orig": "hashString",
+        "alias": "CM_FumeHashString"
+      },
+      {
+        "from": "components/visualizer/fume/fumeMath",
+        "orig": "seeded",
+        "alias": "CM_FumeSeeded"
+      },
+      {
+        "from": "components/visualizer/fume/fumeTextStyle",
+        "orig": "resolvePassedTextStyle",
+        "alias": "CM_FumeResolvePassedTextStyle"
+      },
+      {
+        "from": "components/visualizer/fume/fumeTextStyle",
+        "orig": "resolvePassedDimAmount",
+        "alias": "CM_FumeResolvePassedDimAmount"
+      },
+      {
+        "from": "components/visualizer/fume/fumeTextStyle",
+        "orig": "resolveFumePassedFadeDuration",
+        "alias": "CM_FumeResolvePassedFadeDuration"
+      },
+      {
+        "from": "components/visualizer/fume/fumeTextStyle",
+        "orig": "getActiveColor",
+        "alias": "CM_FumeGetActiveColor"
+      },
+      {
+        "from": "components/visualizer/fume/fumeTextMeasure",
+        "orig": "buildSegmentMetas",
+        "alias": "CM_FumeBuildSegmentMetas"
+      },
+      {
+        "from": "components/visualizer/fume/fumeTextMeasure",
+        "orig": "cursorToGlobalOffset",
+        "alias": "CM_FumeCursorToGlobalOffset"
+      },
+      {
+        "from": "components/visualizer/fume/fumeTextMeasure",
+        "orig": "widthBetweenOffsets",
+        "alias": "CM_FumeWidthBetweenOffsets"
+      },
+      {
+        "from": "components/visualizer/fume/fumeTextMeasure",
+        "orig": "buildGlyphOffsets",
+        "alias": "CM_FumeBuildGlyphOffsets"
+      },
+      {
+        "from": "components/visualizer/fume/fumeTextMeasure",
+        "orig": "resolveGlyphAdvance",
+        "alias": "CM_FumeResolveGlyphAdvance"
+      },
+      {
+        "from": "components/visualizer/fume/fumeTextMeasure",
+        "orig": "buildRenderSegments",
+        "alias": "CM_FumeBuildRenderSegments"
+      },
+      {
+        "from": "components/visualizer/fume/fumeTextMeasure",
+        "orig": "buildFontSpec",
+        "alias": "CM_FumeBuildFontSpec"
+      },
+      {
+        "from": "components/visualizer/fume/fumeTextMeasure",
+        "orig": "buildWordRangeIndexByOffset",
+        "alias": "CM_FumeBuildWordRangeIndexByOffset"
+      },
+      {
+        "from": "components/visualizer/fume/fumeTextMeasure",
+        "orig": "countRenderableGraphemes",
+        "alias": "CM_FumeCountRenderableGraphemes"
+      },
+      {
+        "from": "components/visualizer/fume/fumeTextMeasure",
+        "orig": "buildPreparedSingleLine",
+        "alias": "CM_FumeBuildPreparedSingleLine"
+      },
+      {
+        "from": "components/visualizer/fume/fumeTextMeasure",
+        "orig": "resolveRenderLineOffset",
+        "alias": "CM_FumeResolveRenderLineOffset"
+      },
+      {
+        "from": "components/visualizer/fume/fumeTextMeasure",
+        "orig": "resolveSegmentGlyphAdvance",
+        "alias": "CM_FumeResolveSegmentGlyphAdvance"
+      },
+      {
+        "from": "components/visualizer/fume/fumeTextMeasure",
+        "orig": "resolveSegmentGlyphOffset",
+        "alias": "CM_FumeResolveSegmentGlyphOffset"
+      },
+      {
+        "from": "components/visualizer/fume/fumeReveal",
+        "orig": "buildWordRangesFromWords",
+        "alias": "CM_FumeBuildWordRangesFromWords"
+      },
+      {
+        "from": "components/visualizer/fume/fumeReveal",
+        "orig": "resolveLinePassCutoffTime",
+        "alias": "CM_FumeResolveLinePassCutoffTime"
+      },
+      {
+        "from": "components/visualizer/fume/fumeReveal",
+        "orig": "resolveVisualProgressWithCutoff",
+        "alias": "CM_FumeResolveVisualProgressWithCutoff"
+      },
+      {
+        "from": "components/visualizer/fume/fumeReveal",
+        "orig": "resolvePrintedGraphemeCount",
+        "alias": "CM_FumeResolvePrintedGraphemeCount"
+      },
+      {
+        "from": "components/visualizer/fume/fumeReveal",
+        "orig": "resolvePrintedGraphemeProgress",
+        "alias": "CM_FumeResolvePrintedGraphemeProgress"
+      },
+      {
+        "from": "components/visualizer/fume/fumeCamera",
+        "orig": "CAMERA_SCALE_MIN",
+        "alias": "CM_FumeCameraScaleMin"
+      },
+      {
+        "from": "components/visualizer/fume/fumeCamera",
+        "orig": "CAMERA_SCALE_MAX",
+        "alias": "CM_FumeCameraScaleMax"
+      },
+      {
+        "from": "components/visualizer/fume/fumeCamera",
+        "orig": "OVERVIEW_CAMERA_SOURCE",
+        "alias": "CM_FumeOverviewCameraSource"
+      },
+      {
+        "from": "components/visualizer/fume/fumeCamera",
+        "orig": "resolveSteppedBlockFocusPoint",
+        "alias": "CM_FumeResolveSteppedBlockFocusPoint"
+      },
+      {
+        "from": "components/visualizer/fume/fumeCamera",
+        "orig": "resolveSmoothBlockFocusPoint",
+        "alias": "CM_FumeResolveSmoothBlockFocusPoint"
+      },
+      {
+        "from": "components/visualizer/fume/fumeCamera",
+        "orig": "resolveBlockEntryFocusPoint",
+        "alias": "CM_FumeResolveBlockEntryFocusPoint"
+      },
+      {
+        "from": "components/visualizer/fume/fumeCamera",
+        "orig": "resolveCameraScaleForBlock",
+        "alias": "CM_FumeResolveCameraScaleForBlock"
+      },
+      {
+        "from": "components/visualizer/fume/fumeCamera",
+        "orig": "resolveCameraRetargetDuration",
+        "alias": "CM_FumeResolveCameraRetargetDuration"
+      },
+      {
+        "from": "components/visualizer/fume/fumeCamera",
+        "orig": "resolveOverviewRetargetDuration",
+        "alias": "CM_FumeResolveOverviewRetargetDuration"
+      },
+      {
+        "from": "components/visualizer/fume/fumeCamera",
+        "orig": "resolveOverviewFlightBridge",
+        "alias": "CM_FumeResolveOverviewFlightBridge"
+      },
+      {
+        "from": "components/visualizer/fume/fumeCamera",
+        "orig": "resolveArticleOverviewCamera",
+        "alias": "CM_FumeResolveArticleOverviewCamera"
+      },
+      {
+        "from": "components/visualizer/fume/fumeCamera",
+        "orig": "resolveFocusBlock",
+        "alias": "CM_FumeResolveFocusBlock"
+      },
+      {
+        "from": "components/visualizer/fume/fumeCameraStep",
+        "orig": "createFumeCameraState",
+        "alias": "CM_FumeCreateCameraState"
+      },
+      {
+        "from": "components/visualizer/fume/fumeCameraStep",
+        "orig": "syncFumeCameraToArticle",
+        "alias": "CM_FumeSyncCameraToArticle"
+      },
+      {
+        "from": "components/visualizer/fume/fumeCameraStep",
+        "orig": "stepFumeCamera",
+        "alias": "CM_FumeStepCamera"
+      },
+      {
+        "from": "components/visualizer/fume/fumeCameraStep",
+        "orig": "resolveFumeBackgroundView",
+        "alias": "CM_FumeResolveBackgroundView"
+      },
+      {
+        "from": "components/visualizer/fume/fumeBlockFrame",
+        "orig": "resolveFumeGlowBases",
+        "alias": "CM_FumeResolveGlowBases"
+      },
+      {
+        "from": "components/visualizer/fume/fumeBlockFrame",
+        "orig": "isFumeBlockOnScreen",
+        "alias": "CM_FumeIsBlockOnScreen"
+      },
+      {
+        "from": "components/visualizer/fume/fumeBlockFrame",
+        "orig": "resolveFumeBlockTiming",
+        "alias": "CM_FumeResolveBlockTiming"
+      },
+      {
+        "from": "components/visualizer/fume/fumeBlockFrame",
+        "orig": "resolveFumeStaticLayers",
+        "alias": "CM_FumeResolveStaticLayers"
+      },
+      {
+        "from": "components/visualizer/fume/fumeCanvasText",
+        "orig": "buildCanvasFont",
+        "alias": "CM_FumeBuildCanvasFont"
+      },
+      {
+        "from": "components/visualizer/fume/fumeCanvasText",
+        "orig": "buildTextStyleKey",
+        "alias": "CM_FumeBuildTextStyleKey"
+      },
+      {
+        "from": "components/visualizer/fume/fumeCanvasText",
+        "orig": "drawRenderTextRun",
+        "alias": "CM_FumeDrawRenderTextRun"
+      },
+      {
+        "from": "components/visualizer/fume/fumeCanvasText",
+        "orig": "createStaticBlockSnapshot",
+        "alias": "CM_FumeCreateStaticBlockSnapshot"
+      },
+      {
+        "from": "components/visualizer/fume/fumeCanvasText",
+        "orig": "drawFumeLiveBlock",
+        "alias": "CM_FumeDrawLiveBlock"
+      },
+      {
+        "from": "components/visualizer/fume/fumeLiveRaster",
+        "orig": "FumeLiveRaster",
+        "alias": "CM_FumeLiveRaster"
+      },
+      {
+        "from": "components/visualizer/fume/fumeLiveRaster",
+        "orig": "resolveLiveRasterScale",
+        "alias": "CM_FumeResolveLiveRasterScale"
+      },
+      {
+        "from": "components/visualizer/fume/fumeArticleLayout",
+        "orig": "buildLayoutCacheKey",
+        "alias": "CM_FumeBuildLayoutCacheKey"
+      },
+      {
+        "from": "components/visualizer/fume/fumeArticleLayout",
+        "orig": "chooseFontPx",
+        "alias": "CM_FumeChooseFontPx"
+      },
+      {
+        "from": "components/visualizer/fume/fumeArticleLayout",
+        "orig": "buildArticleLayout",
+        "alias": "CM_FumeBuildArticleLayout"
+      },
+      {
+        "from": "components/visualizer/fume/fumeStage",
+        "orig": "readFumeAudioLevels",
+        "alias": "CM_FumeReadAudioLevels"
+      },
+      {
+        "from": "components/visualizer/FumeBackground",
+        "orig": "buildFumeBackgroundScene",
+        "alias": "CM_FumeBuildBackgroundScene"
+      },
+      {
+        "from": "components/visualizer/FumeBackground",
+        "orig": "drawFumeBackground",
+        "alias": "CM_FumeDrawBackground"
+      },
+      {
+        "from": "utils/lyrics/alternateText",
+        "orig": "resolveLyricSubtitleTracks",
+        "alias": "CM_ResolveLyricSubtitleTracks"
+      },
+      {
+        "from": "utils/lyrics/alternateText",
+        "orig": "resolveSubtitleContentMode",
+        "alias": "CM_ResolveSubtitleContentMode"
+      },
+      {
+        "from": "utils/lyrics/subtitleTrackStyle",
+        "orig": "SECONDARY_TRACK_SIZE_FACTOR",
+        "alias": "CM_SECONDARY_TRACK_SIZE_FACTOR"
+      },
+      {
+        "from": "utils/lyrics/subtitleTrackStyle",
+        "orig": "SECONDARY_TRACK_OPACITY",
+        "alias": "CM_SECONDARY_TRACK_OPACITY"
+      },
+      {
+        "from": "utils/lyrics/subtitleTrackStyle",
+        "orig": "SECONDARY_TRACK_FONT_WEIGHT_FALLBACK",
+        "alias": "CM_SECONDARY_TRACK_FONT_WEIGHT_FALLBACK"
+      },
+      {
+        "from": "utils/lyrics/subtitleTrackStyle",
+        "orig": "SECONDARY_TRACK_GAP_EM",
+        "alias": "CM_SECONDARY_TRACK_GAP_EM"
+      },
+      {
+        "from": "utils/glowBlurQuantize",
+        "orig": "isGlowBlurQuantized",
+        "alias": "CM_isGlowBlurQuantized"
+      },
+      {
+        "from": "utils/glowBlurQuantize",
+        "orig": "quantizeShadowBlur",
+        "alias": "CM_quantizeShadowBlur"
+      },
+      {
+        "from": "utils/glowBlurQuantize",
+        "orig": "setCanvasTextGlow",
+        "alias": "CM_setCanvasTextGlow"
+      },
+      {
+        "from": "utils/glowBlurQuantize",
+        "orig": "clearCanvasTextGlow",
+        "alias": "CM_clearCanvasTextGlow"
+      },
+      {
+        "from": "utils/glowBlurQuantize",
+        "orig": "fillGlowText",
+        "alias": "CM_fillGlowText"
+      },
+      {
+        "from": "utils/glowBlurQuantize",
+        "orig": "GLOW_BLUR_QUANTIZE_STORAGE_KEY",
+        "alias": "CM_GLOW_BLUR_QUANTIZE_STORAGE_KEY"
+      },
+      {
+        "from": "components/visualizer/colorMix",
+        "orig": "colorWithAlpha",
+        "alias": "CM_colorWithAlpha"
+      },
+      {
+        "from": "components/visualizer/colorMix",
+        "orig": "parseColorChannels",
+        "alias": "CM_parseColorChannels"
+      },
+      {
+        "from": "components/visualizer/colorMix",
+        "orig": "mixColors",
+        "alias": "CM_mixColors"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "buildLineRenderHints",
+        "alias": "CM_buildLineRenderHints"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "getLineRenderHints",
+        "alias": "CM_getLineRenderHints"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "getLineRenderEndTime",
+        "alias": "CM_getLineRenderEndTime"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "getLineTransitionTiming",
+        "alias": "CM_getLineTransitionTiming"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "MICRO_LINE_DURATION_THRESHOLD",
+        "alias": "CM_MICRO_LINE_DURATION_THRESHOLD"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "SHORT_LINE_DURATION_THRESHOLD",
+        "alias": "CM_SHORT_LINE_DURATION_THRESHOLD"
+      },
+      {
+        "from": "utils/lyrics/graphemeTiming",
+        "orig": "buildWordGraphemeTimings",
+        "alias": "CM_buildWordGraphemeTimings"
+      },
+      {
+        "from": "utils/lyrics/graphemeTiming",
+        "orig": "splitLyricGraphemes",
+        "alias": "CM_splitLyricGraphemes"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeFontStack",
+        "alias": "CM_resolveThemeFontStack"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeTranslationFontStack",
+        "alias": "CM_resolveThemeTranslationFontStack"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeFontWeight",
+        "alias": "CM_resolveThemeFontWeight"
+      },
+      {
+        "from": "components/visualizer/wordColoring",
+        "orig": "resolveWordColor",
+        "alias": "CM_resolveWordColor"
+      },
+      {
+        "from": "components/visualizer/wordColoring",
+        "orig": "buildWordColorRanges",
+        "alias": "CM_buildWordColorRanges"
+      },
+      {
+        "from": "components/visualizer/wordColoring",
+        "orig": "prepareWordColorMatchers",
+        "alias": "CM_prepareWordColorMatchers"
+      },
+      {
+        "from": "components/visualizer/subtitleFontSizes",
+        "orig": "resolveSubtitleFontSizes",
+        "alias": "CM_resolveSubtitleFontSizes"
+      }
+    ],
+    "manualParts": [
+      "manual/fume-engine-core.js"
+    ],
+    "replacements": [
+      [
+        "if (import.meta.env.DEV) {",
+        "if (false) { /* fumeArticleLayout.ts:542 DEV 计时日志：无构建 script 无 import.meta，剥除（仅 console.info，无功能影响） */"
+      ]
+    ],
+    "deploy": {
+      "target": "public/js/modules/10-shell-fume-engine/fume-engine.js",
+      "version": 1
+    },
+    "finish": []
+  },
+  "monet": {
+    "entryKind": "files",
+    "files": [
+      "components/visualizer/colorMix.ts",
+      "components/visualizer/wordColoring.ts",
+      "utils/lyrics/renderHints.ts",
+      "utils/lyrics/graphemeTiming.ts",
+      "utils/lyrics/alternateText.ts",
+      "utils/lyrics/subtitleTrackStyle.ts",
+      "utils/fontStacks.ts",
+      "components/visualizer/monet/monetBackgroundPipeline.ts",
+      "components/visualizer/monet/monetLyricMotion.ts",
+      "components/visualizer/monet/monetLyricsModel.ts",
+      "components/visualizer/monet/monetPortraitCrossfade.ts",
+      "components/visualizer/backgrounds/monet/monetBackgroundDrift.ts"
+    ],
+    "extraShared": [],
+    "wrapper": {
+      "args": [
+        "pretext",
+        "env"
+      ],
+      "defaults": {
+        "pretext": "(typeof pretext !== \"undefined\") ? pretext : {}",
+        "env": "typeof window !== \"undefined\" ? window : this"
+      }
+    },
+    "prologue": [],
+    "exports": [
+      {
+        "symbol": "MonetMonetEngine",
+        "kind": "manual"
+      }
+    ],
+    "aliasExports": [
+      {
+        "from": "components/visualizer/colorMix",
+        "orig": "colorWithAlpha",
+        "alias": "CM_colorWithAlpha"
+      },
+      {
+        "from": "components/visualizer/colorMix",
+        "orig": "parseColorChannels",
+        "alias": "CM_parseColorChannels"
+      },
+      {
+        "from": "components/visualizer/colorMix",
+        "orig": "mixColors",
+        "alias": "CM_mixColors"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "buildLineRenderHints",
+        "alias": "CM_buildLineRenderHints"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "getLineRenderHints",
+        "alias": "CM_getLineRenderHints"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "getLineRenderEndTime",
+        "alias": "CM_getLineRenderEndTime"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "MICRO_LINE_DURATION_THRESHOLD",
+        "alias": "CM_MICRO_LINE_DURATION_THRESHOLD"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "SHORT_LINE_DURATION_THRESHOLD",
+        "alias": "CM_SHORT_LINE_DURATION_THRESHOLD"
+      },
+      {
+        "from": "utils/lyrics/graphemeTiming",
+        "orig": "buildWordGraphemeTimings",
+        "alias": "CM_buildWordGraphemeTimings"
+      },
+      {
+        "from": "utils/lyrics/graphemeTiming",
+        "orig": "buildLineGraphemeTimeline",
+        "alias": "CM_buildLineGraphemeTimeline"
+      },
+      {
+        "from": "utils/lyrics/graphemeTiming",
+        "orig": "splitLyricGraphemes",
+        "alias": "CM_splitLyricGraphemes"
+      },
+      {
+        "from": "utils/lyrics/alternateText",
+        "orig": "resolveLyricSubtitleTracks",
+        "alias": "CM_resolveLyricSubtitleTracks"
+      },
+      {
+        "from": "utils/lyrics/alternateText",
+        "orig": "resolveSubtitleContentMode",
+        "alias": "CM_resolveSubtitleContentMode"
+      },
+      {
+        "from": "utils/lyrics/subtitleTrackStyle",
+        "orig": "SECONDARY_TRACK_SIZE_FACTOR",
+        "alias": "CM_SECONDARY_TRACK_SIZE_FACTOR"
+      },
+      {
+        "from": "utils/lyrics/subtitleTrackStyle",
+        "orig": "SECONDARY_TRACK_OPACITY",
+        "alias": "CM_SECONDARY_TRACK_OPACITY"
+      },
+      {
+        "from": "utils/lyrics/subtitleTrackStyle",
+        "orig": "SECONDARY_TRACK_FONT_WEIGHT_FALLBACK",
+        "alias": "CM_SECONDARY_TRACK_FONT_WEIGHT_FALLBACK"
+      },
+      {
+        "from": "utils/lyrics/subtitleTrackStyle",
+        "orig": "SECONDARY_TRACK_GAP_EM",
+        "alias": "CM_SECONDARY_TRACK_GAP_EM"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeFontStack",
+        "alias": "CM_resolveThemeFontStack"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeTranslationFontStack",
+        "alias": "CM_resolveThemeTranslationFontStack"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeFontWeight",
+        "alias": "CM_resolveThemeFontWeight"
+      },
+      {
+        "from": "components/visualizer/wordColoring",
+        "orig": "resolveWordColor",
+        "alias": "CM_resolveWordColor"
+      },
+      {
+        "from": "components/visualizer/wordColoring",
+        "orig": "prepareWordColorMatchers",
+        "alias": "CM_prepareWordColorMatchers"
+      },
+      {
+        "from": "components/visualizer/wordColoring",
+        "orig": "buildWordColorRangesFromMatchers",
+        "alias": "CM_buildWordColorRangesFromMatchers"
+      },
+      {
+        "from": "components/visualizer/wordColoring",
+        "orig": "resolveTokenColorMap",
+        "alias": "CM_resolveTokenColorMap"
+      },
+      {
+        "from": "components/visualizer/monet/monetBackgroundPipeline",
+        "orig": "resolveMonetBackgroundDataUrl",
+        "alias": "CM_resolveMonetBackgroundDataUrl"
+      },
+      {
+        "from": "components/visualizer/monet/monetBackgroundPipeline",
+        "orig": "getMonetBackgroundCacheKey",
+        "alias": "CM_getMonetBackgroundCacheKey"
+      },
+      {
+        "from": "components/visualizer/monet/monetBackgroundPipeline",
+        "orig": "buildMonetBackgroundDataUrl",
+        "alias": "CM_buildMonetBackgroundDataUrl"
+      },
+      {
+        "from": "components/visualizer/monet/monetBackgroundPipeline",
+        "orig": "checkCanvasFilterSupport",
+        "alias": "CM_checkCanvasFilterSupport"
+      },
+      {
+        "from": "components/visualizer/monet/monetBackgroundPipeline",
+        "orig": "resolveWashColor",
+        "alias": "CM_resolveWashColor"
+      },
+      {
+        "from": "components/visualizer/monet/monetBackgroundPipeline",
+        "orig": "resolveWashEndpoints",
+        "alias": "CM_resolveWashEndpoints"
+      },
+      {
+        "from": "components/visualizer/monet/monetLyricMotion",
+        "orig": "MONET_SCROLL_SPRING",
+        "alias": "CM_MONET_SCROLL_SPRING"
+      },
+      {
+        "from": "components/visualizer/monet/monetLyricMotion",
+        "orig": "MONET_SCALE_SPRING",
+        "alias": "CM_MONET_SCALE_SPRING"
+      },
+      {
+        "from": "components/visualizer/monet/monetLyricMotion",
+        "orig": "clampMonetProgress",
+        "alias": "CM_clampMonetProgress"
+      },
+      {
+        "from": "components/visualizer/monet/monetLyricMotion",
+        "orig": "resolveMonetGlow",
+        "alias": "CM_resolveMonetGlow"
+      },
+      {
+        "from": "components/visualizer/monet/monetLyricMotion",
+        "orig": "resolveMonetFillWidth",
+        "alias": "CM_resolveMonetFillWidth"
+      },
+      {
+        "from": "components/visualizer/monet/monetLyricMotion",
+        "orig": "resolveMonetTone",
+        "alias": "CM_resolveMonetTone"
+      },
+      {
+        "from": "components/visualizer/monet/monetLyricsModel",
+        "orig": "MONET_RAIL_BASE_MAX_WIDTH_PX",
+        "alias": "CM_MONET_RAIL_BASE_MAX_WIDTH_PX"
+      },
+      {
+        "from": "components/visualizer/monet/monetLyricsModel",
+        "orig": "MONET_RAIL_BASE_MAX_HEIGHT_PX",
+        "alias": "CM_MONET_RAIL_BASE_MAX_HEIGHT_PX"
+      },
+      {
+        "from": "components/visualizer/monet/monetLyricsModel",
+        "orig": "MONET_ROW_BASE_MAX_WIDTH_PX",
+        "alias": "CM_MONET_ROW_BASE_MAX_WIDTH_PX"
+      },
+      {
+        "from": "components/visualizer/monet/monetLyricsModel",
+        "orig": "MONET_PORTRAIT_BASE_MAX_PX",
+        "alias": "CM_MONET_PORTRAIT_BASE_MAX_PX"
+      },
+      {
+        "from": "components/visualizer/monet/monetLyricsModel",
+        "orig": "MONET_PORTRAIT_INNER_BASE_MAX_PX",
+        "alias": "CM_MONET_PORTRAIT_INNER_BASE_MAX_PX"
+      },
+      {
+        "from": "components/visualizer/monet/monetLyricsModel",
+        "orig": "buildMonetDisplayTokens",
+        "alias": "CM_buildMonetDisplayTokens"
+      },
+      {
+        "from": "components/visualizer/monet/monetLyricsModel",
+        "orig": "buildMonetVisibleLineEntries",
+        "alias": "CM_buildMonetVisibleLineEntries"
+      },
+      {
+        "from": "components/visualizer/monet/monetLyricsModel",
+        "orig": "buildMonetLayoutCacheKey",
+        "alias": "CM_buildMonetLayoutCacheKey"
+      },
+      {
+        "from": "components/visualizer/monet/monetLyricsModel",
+        "orig": "measureMonetLineLayout",
+        "alias": "CM_measureMonetLineLayout"
+      },
+      {
+        "from": "components/visualizer/monet/monetLyricsModel",
+        "orig": "measureMonetGraphemeOffsets",
+        "alias": "CM_measureMonetGraphemeOffsets"
+      },
+      {
+        "from": "components/visualizer/monet/monetLyricsModel",
+        "orig": "clearMonetMeasurementCaches",
+        "alias": "CM_clearMonetMeasurementCaches"
+      },
+      {
+        "from": "components/visualizer/monet/monetLyricsModel",
+        "orig": "resolveMonetLineStatus",
+        "alias": "CM_resolveMonetLineStatus"
+      },
+      {
+        "from": "components/visualizer/monet/monetLyricsModel",
+        "orig": "resolveMonetWordStatus",
+        "alias": "CM_resolveMonetWordStatus"
+      },
+      {
+        "from": "components/visualizer/monet/monetLyricsModel",
+        "orig": "resolveMonetSweepEdgeSoftness",
+        "alias": "CM_resolveMonetSweepEdgeSoftness"
+      },
+      {
+        "from": "components/visualizer/monet/monetLyricsModel",
+        "orig": "resolveMonetSweepEnd",
+        "alias": "CM_resolveMonetSweepEnd"
+      },
+      {
+        "from": "components/visualizer/monet/monetLyricsModel",
+        "orig": "resolveMonetLargeScreenScale",
+        "alias": "CM_resolveMonetLargeScreenScale"
+      },
+      {
+        "from": "components/visualizer/monet/monetLyricsModel",
+        "orig": "resolveClampFontPx",
+        "alias": "CM_resolveClampFontPx"
+      },
+      {
+        "from": "components/visualizer/monet/monetPortraitCrossfade",
+        "orig": "MONET_PORTRAIT_FADE_MS",
+        "alias": "CM_MONET_PORTRAIT_FADE_MS"
+      },
+      {
+        "from": "components/visualizer/monet/monetPortraitCrossfade",
+        "orig": "MONET_PORTRAIT_MAX_LAYERS",
+        "alias": "CM_MONET_PORTRAIT_MAX_LAYERS"
+      },
+      {
+        "from": "components/visualizer/monet/monetPortraitCrossfade",
+        "orig": "monetPortraitTargetSource",
+        "alias": "CM_monetPortraitTargetSource"
+      },
+      {
+        "from": "components/visualizer/monet/monetPortraitCrossfade",
+        "orig": "pushMonetPortraitLayer",
+        "alias": "CM_pushMonetPortraitLayer"
+      },
+      {
+        "from": "components/visualizer/monet/monetPortraitCrossfade",
+        "orig": "settleMonetPortraitLayers",
+        "alias": "CM_settleMonetPortraitLayers"
+      },
+      {
+        "from": "components/visualizer/backgrounds/monet/monetBackgroundDrift",
+        "orig": "buildMonetDriftTrack",
+        "alias": "CM_buildMonetDriftTrack"
+      }
+    ],
+    "externalVars": {},
+    "replacements": [
+      [
+        "if (import.meta.env.DEV)",
+        "if (false)"
+      ],
+      [
+        "if (import.meta.env.DEV)",
+        "if (false)"
+      ],
+      [
+        "if (import.meta.env.DEV)",
+        "if (false)"
+      ]
+    ],
+    "finish": [],
+    "deploy": {
+      "target": "public/js/modules/10-shell-monet-engine/monet-engine.js",
+      "version": 1
+    },
+    "manualParts": [
+      "manual/mini-motion.js",
+      "manual/monet-engine-core.js"
+    ],
+    "externalTable": {
+      "@chenglou/pretext/rich-inline": "NAMED:var { \\1 } = pretext"
+    }
+  },
+  "diorama": {
+    "entryKind": "files",
+    "files": [
+      "components/visualizer/wordColoring.ts",
+      "utils/lyrics/renderHints.ts",
+      "utils/lyrics/graphemeTiming.ts",
+      "utils/fontStacks.ts",
+      "components/visualizer/subtitleFontSizes.ts",
+      "components/visualizer/diorama/cameraPath.ts",
+      "components/visualizer/diorama/dioramaSequencer.ts",
+      "components/visualizer/diorama/dioramaTransition.ts",
+      "components/visualizer/diorama/dioramaGeometry.ts",
+      "components/visualizer/diorama/dioramaMoteField.ts",
+      "components/visualizer/diorama/dioramaParticleCorridor.ts",
+      "components/visualizer/diorama/dioramaParticleModel.ts",
+      "components/visualizer/diorama/dioramaParticleSurfaces.ts",
+      "components/visualizer/diorama/dioramaParticleShaders.ts",
+      "components/visualizer/diorama/dioramaParticleMaterials.ts",
+      "components/visualizer/diorama/dioramaKeywordColor.ts",
+      "components/visualizer/diorama/dioramaTextRaster.ts"
+    ],
+    "extraShared": [],
+    "wrapper": {
+      "args": [
+        "THREE",
+        "env"
+      ],
+      "defaults": {
+        "THREE": "typeof THREE185 !== \"undefined\" ? THREE185 : null",
+        "env": "typeof window !== \"undefined\" ? window : this"
+      }
+    },
+    "externalTable": {
+      "three": "ARG:THREE"
+    },
+    "prologue": [],
+    "exports": [
+      {
+        "symbol": "DioramaDioramaEngine",
+        "kind": "manual"
+      },
+      {
+        "symbol": "DioramaResolveMotionParams",
+        "kind": "manual"
+      },
+      {
+        "symbol": "DioramaDefaults",
+        "kind": "manual"
+      },
+      {
+        "symbol": "DioramaBuildActiveUnits",
+        "kind": "manual"
+      },
+      {
+        "symbol": "DioramaFindLineIndexAtTime",
+        "kind": "manual"
+      },
+      {
+        "symbol": "DioramaResolveGradientEnergy",
+        "kind": "manual"
+      },
+      {
+        "symbol": "DioramaResolveTextLife",
+        "kind": "manual"
+      },
+      {
+        "symbol": "DioramaBuildPhantomLines",
+        "kind": "manual"
+      }
+    ],
+    "aliasExports": [
+      {
+        "from": "components/visualizer/diorama/cameraPath",
+        "orig": "buildDioramaPath",
+        "alias": "DIO_buildDioramaPath"
+      },
+      {
+        "from": "components/visualizer/diorama/cameraPath",
+        "orig": "getFrame",
+        "alias": "DIO_getFrame"
+      },
+      {
+        "from": "components/visualizer/diorama/cameraPath",
+        "orig": "translateFrames",
+        "alias": "DIO_translateFrames"
+      },
+      {
+        "from": "components/visualizer/diorama/cameraPath",
+        "orig": "composeLocal",
+        "alias": "DIO_composeLocal"
+      },
+      {
+        "from": "components/visualizer/diorama/cameraPath",
+        "orig": "seededUnit",
+        "alias": "DIO_seededUnit"
+      },
+      {
+        "from": "components/visualizer/diorama/cameraPath",
+        "orig": "hashSeed",
+        "alias": "DIO_hashSeed"
+      },
+      {
+        "from": "components/visualizer/diorama/cameraPath",
+        "orig": "smoothDamp",
+        "alias": "DIO_smoothDamp"
+      },
+      {
+        "from": "components/visualizer/diorama/cameraPath",
+        "orig": "frameHalfWidth",
+        "alias": "DIO_frameHalfWidth"
+      },
+      {
+        "from": "components/visualizer/diorama/cameraPath",
+        "orig": "resolveDioramaMotionParams",
+        "alias": "DIO_resolveDioramaMotionParams"
+      },
+      {
+        "from": "components/visualizer/diorama/cameraPath",
+        "orig": "getDioramaTextPlacement",
+        "alias": "DIO_getDioramaTextPlacement"
+      },
+      {
+        "from": "components/visualizer/diorama/cameraPath",
+        "orig": "getDioramaShot",
+        "alias": "DIO_getDioramaShot"
+      },
+      {
+        "from": "components/visualizer/diorama/cameraPath",
+        "orig": "resolveShotOffset",
+        "alias": "DIO_resolveShotOffset"
+      },
+      {
+        "from": "components/visualizer/diorama/cameraPath",
+        "orig": "resolveHoldSettle",
+        "alias": "DIO_resolveHoldSettle"
+      },
+      {
+        "from": "components/visualizer/diorama/cameraPath",
+        "orig": "resolveCameraDrift",
+        "alias": "DIO_resolveCameraDrift"
+      },
+      {
+        "from": "components/visualizer/diorama/cameraPath",
+        "orig": "resolveReadHeadTruck",
+        "alias": "DIO_resolveReadHeadTruck"
+      },
+      {
+        "from": "components/visualizer/diorama/cameraPath",
+        "orig": "buildFormation",
+        "alias": "DIO_buildFormation"
+      },
+      {
+        "from": "components/visualizer/diorama/cameraPath",
+        "orig": "resolveShapeLifeOpacity",
+        "alias": "DIO_resolveShapeLifeOpacity"
+      },
+      {
+        "from": "components/visualizer/diorama/cameraPath",
+        "orig": "DIORAMA_STEP_DISTANCE",
+        "alias": "DIO_STEP_DISTANCE"
+      },
+      {
+        "from": "components/visualizer/diorama/cameraPath",
+        "orig": "DIORAMA_HERO_DISTANCE",
+        "alias": "DIO_HERO_DISTANCE"
+      },
+      {
+        "from": "components/visualizer/diorama/cameraPath",
+        "orig": "DIORAMA_CAMERA_LIFT",
+        "alias": "DIO_CAMERA_LIFT"
+      },
+      {
+        "from": "components/visualizer/diorama/cameraPath",
+        "orig": "DIORAMA_PARTICLE_AUDIO_SCALE_MAX",
+        "alias": "DIO_PARTICLE_AUDIO_SCALE_MAX"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaSequencer",
+        "orig": "createSequencerState",
+        "alias": "DIO_createSequencerState"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaSequencer",
+        "orig": "activeSegment",
+        "alias": "DIO_activeSegment"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaSequencer",
+        "orig": "appendSegment",
+        "alias": "DIO_appendSegment"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaSequencer",
+        "orig": "updateActiveSegmentLines",
+        "alias": "DIO_updateActiveSegmentLines"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaSequencer",
+        "orig": "totalGlobalLines",
+        "alias": "DIO_totalGlobalLines"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaSequencer",
+        "orig": "resolveGlobal",
+        "alias": "DIO_resolveGlobal"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaSequencer",
+        "orig": "pruneSegments",
+        "alias": "DIO_pruneSegments"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaTransition",
+        "orig": "flightPerp",
+        "alias": "DIO_flightPerp"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaTransition",
+        "orig": "flightSide",
+        "alias": "DIO_flightSide"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaTransition",
+        "orig": "pickTransitionOffset",
+        "alias": "DIO_pickTransitionOffset"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaTransition",
+        "orig": "transitionEase",
+        "alias": "DIO_transitionEase"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaTransition",
+        "orig": "bezierControl",
+        "alias": "DIO_bezierControl"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaTransition",
+        "orig": "bezierArc",
+        "alias": "DIO_bezierArc"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaTransition",
+        "orig": "TRANSITION_DURATION",
+        "alias": "DIO_TRANSITION_DURATION"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaTransition",
+        "orig": "TRANSITION_DISTANCE",
+        "alias": "DIO_TRANSITION_DISTANCE"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaTransition",
+        "orig": "TRANSITION_BANK",
+        "alias": "DIO_TRANSITION_BANK"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaTransition",
+        "orig": "TRANSITION_AIM_SWEEP",
+        "alias": "DIO_TRANSITION_AIM_SWEEP"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaGeometry",
+        "orig": "selectVisibleDioramaClusters",
+        "alias": "DIO_selectVisibleDioramaClusters"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaGeometry",
+        "orig": "DIORAMA_CLUSTER_COLLISION_LINE_SPAN",
+        "alias": "DIO_CLUSTER_COLLISION_LINE_SPAN"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaMoteField",
+        "orig": "DIORAMA_MOTE_LINES_BEHIND",
+        "alias": "DIO_MOTE_LINES_BEHIND"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaMoteField",
+        "orig": "DIORAMA_MOTE_LINES_AHEAD",
+        "alias": "DIO_MOTE_LINES_AHEAD"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaMoteField",
+        "orig": "DIORAMA_MOTE_WINDOW_LINES",
+        "alias": "DIO_MOTE_WINDOW_LINES"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaMoteField",
+        "orig": "DIORAMA_MOTE_MAX_POINTS",
+        "alias": "DIO_MOTE_MAX_POINTS"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaMoteField",
+        "orig": "resolveDioramaMoteCircumference",
+        "alias": "DIO_resolveMoteCircumference"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaMoteField",
+        "orig": "resolveDioramaMoteRadial",
+        "alias": "DIO_resolveMoteRadial"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaMoteField",
+        "orig": "dioramaMoteSlot",
+        "alias": "DIO_moteSlot"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaMoteField",
+        "orig": "extendDioramaFrame",
+        "alias": "DIO_extendDioramaFrame"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaMoteField",
+        "orig": "writeDioramaMoteLine",
+        "alias": "DIO_writeMoteLine"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleCorridor",
+        "orig": "DIORAMA_PARTICLE_CORRIDOR_RADIUS",
+        "alias": "DIO_CORRIDOR_RADIUS"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleCorridor",
+        "orig": "buildDioramaParticleCorridorSpan",
+        "alias": "DIO_buildCorridorSpan"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleCorridor",
+        "orig": "buildDioramaParticleCorridorWindow",
+        "alias": "DIO_buildCorridorWindow"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleModel",
+        "orig": "DIORAMA_MAX_PARTICLE_POINTS",
+        "alias": "DIO_MAX_PARTICLE_POINTS"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleModel",
+        "orig": "resolveWaveNumberMax",
+        "alias": "DIO_resolveWaveNumberMax"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleModel",
+        "orig": "buildDioramaCloudGeometryData",
+        "alias": "DIO_buildCloudGeometryData"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleModel",
+        "orig": "buildDioramaCorridorGeometryData",
+        "alias": "DIO_buildCorridorGeometryData"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleModel",
+        "orig": "createDioramaBufferGeometry",
+        "alias": "DIO_createBufferGeometry"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleModel",
+        "orig": "stepDioramaEnvelope",
+        "alias": "DIO_stepEnvelope"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleModel",
+        "orig": "createDioramaBandTracker",
+        "alias": "DIO_createBandTracker"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleModel",
+        "orig": "stepDioramaBandTracker",
+        "alias": "DIO_stepBandTracker"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleModel",
+        "orig": "RIPPLE_BANDS",
+        "alias": "DIO_RIPPLE_BANDS"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleModel",
+        "orig": "RIPPLE_SLOTS_PER_BAND",
+        "alias": "DIO_RIPPLE_SLOTS_PER_BAND"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleModel",
+        "orig": "DIORAMA_RIPPLE_COUNT",
+        "alias": "DIO_RIPPLE_COUNT"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleModel",
+        "orig": "resolveDioramaParticleAudioResponse",
+        "alias": "DIO_resolveAudioResponse"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleModel",
+        "orig": "DIORAMA_CORRIDOR_PULSE_SHARE",
+        "alias": "DIO_CORRIDOR_PULSE_SHARE"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleModel",
+        "orig": "resolveDioramaPulseTarget",
+        "alias": "DIO_resolvePulseTarget"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleModel",
+        "orig": "createDioramaParticleElasticState",
+        "alias": "DIO_createElasticState"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleModel",
+        "orig": "stepDioramaParticleElasticResponse",
+        "alias": "DIO_stepElasticResponse"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleSurfaces",
+        "orig": "buildDioramaStructuredSurface",
+        "alias": "DIO_buildStructuredSurface"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleShaders",
+        "orig": "DIORAMA_PARTICLE_VERTEX_SHADER",
+        "alias": "DIO_PARTICLE_VERTEX_SHADER"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleShaders",
+        "orig": "DIORAMA_PARTICLE_FRAGMENT_SHADER",
+        "alias": "DIO_PARTICLE_FRAGMENT_SHADER"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleMaterials",
+        "orig": "getDioramaParticleContrastRatio",
+        "alias": "DIO_getContrastRatio"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleMaterials",
+        "orig": "getDioramaParticleDisplayedContrastRatio",
+        "alias": "DIO_getDisplayedContrastRatio"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleMaterials",
+        "orig": "resolveDioramaParticleContrastColors",
+        "alias": "DIO_resolveContrastColors"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleMaterials",
+        "orig": "createDioramaParticleMaterial",
+        "alias": "DIO_createParticleMaterial"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleMaterials",
+        "orig": "createDioramaParticleGlowMaterial",
+        "alias": "DIO_createParticleGlowMaterial"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaParticleMaterials",
+        "orig": "lerpDioramaParticleMaterialColors",
+        "alias": "DIO_lerpParticleMaterialColors"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaKeywordColor",
+        "orig": "getDioramaKeywordDisplayedContrastRatio",
+        "alias": "DIO_getKeywordDisplayedContrastRatio"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaKeywordColor",
+        "orig": "resolveDioramaKeywordColor",
+        "alias": "DIO_resolveKeywordColor"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaKeywordColor",
+        "orig": "prepareDioramaKeywordMatchers",
+        "alias": "DIO_prepareKeywordMatchers"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaKeywordColor",
+        "orig": "resolveDioramaKeywordUnitColors",
+        "alias": "DIO_resolveKeywordUnitColors"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaTextRaster",
+        "orig": "DIORAMA_RASTER_FONT_PX",
+        "alias": "DIO_RASTER_FONT_PX"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaTextRaster",
+        "orig": "buildDioramaFontSpec",
+        "alias": "DIO_buildFontSpec"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaTextRaster",
+        "orig": "measureDioramaText",
+        "alias": "DIO_measureText"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaTextRaster",
+        "orig": "rasterDioramaUnit",
+        "alias": "DIO_rasterUnit"
+      },
+      {
+        "from": "components/visualizer/diorama/dioramaTextRaster",
+        "orig": "rasterDioramaLine",
+        "alias": "DIO_rasterLine"
+      },
+      {
+        "from": "components/visualizer/wordColoring",
+        "orig": "resolveWordColor",
+        "alias": "CM_resolveWordColor"
+      },
+      {
+        "from": "components/visualizer/wordColoring",
+        "orig": "prepareWordColorMatchers",
+        "alias": "CM_prepareWordColorMatchers"
+      },
+      {
+        "from": "components/visualizer/wordColoring",
+        "orig": "buildWordColorRangesFromMatchers",
+        "alias": "CM_buildWordColorRangesFromMatchers"
+      },
+      {
+        "from": "components/visualizer/wordColoring",
+        "orig": "resolveTokenColorMap",
+        "alias": "CM_resolveTokenColorMap"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "buildLineRenderHints",
+        "alias": "CM_buildLineRenderHints"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "getLineRenderHints",
+        "alias": "CM_getLineRenderHints"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "getLineRenderEndTime",
+        "alias": "CM_getLineRenderEndTime"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "MICRO_LINE_DURATION_THRESHOLD",
+        "alias": "CM_MICRO_LINE_DURATION_THRESHOLD"
+      },
+      {
+        "from": "utils/lyrics/renderHints",
+        "orig": "SHORT_LINE_DURATION_THRESHOLD",
+        "alias": "CM_SHORT_LINE_DURATION_THRESHOLD"
+      },
+      {
+        "from": "utils/lyrics/graphemeTiming",
+        "orig": "buildWordGraphemeTimings",
+        "alias": "CM_buildWordGraphemeTimings"
+      },
+      {
+        "from": "utils/lyrics/graphemeTiming",
+        "orig": "buildLineGraphemeTimeline",
+        "alias": "CM_buildLineGraphemeTimeline"
+      },
+      {
+        "from": "utils/lyrics/graphemeTiming",
+        "orig": "splitLyricGraphemes",
+        "alias": "CM_splitLyricGraphemes"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeFontStack",
+        "alias": "CM_resolveThemeFontStack"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeTranslationFontStack",
+        "alias": "CM_resolveThemeTranslationFontStack"
+      },
+      {
+        "from": "utils/fontStacks",
+        "orig": "resolveThemeFontWeight",
+        "alias": "CM_resolveThemeFontWeight"
+      },
+      {
+        "from": "components/visualizer/subtitleFontSizes",
+        "orig": "resolveSubtitleFontSizes",
+        "alias": "CM_resolveSubtitleFontSizes"
+      },
+      {
+        "from": "types",
+        "orig": "DEFAULT_DIORAMA_TUNING",
+        "alias": "DIO_DEFAULT_TUNING"
+      },
+      {
+        "from": "types",
+        "orig": "DEFAULT_DIORAMA_GEOMETRY_VISIBILITY",
+        "alias": "DIO_DEFAULT_GEOMETRY_VISIBILITY"
+      },
+      {
+        "from": "types",
+        "orig": "DIORAMA_PARTICLE_DENSITY_MAX",
+        "alias": "DIO_PARTICLE_DENSITY_MAX"
+      },
+      {
+        "from": "types",
+        "orig": "DIORAMA_MOTE_CIRCUMFERENCE_MAX",
+        "alias": "DIO_MOTE_CIRCUMFERENCE_MAX"
+      }
+    ],
+    "manualParts": [
+      "manual/mini-motion.js",
+      "manual/diorama-engine-core.js"
+    ],
+    "deploy": {
+      "target": "public/js/modules/10-shell-diorama-engine/diorama-engine.js",
+      "version": 1
+    },
+    "finish": []
+  }
+}

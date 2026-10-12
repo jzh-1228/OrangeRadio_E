@@ -20,6 +20,13 @@
     }
   </style>
   <script src="vendor/three.r128.min.js"></script>
+  <!-- 镜台引擎专用 three 0.185 ES module（ColorManagement/ColorSpace 语义与 Folia 一致）；
+       独立挂 window.THREE185，不影响上方 r128 全局 -->
+  <script type="module">
+    import * as THREE185 from './vendor/three-0.185.module.min.js';
+    window.THREE185 = THREE185;
+    window.dispatchEvent(new Event('diorama-three-ready'));
+  </script>
   <script src="vendor/music-tempo.min.js"></script>
   <script src="vendor/gsap.min.js"></script>
   <script src="js/preload-mode.js"></script>
@@ -35,15 +42,15 @@
   <link rel="stylesheet" href="css/lattice.css?v=20261009a">
   <link rel="stylesheet" href="css/cappella.css?v=20261008c-cappella">
   <link rel="stylesheet" href="css/monet.css?v=20261008b-monet">
-  <link rel="stylesheet" href="css/diorama.css?v=20261009a">
-  <link rel="stylesheet" href="css/sonnet.css?v=20261009a">
+  <link rel="stylesheet" href="css/diorama.css?v=20261011a">
+  <link rel="stylesheet" href="css/sonnet.css?v=20261011b">
   <link rel="stylesheet" href="css/tempera.css?v=20261009a">
   <link rel="stylesheet" href="css/lumiere.css?v=20261009a">
   <link rel="stylesheet" href="css/pendolo.css?v=20261008-pendolo">
   <link rel="stylesheet" href="css/classic.css?v=20261008b">
-  <link rel="stylesheet" href="css/partita.css?v=20261008-partita">
+  <link rel="stylesheet" href="css/partita.css?v=20261012-partita">
     <link rel="stylesheet" href="css/cadenza.css?v=20261008-cadenza">
-    <link rel="stylesheet" href="css/visualizer-background.css?v=20261008-bg-switcher">
+    <link rel="stylesheet" href="css/visualizer-background.css?v=20261011-bg-switcher">
 </head>
 
 <body>
@@ -438,6 +445,7 @@
         </div>
         <div id="theme-library-list" class="theme-lib-list"></div>
       </div>
+      <div class="vis-word-colors" id="vis-word-colors" title="Folia 主题词色表（Theme.wordColors，上限 40）"></div>
       <div class="fx-section-label">背景</div>
       <div class="fx-seg background-mode-seg" id="background-mode-seg" role="group" aria-label="背景选择"
         title="与前景视觉自由组合的背景层：不改变歌词模式、覆盖层与数值预设"></div>
@@ -565,6 +573,9 @@
           step="0.01"><output></output></div>
       <div class="fx-slider"><label>镜头晃动</label><input id="fx-cineshake" type="range" min="0" max="1.8"
           step="0.01"><output></output></div>
+      <div class="fx-seg vis-intensity-seg" id="vis-intensity-seg" role="group" aria-label="动画强度"
+        title="Folia 移植视觉模式的动画强度档（Theme.animationIntensity）：平静 / 标准 / 狂热"></div>
+      <div class="vis-mode-tuning" id="vis-mode-tuning" title="Folia 移植模式每模式调参（引擎默认 + 本地覆盖）"></div>
       <div class="fx-slider"><label>歌词溢光</label><input id="fx-lyricglow" type="range" min="0" max="0.85"
           step="0.01"><output></output></div>
       <div class="fx-slider" id="fx-lyricbgadapt-row"><label>亮底避光</label><input id="fx-lyricbgadapt" type="range" min="0" max="1"
@@ -1678,113 +1689,92 @@
       <div class="rainy-dash" aria-hidden="true"></div>
     </div>
 
-    <!-- 烟纸覆盖层（Fume · 排版相机歌词）：整首歌词排成多栏文章，相机沿演唱进度逐句飞近，
-         未唱淡影 / 演唱逐字打印 + 落章光斑 / 唱过退成铅灰余温，播完拉远看整张纸 -->
+    <!-- 烟纸覆盖层（Fume · 排版相机歌词）：原版渲染核心引擎自建 canvas 相机世界
+         （文章排版/逐字打印/落章光斑/几何背景，inline 单主路径），宿主只持容器壳与引擎宿主；
+         #fume-bg-layer 为 Shell 默认 Latent 背景宿主（20b 桥接管，z 序在歌词 canvas 之下）；
+         无障碍当前行由引擎外的宿主 a11y 层承担 -->
     <div id="fume-overlay" aria-hidden="true">
-      <div class="fume-paper" aria-hidden="true"></div>
-      <canvas class="fume-canvas" id="fume-canvas"></canvas>
-      <div class="fume-badge" aria-hidden="true">
-        <div class="fume-badge-cover cover-empty" id="fume-badge-cover"></div>
-        <div class="fume-badge-meta">
-          <div class="fume-badge-title" id="fume-badge-title">未在播放</div>
-          <div class="fume-badge-artist" id="fume-badge-artist"></div>
-        </div>
-      </div>
-      <div class="fume-pending" id="fume-pending" aria-hidden="true">
-        <div class="fume-pending-bar b1"></div>
-        <div class="fume-pending-bar b2"></div>
-        <div class="fume-pending-bar b3"></div>
-      </div>
+      <div id="fume-bg-layer" aria-hidden="true"></div>
+      <div id="fume-engine-host" aria-hidden="true"></div>
       <div class="fume-aria" id="fume-aria-line" aria-live="polite"></div>
     </div>
 
-    <!-- 静止歌词覆盖层（Still · 移植自 Folia still 模式）：纯静态三行歌词 + 中心径向暗角，零 canvas 零动画 -->
+    <!-- 静止歌词覆盖层（Still · 移植自 Folia still 模式）：原版渲染核心引擎自建
+         暗角遮罩 + 三行静态歌词（inline style 单主路径），宿主只持容器壳与引擎宿主 -->
     <div id="still-overlay" aria-hidden="true">
-      <div class="still-vignette" aria-hidden="true"></div>
-      <div class="still-stage">
-        <div class="still-slot" id="still-slot-prev">
-          <div class="still-text" id="still-text-prev"></div>
-          <div class="still-tr" id="still-tr-prev"></div>
-        </div>
-        <div class="still-slot is-current" id="still-slot-main">
-          <div class="still-text" id="still-text-main"></div>
-          <div class="still-tr" id="still-tr-main"></div>
-        </div>
-        <div class="still-slot" id="still-slot-next">
-          <div class="still-text" id="still-text-next"></div>
-          <div class="still-tr" id="still-tr-next"></div>
-        </div>
-      </div>
+      <div id="still-engine-host" aria-hidden="true"></div>
     </div>
 
     <!-- 环歌覆盖层（Claddagh Ring · 椭圆环逐字歌词）：斜置椭圆环上按字排布流转，
-         中心轴线随节拍呼吸（源自 Folia claddagh 模式，AGPL-3.0，见 NOTICE.md） -->
+         中心轴线随节拍呼吸（源自 Folia claddagh 模式，AGPL-3.0，见 NOTICE.md）。
+         原版渲染核心引擎宿主化：claddagh-engine.js（10-shell-claddagh-engine）由
+         20b 桥创建，宿主只持容器壳；claddagh-bg-layer 为原版 VisualizerShell
+         默认背景（Latent，封面取色 mesh+dithering 双 shader，VisualizerShell:185-197），
+         复用 tilt 引擎注出的 TiltLatentBackground 挂载 -->
     <div id="claddagh-overlay" aria-hidden="true">
       <div class="claddagh-backdrop" aria-hidden="true"></div>
-      <div class="claddagh-axis" id="claddagh-axis" aria-hidden="true"></div>
-      <div class="claddagh-ring-stage" id="claddagh-ring-stage"></div>
+      <div id="claddagh-bg-layer" aria-hidden="true"></div>
+      <div id="claddagh-engine-host" aria-hidden="true"></div>
     </div>
 
     <!-- 斜排覆盖层（Tilt · 移植自 Folia tilt 模式）：概率性 1-4 行拆行，
-         水平/大斜体双字模交错，逐行时间序 reveal + 逐字脉冲（AGPL-3.0，见 NOTICE.md） -->
+         水平/大斜体双字模交错，逐行时间序 reveal + 逐字脉冲（AGPL-3.0，见 NOTICE.md）。
+         原版渲染核心引擎宿主化：tilt-engine.js（10-shell-tilt-engine）由 20b 桥创建，
+         宿主只持容器壳；tilt-bg-layer 为原版 VisualizerShell 默认背景（Latent，
+         封面取色 mesh+dithering 双 shader），由同引擎注出的 TiltLatentBackground 挂载 -->
     <div id="tilt-overlay" aria-hidden="true">
       <div class="tilt-backdrop" aria-hidden="true"></div>
-      <div class="tilt-stage" id="tilt-stage">
-        <div class="tilt-idle" id="tilt-idle">♪</div>
-      </div>
+      <div id="tilt-bg-layer" aria-hidden="true"></div>
+      <div id="tilt-engine-host" aria-hidden="true"></div>
     </div>
 
     <!-- 流萤辉光覆盖层（Classic Luminous · 移植自 Folia classic 模式）：词级三态随机布局
-         + 逐字辉光歌词（AGPL-3.0，见 NOTICE.md） -->
+         + 逐字辉光歌词（AGPL-3.0，见 NOTICE.md）。原版渲染核心引擎宿主化：
+         classic-engine.js（10-shell-classic-engine）由 20b 桥创建，宿主只持容器壳；
+         classic-bg-layer 为原版 VisualizerShell 默认背景（Latent，封面取色
+         MeshGradient + Dithering）宿主（20b 桥接管，z 序在歌词宿主之下） -->
     <div id="classic-overlay" aria-hidden="true">
       <div class="classic-bg" aria-hidden="true"></div>
-      <div class="classic-stage">
-        <div class="classic-float">
-          <div class="classic-lines" id="classic-lines"></div>
-        </div>
-      </div>
-      <div class="classic-idle" id="classic-idle">等待音乐 · · ·</div>
+      <div id="classic-bg-layer" aria-hidden="true"></div>
+      <div id="classic-engine-host" aria-hidden="true"></div>
     </div>
 
     <!-- 钟摆覆盖层（Pendolo · 移植自 Folia pendolo 模式）：擒纵钟表机械齿轮群
-         + 弧形歌词环 + 当前行逐字扫光（AGPL-3.0，见 NOTICE.md） -->
+         + 弧形歌词环 + 当前行逐字扫光（AGPL-3.0，见 NOTICE.md）。原版渲染核心
+         引擎宿主化：pendolo-engine.js（10-shell-pendolo-engine）由 20b 桥创建，
+         宿主只持容器壳；pendolo-bg-layer 为原版 VisualizerShell 默认背景（Latent，
+         封面取色 MeshGradient + Dithering 双 shader，20b 桥经 tilt 引擎注出的
+         TiltLatentBackground 挂载，z 序在歌词宿主之下） -->
     <div id="pendolo-overlay" aria-hidden="true">
-      <canvas id="pendolo-canvas"></canvas>
-      <div class="pendolo-balance-icon" id="pendolo-balance-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
-          <path d="M12 2.5l2.4 6.2 6.6.5-5.1 4.3 1.6 6.4L12 16.4l-5.5 3.5 1.6-6.4-5.1-4.3 6.6-.5z"
-            stroke-linejoin="round"/>
-        </svg>
-      </div>
-      <div class="pendolo-wheel" id="pendolo-wheel"></div>
+      <div id="pendolo-bg-layer" aria-hidden="true"></div>
+      <div id="pendolo-engine-host" aria-hidden="true"></div>
     </div>
 
-    <!-- 云阶覆盖层（Partita · 移植自 Folia partita 模式）：日落夜空 + 竖列错落
-         词阶 + 逐字流光 + 副歌涟漪（AGPL-3.0，见 NOTICE.md） -->
+    <!-- 云阶覆盖层（Partita · 移植自 Folia partita 模式）：竖列错落词阶 +
+         逐字流光 + 副歌涟漪（AGPL-3.0，见 NOTICE.md）。原版渲染核心引擎宿主化：
+         partita-engine.js（10-shell-partita-engine）由 20b 桥创建，宿主只持容器壳；
+         partita-bg-layer 为原版 VisualizerShell 默认背景（Latent，封面取色
+         MeshGradient + Dithering 双 shader，VisualizerShell:185-197），20b 桥经
+         tilt 引擎注出的 TiltLatentBackground 挂载（z 序在歌词宿主之下） -->
     <div id="partita-overlay" aria-hidden="true">
       <div class="partita-sky" aria-hidden="true"></div>
-      <div class="partita-glow" aria-hidden="true"></div>
       <div class="partita-vignette" aria-hidden="true"></div>
-      <div class="partita-stage">
-        <div class="pt-float" id="partita-float">
-          <div class="pt-empty" id="partita-empty">等待音乐 · ♪</div>
-          <!-- .pt-line 行元素由 13-partita.js 动态插入 -->
-        </div>
-      </div>
+      <div id="partita-bg-layer" aria-hidden="true"></div>
+      <div id="partita-engine-host" aria-hidden="true"></div>
     </div>
 
     <!-- 心象覆盖层（Cadenza · Mindscape，移植自 Folia cadenza 模式）：暗色空场上
-         词云散布（pretext 换行 + 避碰布局），waiting/active/passed 三态漂移，
-         逐字辉光 textShadow + 副歌能量闸门涟漪（AGPL-3.0，见 NOTICE.md） -->
+         词云散布（pretext 换行 + hero emphasis 避碰布局），waiting/active/passed
+         三态漂移，逐字辉光 textShadow + 副歌涟漪（AGPL-3.0，见 NOTICE.md）。
+         原版渲染核心引擎宿主化：cadenza-engine.js（10-shell-cadenza-engine）由
+         20b 桥创建，宿主只持容器壳；cadenza-bg-layer 为原版 VisualizerShell
+         默认背景（Latent，封面取色 MeshGradient + Dithering 双 shader，
+         VisualizerShell:185-197），复用 tilt 引擎注出的 TiltLatentBackground 挂载
+         （z 序在歌词宿主之下） -->
     <div id="cadenza-overlay" aria-hidden="true">
       <div class="cadenza-backdrop" aria-hidden="true"></div>
-      <div class="cadenza-stage">
-        <div class="cadenza-layer" id="cadenza-layer">
-          <div class="cadenza-words" id="cadenza-words"></div>
-          <canvas class="cadenza-canvas" id="cadenza-canvas"></canvas>
-        </div>
-        <div class="cadenza-empty" id="cadenza-empty"></div>
-      </div>
+      <div id="cadenza-bg-layer" aria-hidden="true"></div>
+      <div id="cadenza-engine-host" aria-hidden="true"></div>
     </div>
 
     <!-- 队列拼贴覆盖层（Lattice · 播放队列封面海报墙）：12×8 混合槽位（2×2~6×6）的
@@ -1808,72 +1798,26 @@
       </div>
     </div>
 
-    <!-- 群唱覆盖层（Cappella · 聊天气泡歌词）：歌词变左右聊天消息，间奏变表情包，
-         当前句气泡放大发亮（源自 Folia cappella 模式，AGPL-3.0，见 NOTICE.md） -->
+    <!-- 群唱覆盖层（Cappella · 移植自 Folia cappella 模式）：歌词变左右聊天消息，
+         逐字浮现 + 气泡流光 + 间奏表情贴纸（AGPL-3.0，见 NOTICE.md）。
+         原版渲染核心引擎宿主化：cappella-engine.js（10-shell-cappella-engine）由
+         23-cappella.js 桥创建，宿主只持容器壳 -->
     <div id="cappella-overlay" aria-hidden="true">
-      <div class="cappella-scroller" id="cappella-scroller">
-        <div class="cappella-list" id="cappella-list" aria-live="polite"></div>
-      </div>
+      <div id="cappella-engine-host" aria-hidden="true"></div>
     </div>
 
-    <!-- 莫奈覆盖层（Monet · 油画海报歌词）：左文右封面海报构图——艺术家斜体 → 垂直装饰线 →
-         大标题 → 歌词轨道 → 主题描述胶囊；右侧竖幅相框封面 + 挂画钉。
-         背景为封面水洗油画（源自 Folia monet 模式，AGPL-3.0，见 NOTICE.md） -->
+    <!-- 莫奈覆盖层（Monet · 油画海报歌词）：原版渲染核心（海报背景层/漂浮装饰/
+         左文右封面构图/竖向逐词轨道/底部音频条）全部由 monet-engine.js 创建，
+         宿主只持容器壳（源自 Folia monet 模式，AGPL-3.0，见 NOTICE.md） -->
     <div id="monet-overlay" aria-hidden="true">
-      <div class="monet-poster" id="monet-poster"></div>
-      <div class="monet-decor d1" aria-hidden="true"></div>
-      <div class="monet-decor d2" aria-hidden="true"></div>
-      <div class="monet-decor d3" aria-hidden="true"></div>
-      <div class="monet-composition">
-        <div class="monet-text-col">
-          <div class="monet-header">
-            <div class="monet-artist" id="monet-artist"></div>
-            <div class="monet-rule" aria-hidden="true"></div>
-          </div>
-          <div class="monet-title-wrap">
-            <div class="monet-title" id="monet-title"></div>
-          </div>
-          <div class="monet-rail-wrap">
-            <div class="monet-rail" id="monet-rail" aria-live="polite"></div>
-          </div>
-          <div class="monet-capsule" id="monet-capsule">
-            <div class="monet-capsule-inner">
-              <span class="monet-capsule-dot" aria-hidden="true"></span>
-              <span class="monet-capsule-text" id="monet-capsule-text"></span>
-            </div>
-          </div>
-        </div>
-        <div class="monet-portrait-col" aria-hidden="true">
-          <div class="monet-portrait-frame">
-            <div class="monet-portrait-hanger"></div>
-            <div class="monet-portrait-inner" id="monet-portrait-img"></div>
-          </div>
-        </div>
-      </div>
+      <div id="monet-engine-host" aria-hidden="true"></div>
     </div>
 
-    <!-- 镜台覆盖层（Diorama · 圆窗景深）：圆窗内模糊封面 + 双环描边 + 层叠卡堆 +
-         三层柔光大字 + 尘埃粒子（源自 Folia diorama 模式，AGPL-3.0，见 NOTICE.md） -->
+    <!-- 镜台覆盖层（Diorama · 3D 歌词走廊）：原版 three.js 渲染核心引擎宿主
+         （25-diorama.js 桥创建；winding 路径飞行 + canvas 栅格舞台排版 +
+         点云涟漪，源自 Folia diorama 模式，AGPL-3.0，见 NOTICE.md） -->
     <div id="diorama-overlay" aria-hidden="true">
-      <div class="diorama-stack" id="diorama-stack" aria-hidden="true">
-        <div class="diorama-card c1"></div>
-        <div class="diorama-card c2"></div>
-        <div class="diorama-card c3"></div>
-        <div class="diorama-card c4"></div>
-      </div>
-      <div class="diorama-window" aria-hidden="true">
-        <div class="diorama-window-img" id="diorama-window-img"></div>
-        <div class="diorama-window-shade"></div>
-        <canvas class="diorama-motes" id="diorama-motes"></canvas>
-        <div class="diorama-ring outer"></div>
-        <div class="diorama-ring inner"></div>
-      </div>
-      <div class="diorama-lyrics" id="diorama-lyrics">
-        <div class="diorama-line" id="diorama-line-prev"></div>
-        <div class="diorama-line" id="diorama-line-main"></div>
-        <div class="diorama-tr" id="diorama-line-tr"></div>
-        <div class="diorama-line" id="diorama-line-next"></div>
-      </div>
+      <div id="diorama-engine-host" aria-hidden="true"></div>
     </div>
 
     <!-- 商籁覆盖层（Sonnet · 聚光灯诗稿）：圆形光台 + 幕布放射 + 光束 + 诗稿层叠行栈
@@ -1886,8 +1830,18 @@
       </div>
       <div class="sonnet-beam" aria-hidden="true"></div>
       <div class="sonnet-decor" id="sonnet-decor" aria-hidden="true"></div>
-      <!-- 原版 Pixi 引擎宿主（26a-sonnet-pixi-bridge 创建；DOM 版行栈在 pixi-on 时隐藏） -->
-      <div class="sonnet-pixi-host" id="sonnet-pixi-host" aria-hidden="true"></div>
+      <!-- 原版 Pixi 引擎宿主（26a-sonnet-pixi-bridge 创建；DOM 版行栈在 pixi-on 时隐藏）。
+           pixi-host 类是 index.css 10579 全局豁免（[id$="-overlay"].pixi-on > :not(.pixi-host)
+           强隐）的通行证——缺它会被 !important 压成 display:none（2026-10-11 真机空白根因） -->
+      <div class="pixi-host sonnet-pixi-host" id="sonnet-pixi-host" aria-hidden="true"></div>
+      <!-- 底部字幕层（pixi 模式翻译/预览行，原版 VisualizerSubtitleOverlay 宿主接管；
+           pixi-host 类 = pixi-on 全局强隐豁免，DOM 行栈降级版不显示此层） -->
+      <div class="pixi-host sonnet-subtitle-host" id="sonnet-subtitle">
+        <div class="sonnet-sub-inner">
+          <div class="sonnet-sub-main"></div>
+          <div class="sonnet-sub-up"></div>
+        </div>
+      </div>
       <div class="sonnet-stack" id="sonnet-stack" aria-live="polite"></div>
       <div class="sonnet-tr" id="sonnet-line-tr"></div>
     </div>
@@ -1897,6 +1851,14 @@
     <div id="tempera-overlay" aria-hidden="true">
       <!-- 原版 Pixi 引擎宿主（27a 桥） -->
       <div class="pixi-host" id="tempera-pixi-host" aria-hidden="true"></div>
+      <!-- 底部字幕层（pixi 模式翻译/预览行，原版 VisualizerSubtitleOverlay 宿主接管；
+           pixi-host 类 = pixi-on 全局强隐豁免，DOM 行栈降级版不显示此层） -->
+      <div class="pixi-host tempera-subtitle-host" id="tempera-subtitle">
+        <div class="tempera-sub-inner">
+          <div class="tempera-sub-main"></div>
+          <div class="tempera-sub-up"></div>
+        </div>
+      </div>
       <div class="tempera-field" id="tempera-field" aria-hidden="true"></div>
       <div class="tempera-veil" aria-hidden="true"></div>
       <div class="tempera-lyrics">
@@ -1912,6 +1874,14 @@
     <div id="lumiere-overlay" aria-hidden="true">
       <!-- 原版 Pixi 引擎宿主（28a 桥） -->
       <div class="pixi-host" id="lumiere-pixi-host" aria-hidden="true"></div>
+      <!-- 底部字幕层（pixi 模式翻译/预览行，原版 VisualizerSubtitleOverlay 宿主接管；
+           pixi-host 类 = pixi-on 全局强隐豁免，DOM 行栈降级版不显示此层） -->
+      <div class="pixi-host lumiere-subtitle-host" id="lumiere-subtitle">
+        <div class="lumiere-sub-inner">
+          <div class="lumiere-sub-main"></div>
+          <div class="lumiere-sub-up"></div>
+        </div>
+      </div>
       <canvas id="lumiere-canvas" aria-hidden="true"></canvas>
       <div class="lumiere-lyrics">
         <div class="lumiere-line" id="lumiere-line-prev"></div>
@@ -2402,7 +2372,29 @@
   <script src='vendor/lucide-shim.js?v=1'></script>
   <script src='js/modules/10-shell-sonnet-engine/sonnet-engine.js?v=5'></script>
   <script src='js/modules/10-shell-sonnet-engine/tempera-engine.js?v=6'></script>
-  <script src='js/modules/10-shell-sonnet-engine/lumiere-engine.js?v=9'></script>
+  <script src='js/modules/10-shell-sonnet-engine/lumiere-engine.js?v=10'></script>
+  <!-- 流萤辉光原版渲染核心引擎（20b-classic-engine-bridge 创建；无 WebGL 依赖） -->
+  <script src='js/modules/10-shell-classic-engine/classic-engine.js?v=4'></script>
+  <!-- 静止原版渲染核心引擎（20b-still-engine-bridge 创建；无 WebGL 依赖） -->
+  <script src='js/modules/10-shell-still-engine/still-engine.js?v=2'></script>
+  <!-- 斜排原版渲染核心引擎（20b-tilt-engine-bridge 创建；pretext 全局测量在其前；v4：精确频段信号/空态/字幕/字重对齐原版） -->
+  <script src='js/modules/10-shell-tilt-engine/tilt-engine.js?v=4'></script>
+  <!-- 环歌原版渲染核心引擎（20b-claddagh-engine-bridge 创建；pretext 全局测量在其前） -->
+  <script src='js/modules/10-shell-claddagh-engine/claddagh-engine.js?v=4'></script>
+  <!-- 云阶原版渲染核心引擎（20b-partita-engine-bridge 创建；无 WebGL 依赖） -->
+  <script src='js/modules/10-shell-partita-engine/partita-engine.js?v=3'></script>
+  <!-- 钟摆原版渲染核心引擎（20b-pendolo-engine-bridge 创建；pretext 全局测量在其前） -->
+  <script src='js/modules/10-shell-pendolo-engine/pendolo-engine.js?v=4'></script>
+  <!-- 心象原版渲染核心引擎（20b-cadenza-engine-bridge 创建；pretext 全局测量在其前） -->
+  <script src='js/modules/10-shell-cadenza-engine/cadenza-engine.js?v=3'></script>
+  <!-- 烟纸原版渲染核心引擎（20b-fume-engine-bridge 创建；pretext 全局测量在其前） -->
+  <script src='js/modules/10-shell-fume-engine/fume-engine.js?v=2'></script>
+  <!-- 群唱原版渲染核心引擎（23-cappella.js 桥创建；pretext 全局测量在其前） -->
+  <script src='js/modules/10-shell-cappella-engine/cappella-engine.js?v=2'></script>
+  <!-- 莫奈原版渲染核心引擎（24-monet.js 桥创建；pretext 全局测量在其前） -->
+  <script src='js/modules/10-shell-monet-engine/monet-engine.js?v=4'></script>
+  <!-- 镜台原版渲染核心引擎（25-diorama.js 桥创建；three 0.185 经 window.THREE185 注入） -->
+  <script src='js/modules/10-shell-diorama-engine/diorama-engine.js?v=2'></script>
   <script src="js/index-loader.js"></script>
 </body>
 

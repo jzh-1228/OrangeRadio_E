@@ -73,6 +73,33 @@ async function fetchWithTimeout(url, opts, timeoutMs) {
     clearTimeout(timer);
   }
 }
+/* 代理专用：逐跳 fetch——redirect:'manual' + 每一跳重过 proxyTargetIsBlocked，
+   堵「302 跳转到私网」与「判定后 fetch 再解析」两类 SSRF 绕过（最高 3 跳） */
+async function fetchWithProxyGuard(url, opts, timeoutMs, maxHops) {
+  let current = String(url || '');
+  const hops = Math.max(0, Number(maxHops) || 3);
+  for (let hop = 0; hop <= hops; hop++) {
+    if (await proxyTargetIsBlocked(current)) {
+      const err = new Error('PROXY_TARGET_BLOCKED: ' + current);
+      err.code = 'PROXY_TARGET_BLOCKED';
+      throw err;
+    }
+    const init = Object.assign({}, opts || {}, { redirect: 'manual', signal: undefined });
+    const resp = await fetchWithTimeout(current, init, timeoutMs);
+    if (resp.status >= 300 && resp.status < 400) {
+      const loc = resp.headers.get('location');
+      if (loc) {
+        try { if (resp.body && resp.body.cancel) await resp.body.cancel(); } catch (_) {}
+        current = new URL(loc, current).href;
+        continue;
+      }
+    }
+    return resp;
+  }
+  const err = new Error('PROXY_TOO_MANY_REDIRECTS');
+  err.code = 'PROXY_TOO_MANY_REDIRECTS';
+  throw err;
+}
 function promiseWithTimeout(promise, timeoutMs, code) {
   let timer = null;
   return Promise.race([
@@ -430,4 +457,5 @@ module.exports = {
   isPrivateIPv4,
   isPrivateIPv6,
   proxyTargetIsBlocked,
+  fetchWithProxyGuard,
 };

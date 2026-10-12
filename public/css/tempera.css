@@ -19,7 +19,6 @@
 }
 
 body.tempera #tempera-overlay { display: block; animation: temperaIn 0.7s ease; }
-body.tempera #empty-home { display: none; }
 @keyframes temperaIn { from { opacity: 0; } to { opacity: 1; } }
 
 /* 色块入场：逐个浮起（动画延迟让色块错峰） */
@@ -121,6 +120,40 @@ body.tempera #empty-home { display: none; }
   color: var(--tp-ink);
   text-shadow: 0 0 22px rgba(255, 255, 255, 0.25);
 }
+
+/* ---------- 底部字幕层（pixi 模式：原版 VisualizerSubtitleOverlay 宿主接管）----------
+   翻译轨道主行 + 下一行预览（blur，原版 upcoming 语义）。容器 .pixi-host 类由
+   index.css 10578/10579 提供定位与 pixi-on 显隐；这里只管内部排版。
+   凝彩剪纸色块明度高，翻译行压深色投影保可读。 */
+.tempera-subtitle-host {
+  z-index: 4;                 /* 引擎画布(z3)之上，overlay 装饰之内 */
+  font-family: var(--tp-font);
+}
+.tempera-sub-inner {
+  position: absolute;
+  left: 50%;
+  bottom: 118px;
+  transform: translateX(-50%);
+  max-width: min(760px, 82vw);
+  text-align: center;
+  line-height: 1.5;
+}
+.tempera-sub-main {
+  font-size: calc(15px * var(--mfs, 1));
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  color: rgba(242, 237, 226, 0.62);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.65);
+}
+.tempera-sub-up {
+  display: none;
+  font-size: calc(14px * var(--mfs, 1));
+  letter-spacing: 0.04em;
+  color: rgba(242, 237, 226, 0.4);
+  filter: blur(1px);          /* 原版 upcoming blur */
+}
+.tempera-subtitle-host:not(.has-line) .tempera-sub-inner { opacity: 0; }
+.tempera-sub-inner { transition: opacity 0.5s ease; }
 
 @media (max-width: 760px) {
   .tempera-block { filter: blur(30px); }

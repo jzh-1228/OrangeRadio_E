@@ -28,10 +28,20 @@ function isInlineCoverSrc(src) {
 function isProxyableCoverUrl(url) {
   return /^https?:\/\//i.test(String(url || ''));
 }
+/* 同源绝对 URL 不是外部封面：本地无封面歌曲曾把页面自身 URL（location 归一化的
+   origin 根）当 cover 传进来，产生 /api/cover 400 噪音。同源资源不走代理。 */
+function isSameOriginCoverUrl(url) {
+  try {
+    return new URL(String(url), location.href).origin === location.origin;
+  } catch (e) {
+    return false;
+  }
+}
 function coverProxySrc(url, cacheBust) {
   if (!url) return '';
   if (isInlineCoverSrc(url)) return url;
   if (!isProxyableCoverUrl(url)) return '';
+  if (isSameOriginCoverUrl(url)) return '';
   return '/api/cover?url=' + encodeURIComponent(url) + (cacheBust ? '&v=' + Date.now() : '');
 }
 function coverUrlWithSize(url, size) {

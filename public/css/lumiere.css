@@ -20,7 +20,6 @@
 }
 
 body.lumiere #lumiere-overlay { display: block; animation: lumiereIn 0.7s ease; }
-body.lumiere #empty-home { display: none; }
 @keyframes lumiereIn { from { opacity: 0; } to { opacity: 1; } }
 
 /* 歌词入场：自下方浮起 */
@@ -103,3 +102,37 @@ body.lumiere #empty-home { display: none; }
 @media (max-width: 760px) {
   .lumiere-line.is-active { font-size: clamp(26px, 4.6vh, 38px); }
 }
+
+/* ---------- 底部字幕层（pixi 模式：原版 VisualizerSubtitleOverlay 宿主接管）----------
+   翻译轨道主行 + 下一行预览（blur，原版 upcoming 语义）。容器 .pixi-host 类由
+   index.css 10578/10579 提供定位与 pixi-on 显隐；这里只管内部排版。
+   绘光场偏暗，翻译字色比商籁略提亮以保证可读。 */
+.lumiere-subtitle-host {
+  z-index: 4;                 /* 引擎画布(z3)之上，dock 之下 */
+  font-family: var(--lu-font);
+}
+.lumiere-sub-inner {
+  position: absolute;
+  left: 50%;
+  bottom: 118px;
+  transform: translateX(-50%);
+  max-width: min(760px, 82vw);
+  text-align: center;
+  line-height: 1.5;
+}
+.lumiere-sub-main {
+  font-size: calc(15px * var(--mfs, 1));
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  color: rgba(244, 239, 228, 0.68);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.65);
+}
+.lumiere-sub-up {
+  display: none;
+  font-size: calc(14px * var(--mfs, 1));
+  letter-spacing: 0.04em;
+  color: rgba(244, 239, 228, 0.44);
+  filter: blur(1px);          /* 原版 upcoming blur */
+}
+.lumiere-subtitle-host:not(.has-line) .lumiere-sub-inner { opacity: 0; }
+.lumiere-sub-inner { transition: opacity 0.5s ease; }

@@ -9,16 +9,21 @@
 // 95-background-runtime 渲染 listVisualizerBackgrounds()，选中存
 // fx.backgroundMode 经 saveLyricLayout 持久化）；实现挂载在
 // #visualizer-bg-layer 宿主层（94-background-presets 首批三背景）。
-// star-river / album-blur 仅为登记（implReady:false）：它们的 runtime
-// 实现与选择器 UI 入口为预留后续，选择时保持氛围底并提示。
+// star-river / album-blur 已由 94a-background-star-river.js（canvas 星河
+// 粒子）与 94b-background-album-blur.js（封面模糊压暗）提供实现并在
+// 加载时覆盖登记为 implReady:true。此处保留 implReady:false 作为防御
+// 默认：若实现文件未加载（脚本缺失/被拦），选择器保持预留弱化态而
+// 不是点了没反应——注册表永不登记"可选但无实现"的死选项。
 // ============================================================
 
 var VISUALIZER_BACKGROUND_MODES = [
   // 既有背景能力登记：body 背景体系（accent-background-controls 管理：纯色/封面/图片/视频）
   { id: 'ambient', label: '氛围底', kind: 'body', order: 10 },
-  // 星河背景（wallpaper 粒子，数值预设 5 的一部分；登记供正交化后独立选择——预留未接入）
-  { id: 'star-river', label: '星河', kind: 'webgl-layer', host: 'lyricsStarRiver', order: 20, implReady: false },
-  // 专辑封面模糊底（#album-bg 双 slot 渐变——预留未接入）
+  // 星河背景（封面/主题驱动的星河粒子；实现见 94a-background-star-river.js，
+  // 加载后覆盖本登记为 implReady:true——false 仅是文件未加载时的防御默认）
+  { id: 'star-river', label: '星河', kind: 'canvas-layer', order: 20, implReady: false },
+  // 专辑封面模糊底（封面大图模糊+压暗；实现见 94b-background-album-blur.js，
+  // 加载后覆盖本登记为 implReady:true）
   { id: 'album-blur', label: '封面模糊', kind: 'dom-layer', order: 30, implReady: false }
 ];
 

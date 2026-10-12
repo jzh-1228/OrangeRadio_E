@@ -1,0 +1,43 @@
+/* =========================================================================
+   OrangeSea · 静止（Still · 移植自 Folia still 视觉模式）——容器壳
+   Portions Copyright (c) 2025 chthollyphile and Folia contributors
+   — adapted from folia-major (AGPL-3.0):
+     src/components/visualizer/still/VisualizerStill.tsx
+
+   本文件只持容器壳（铺满/层级/显隐切换/引擎宿主定位）。
+   渲染核心（暗角遮罩 radial-gradient 0.65 / 三行歌词 Tailwind 精确值 /
+   drop-shadow / scale 字号缩放）全部在 still-engine.js 引擎内 inline style
+   单主路径（与 classic 引擎同范式），本文件不得持 .st-* 渲染类，
+   防止与引擎双主路径冲突。
+   ========================================================================= */
+
+#still-overlay {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;                       /* 铺满全屏，#bottom-bar(z-index:6) 悬浮其上 */
+  z-index: 5;
+  display: none;
+  overflow: hidden;
+  background: var(--theme-bg, #171009);   /* 宿主正交背景层（Folia: 背景渲染器不挂载，renderBackground=false，
+                                             页底色由壳背景承担；VisualizerShell backgroundColor 恒 transparent） */
+  pointer-events: none;            /* 默认不拦截，切到本模式时由 body.still 打开 */
+}
+
+body.still #still-overlay {
+  display: block;
+  animation: stillOverlayIn 0.7s ease;
+}
+
+@keyframes stillOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ---------- 引擎宿主（引擎自建 shell/暗角/三行 DOM，inline style 单主路径） ---------- */
+#still-engine-host {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}

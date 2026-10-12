@@ -1,118 +1,72 @@
 /* =========================================================================
-   OrangeSea · 环歌（Claddagh Ring · 椭圆环逐字歌词）
+   OrangeSea · 环歌（Claddagh Ring · 椭圆环逐字歌词 · 引擎宿主壳）
    Portions Copyright (c) 2025 chthollyphile and Folia contributors
-   — adapted from folia-major (AGPL-3.0): claddagh 视觉模式的覆盖层样式。
+   — adapted from folia-major (AGPL-3.0)。
+   =========================================================================
+   本文件只承载【容器壳】职责；椭圆环歌词渲染与全部动效由原版渲染核心
+   引擎（js/modules/10-shell-claddagh-engine/claddagh-engine.js，20b 桥
+   创建）的 inline style + mini-motion 驱动——CSS 不再持任何 .cl-*、环排
+   动画类（旧 CSS 移植路径已随引擎接管整体作废删除，勿在此恢复轴线/
+   字符样式）。
 
-   body.claddagh 命名空间，与 aurora-flow.css / rainy-cab.css /
-   graffiti-lyrics.css 完全隔离。交互范式一致：预设网格卡片切换，
-   保留底部控制栏，选择其他预设自动退出。
-   环上字符由 JS 逐帧写 transform/opacity/filter（30fps rAF），
-   这里只承载静态基线与入场过渡（Folia motion.div enter 动画对位）。
+   宿主壳保留：
+   · 全屏覆盖层 + 日落暖夜基底（Electron 下不依赖 backdrop-filter 的
+     MineRadio 夜景层，属宿主审美，非 Folia 渲染核心职责）；
+   · body.claddagh 显示切换 / 预设卡片联动 / 入场交叉淡化。
    ========================================================================= */
 
 #claddagh-overlay {
-  --cl-font: "PingFang SC", "HarmonyOS Sans SC", "MiSans", "Microsoft YaHei UI", "Source Han Sans SC", system-ui, sans-serif;
-  --cl-font-size: 72px;          /* JS 按视口同步（40~72px） */
-
   position: fixed;
   left: 0;
   right: 0;
   top: 0;
-  bottom: 0;                     /* 铺满全屏，#bottom-bar(z-index:6) 悬浮其上 */
+  bottom: 0;                      /* 铺满全屏，#bottom-bar(z-index:6) 悬浮其上 */
   z-index: 5;
   display: none;
   overflow: hidden;
-  background: #0d0906;           /* 不透明暖黑基底（不透出 3D 场景） */
-  pointer-events: none;          /* 默认不拦截，切到本模式时由 body.claddagh 打开 */
+  background:
+    radial-gradient(1200px 800px at 22% 14%, rgba(255, 145, 84, 0.10), transparent 62%),
+    radial-gradient(1000px 720px at 80% 82%, rgba(255, 110, 70, 0.07), transparent 60%),
+    radial-gradient(900px 600px at 68% 24%, rgba(255, 190, 130, 0.05), transparent 58%),
+    #0e0906;
+  pointer-events: none;           /* 默认不拦截，切到本模式时由 body.claddagh 打开 */
 }
 
 body.claddagh #claddagh-overlay {
   display: block;
-  animation: claddaghOverlayIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: claddaghOverlayIn 0.7s ease;
 }
 
-body.claddagh #empty-home {
-  display: none;
-}
-
-/* Folia motion.div enter：opacity 0→1 / scale .96→1 / blur 4px→0 */
 @keyframes claddaghOverlayIn {
-  from {
-    opacity: 0;
-    transform: scale(0.96);
-    filter: blur(4px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-    filter: none;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-/* ---------- L0 · 暖色氛围底（日落渐层 + 暗角，替代 Folia 主题背景） ---------- */
+/* ---------- L0.5 · 暗角（压边聚焦 + 底部向控制栏过渡；宿主夜景层） ---------- */
 .claddagh-backdrop {
   position: absolute;
   inset: 0;
-  z-index: 0;
   background:
-    radial-gradient(120% 90% at 50% 42%, rgba(72, 42, 22, 0.34) 0%, rgba(30, 17, 10, 0.55) 46%, rgba(13, 9, 6, 0.92) 100%),
-    radial-gradient(60% 40% at 82% 12%, rgba(255, 156, 110, 0.10) 0%, transparent 70%),
-    radial-gradient(50% 36% at 14% 86%, rgba(255, 197, 143, 0.07) 0%, transparent 70%);
-}
-
-.claddagh-backdrop::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(140% 110% at 50% 50%, transparent 52%, rgba(5, 3, 2, 0.55) 100%);
-}
-
-/* ---------- L1 · 中心轴线（JS 每帧写 background/transform/filter） ---------- */
-.claddagh-axis {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 300px;
-  height: 4px;
-  margin: 0;                     /* translate(-50%,-50%) 定心 */
-  transform-origin: center center;
-  transform: translate(-50%, -50%) rotate(45deg);
-  will-change: background, transform, filter;
+    radial-gradient(ellipse at 50% 42%, rgba(8, 5, 3, 0) 40%, rgba(7, 4, 2, 0.5) 100%),
+    linear-gradient(180deg, rgba(10, 6, 4, 0.32) 0%, rgba(10, 6, 4, 0) 20%, rgba(10, 6, 4, 0) 64%, rgba(7, 4, 2, 0.6) 100%);
   z-index: 1;
-  opacity: 0.9;
 }
 
-/* ---------- L2 · 环上歌词（行池容器，字符 span 由 JS 池化增删） ---------- */
-.claddagh-ring-stage {
+/* ---------- L1 · 原版 Latent 背景层（VisualizerShell:185-197 默认背景；
+   渲染本体由引擎产物 TiltLatentBackground 自绘，此处仅容器壳定位。
+   z 序：.claddagh-backdrop(1, 暗角) → 本层(1, DOM 后位覆盖) →
+   #claddagh-engine-host(2)，环上歌词（cl-ring z-10）恒在本层之上——
+   与原版 VisualizerShell 层序一致） ---------- */
+#claddagh-bg-layer {
   position: absolute;
   inset: 0;
-  z-index: 10;
-  contain: layout style;
-}
-
-.claddagh-line {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  z-index: 1;
   pointer-events: none;
 }
 
-/* Folia RingLine 字符基线：绝对定心 + JS 逐帧 transform（translate3d/rotate/scale） */
-.claddagh-char {
+/* ---------- L1 · 引擎宿主（渲染核心 shell 的挂载点，随引擎自绘） ---------- */
+#claddagh-engine-host {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  opacity: 0;
-  transform: translate3d(-50%, -50%, 0px) scale(0.2);
-  transform-origin: center center;
-  will-change: transform, opacity, filter, color, text-shadow;
-  font-family: var(--cl-font);
-  font-size: var(--cl-font-size);
-  font-weight: 700;
-  letter-spacing: 0.04em;        /* CLADDAGH_LETTER_SPACING_EM（与 JS 测量一致） */
-  line-height: 1;
-  white-space: nowrap;
-  color: rgba(247, 185, 141, 0.55);   /* baseColor 初值（JS 接管） */
-  backface-visibility: hidden;
+  inset: 0;
+  z-index: 2;
 }

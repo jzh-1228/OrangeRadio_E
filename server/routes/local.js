@@ -61,6 +61,14 @@ async function handle(req, res, url) {
       res.end(JSON.stringify({ error: 'PATH_NOT_ALLOWED' }));
       return true;
     }
+    /* 扩展名白名单（纵深防御）：isPathAllowed 只约束根目录前缀，不约束文件类型——
+       恶意网页可经 /api/local/scan(no-cors GET) 注册任意根目录后读取任意文件 */
+    const extAllowed = /\.(mp3|flac|wav|ogg|m4a|aac|opus|ape|wv|lrc|json)$/i;
+    if (!extAllowed.test(songPath)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'EXT_NOT_ALLOWED' }));
+      return true;
+    }
     let stat;
     try { stat = fs.statSync(songPath); } catch (e) {
       res.writeHead(404, { 'Content-Type': 'application/json' });
@@ -81,7 +89,7 @@ async function handle(req, res, url) {
           'Accept-Ranges': 'bytes',
           'Content-Range': 'bytes ' + start + '-' + end + '/' + stat.size,
           'Content-Length': chunkSize,
-          'Access-Control-Allow-Origin': '*',
+          
           'Cache-Control': 'no-store'
         });
         fs.createReadStream(songPath, { start: start, end: end }).pipe(res);
@@ -92,7 +100,7 @@ async function handle(req, res, url) {
       'Content-Type': contentType,
       'Accept-Ranges': 'bytes',
       'Content-Length': stat.size,
-      'Access-Control-Allow-Origin': '*',
+      
       'Cache-Control': 'no-store'
     });
     fs.createReadStream(songPath).pipe(res);

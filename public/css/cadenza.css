@@ -2,10 +2,19 @@
    OrangeSea · 心象（Cadenza · Mindscape）— 词云散布歌词模式
    Portions Copyright (c) 2025 chthollyphile and Folia contributors
    — adapted from folia-major (AGPL-3.0): cadenza 视觉模式的层结构与
-   VisualizerShell 空场概念（暗色空场 + DOM 词层 + 涟漪 canvas）。
+   VisualizerShell 空场概念（暗色空场）。
    body.cadenza 命名空间，与 index.css / film-radio.css / graffiti-lyrics.css /
    aurora-flow.css / rainy-cab.css 完全隔离。交互范式与其它覆盖层一致：
    预设网格卡片切换，选择其它预设经注册表自动退出。
+
+   原版渲染核心引擎宿主化（cadenza-engine.js，AGPL-3.0，见 NOTICE.md）后，
+   本文件只持容器壳（暗底兜底/Latent 背景层与引擎宿主定位/显示切换）——
+   词节点池、canvas、行层变换、字幕与空态全部由引擎 inline style 自建自绘
+   （单主路径），此处不得持引擎动画类（防双主路径冲突，与 classic.css 同纪律）。
+   背景语义：原版 VisualizerShell 默认背景 Latent（封面取色 MeshGradient +
+   Dithering，audioPower/bands 驱动）由 20b 桥经 tilt 引擎注出的
+   TiltLatentBackground 挂 #cadenza-bg-layer；.cadenza-backdrop 微光渐变与
+   overlay 不透明暗底仅作 WebGL 不可用/初始化间隙保底，非主背景。
    ========================================================================= */
 
 #cadenza-overlay {
@@ -13,7 +22,6 @@
   --cz-bg-a: #140d12;
   --cz-bg-b: #0b080d;
   --cz-glow: rgba(255, 156, 110, 0.055);
-  --cz-empty: #c8a488;
 
   position: fixed;
   left: 0;
@@ -37,7 +45,9 @@ body.cadenza #cadenza-overlay {
   to { opacity: 1; }
 }
 
-/* 空场微光心：极轻的暖色呼吸（纯 CSS，一次渐变无动画重绘压力） */
+/* 空场微光心：极轻的暖色呼吸（纯 CSS，一次渐变无动画重绘压力；
+   仅作 Latent 背景层 WebGL 不可用/初始化间隙的兜底微光，
+   引擎背景层就绪后其上再叠不透明 overlay 底与 Latent 画面） */
 .cadenza-backdrop {
   position: absolute;
   left: 0;
@@ -49,86 +59,34 @@ body.cadenza #cadenza-overlay {
     radial-gradient(70% 46% at 50% 108%, rgba(244, 210, 138, 0.045) 0%, rgba(0, 0, 0, 0) 70%);
 }
 
-/* 舞台（词层 + 涟漪 + 空态文字的公共容器） */
-.cadenza-stage {
+/* ---------- L0.5 · Folia Latent 背景层（原版 VisualizerShell 默认背景：
+   VisualizerShell.tsx:185-197 renderBackground → VisualizerBackgroundRenderer
+   → mode 缺省 'latent'（types/visualizerModes.ts:42-43）→ LatentBackground
+   封面取色 MeshGradient + Dithering 双 shader，audioPower/bands 驱动；
+   渲染本体由 tilt 引擎产物注出的 TiltLatentBackground 自绘（20b 桥挂载），
+   此处仅容器壳定位。z 序：.cadenza-backdrop(auto) → 本层(1) →
+   #cadenza-engine-host(2)，歌词词层恒在其上——与原版 VisualizerShell
+   层序一致（同 tilt.css:53-69 范式） ---------- */
+#cadenza-bg-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* 引擎宿主（原版渲染核心自建 cz-shell 词层/canvas/字幕/空态） */
+#cadenza-engine-host {
   position: absolute;
   left: 0;
   right: 0;
   top: 0;
   bottom: 0;
-}
-
-/* 行层：整行入场/离场（opacity / filter blur / scale 逐帧直写；
-   transformOrigin 50% 42% 与透视常量对齐 Folia lineLayer 内联样式） */
-.cadenza-layer {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  opacity: 0;
-  transform: scale(1);
-  transform-origin: 50% 42%;
-  perspective: 1000px;
-  pointer-events: none;
-  user-select: none;
-}
-
-/* DOM 词池（word 节点由 JS 创建并直写 transform） */
-.cadenza-words {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
+  z-index: 2;
   pointer-events: none;
 }
 
-/* 涟漪 canvas（Canvas2D 唯一职责：副歌涟漪描线） */
-.cadenza-canvas {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
-/* 词节点骨架（布局/变换全由 JS 直写，此处只兜底定位上下文） */
-.cadenza-word {
-  position: absolute;
-  left: 0;
-  top: 0;
-  pointer-events: none;
-}
-
-/* 空态文字（Folia AnimatePresence「等待音乐」→ CSS 过渡淡入淡出） */
-.cadenza-empty {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 42%;
-  transform: translateY(-50%);
-  text-align: center;
-  font-size: calc(clamp(1.5rem, 3.5vw, 2.25rem) * var(--mfs, 1));
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  color: var(--cz-empty);
-  opacity: 0;
-  transition: opacity 0.7s ease;
-  pointer-events: none;
-}
-
-.cadenza-empty.show {
-  opacity: 0.55;
-}
-
-/* 深浅色主题钩子（可选微调，默认与暗夜空场协调） */
 @media (prefers-reduced-motion: reduce) {
   body.cadenza #cadenza-overlay {
     animation: none;
-  }
-  .cadenza-empty {
-    transition: none;
   }
 }

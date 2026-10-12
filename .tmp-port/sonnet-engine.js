@@ -1,6 +1,68 @@
 // OrangeSea SONNET ENGINE (AGPL-3.0, from folia-major) -- no-build bundle
 (function (PIXI, pretext, env) {
 "use strict";
+// ======== components/visualizer/pixiFilterPoolCompat ========
+const PATCHED = Symbol.for('folia.pixi821FilterPoolCompat');
+/** Unbind all live renderers before the shared pool destroys textures; keep normal draws unchanged. */
+const installPixiFilterPoolCompat = (pixi) => {
+    if (pixi.VERSION !== '8.21.0')
+        return;
+    const prototype = pixi.FilterSystem.prototype;
+    if (prototype[PATCHED])
+        return;
+    prototype[PATCHED] = true;
+    const groups = new Set();
+    const pool = pixi.TexturePool;
+    const unbindPassTextures = () => {
+        const source = pixi.Texture.EMPTY.source;
+        groups.forEach(group => {
+            group.setResource(source, 1);
+            group.setResource(source.style, 2);
+            group.setResource(source, 3);
+        });
+    };
+    // init is picked up by Pixi's renderer runner before any filter is rendered.
+    const init = prototype.init;
+    prototype.init = function () {
+        init?.call(this);
+        groups.add(this._globalFilterBindGroup);
+    };
+    const destroy = prototype.destroy;
+    prototype.destroy = function () {
+        groups.delete(this._globalFilterBindGroup);
+        this._globalFilterBindGroup.destroy();
+        destroy.call(this);
+    };
+    // Resize, renderer destruction and clear() all discard idle textures through this method.
+    const dropTextures = pool._dropTextures;
+    pool._dropTextures = function (textures, shouldDestroy) {
+        if (shouldDestroy && textures.length > 0)
+            unbindPassTextures();
+        dropTextures.call(this, textures, shouldDestroy);
+    };
+    // A checked-out texture can outlive its bucket and be destroyed directly on return.
+    const returnTexture = pool.returnTexture;
+    pool.returnTexture = function (texture, resetStyle) {
+        const key = this._poolKey[texture.uid];
+        if (key !== undefined && !this._buckets.has(key))
+            unbindPassTextures();
+        returnTexture.call(this, texture, resetStyle);
+    };
+};
+
+// ======== components/visualizer/loadPixi ========
+
+/**
+ * Must be awaited before any renderer, filter or shader is constructed: `GlProgram.from` caches
+ * compiled sources, so a program built before the flip would keep its mediump variant.
+ */
+const loadPixi = async () => {
+    const pixi = await import('pixi.js');
+    pixi.GlProgram.defaultOptions.preferredFragmentPrecision = 'highp';
+    installPixiFilterPoolCompat(pixi);
+    return pixi;
+};
+
 // ======== components/visualizer/pixiDisplayResources ========
 const unloadPixiDisplayTree = (root) => {
     const stack = [...(root.children ?? [])];
@@ -9159,10 +9221,8 @@ class SonnetPixiRuntime {
     }
 }
 
-
 // 跨模式符号：tempera 复用 sonnet 的滤镜（引擎 bundle 全局先行加载）
 var TemperaLensFilterMixin = null;   // 占位：actual classes injected via window.__sonnetFilters if present
-
 var destroySonnetContainerChildren = destroyPixiContainerChildren;
 var destroySonnetDisplayTree = destroyPixiDisplayTree;
 var unloadSonnetDisplayTree = unloadPixiDisplayTree;

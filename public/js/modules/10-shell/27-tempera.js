@@ -17,6 +17,7 @@ var temperaTimer = 0;
 var temperaBlocksDom = [];
 var temperaLastSeed = '';
 var temperaLastThemeKey = '';
+var temperaLastFontKey = '';
 var temperaLastLinesKey = '';
 var temperaLastActiveIdx = -99;
 var temperaLinesCache = [];
@@ -26,6 +27,15 @@ var temperaLastEnergyKey = '';
 var temperaTheme = { primary: '#f2ede2', accent: '#ff9c6e', secondary: '#7a9e9e', bg: '#101014' };
 
 function temperaSyncTheme() {
+  /* 字体跟随（DOM 降级路径）：fx.lyricFont → --tp-font（Pixi 路径走 27a 桥主题） */
+  var fontKey = (typeof fx !== 'undefined' && fx && fx.lyricFont) ? fx.lyricFont : '';
+  if (fontKey !== temperaLastFontKey) {
+    temperaLastFontKey = fontKey;
+    if (fontKey && typeof lyricFontStackForKey === 'function') {
+      var fontOverlay = document.getElementById('tempera-overlay');
+      if (fontOverlay) fontOverlay.style.setProperty('--tp-font', lyricFontStackForKey(fontKey));
+    }
+  }
   if (typeof themeOverlayDarkTheme !== 'function') return false;
   var t = null;
   try { t = themeOverlayDarkTheme(); } catch (e) { return false; }
@@ -331,6 +341,71 @@ function temperaTickWords() {
   }
 }
 
+/* ---------- 底部字幕层（pixi 引擎模式：原版 VisualizerSubtitleOverlay 宿主职责接管）
+   当前行（或刚完成行）的可读翻译轨道 → 无翻译时显示下一行预览（blur，原版
+   upcoming 语义）。可读性判定同原版 hasReadableText（须含字母/数字，过滤
+   "//"、"●●●" 等纯占位行）。容器带 pixi-host 豁免类：pixi-on 全局强隐规则
+   只豁免 .pixi-host，非 pixi 模式自动隐藏（DOM 行栈版自带 #tempera-line-tr
+   内嵌翻译，不需要此层）。 ---------- */
+function temperaSubtitleReadable(text) {
+  return !!text && /[\p{L}\p{N}]/u.test(text);
+}
+
+function temperaSubtitleUpdate() {
+  var el = document.getElementById('tempera-subtitle');
+  if (!el) return;
+  var lines = (typeof lyricsLines !== 'undefined' && lyricsLines) ? lyricsLines : [];
+  var t = temperaNowTime();
+  var idx = -1;
+  try {
+    if (typeof findStageLyricIndexAtTime === 'function') idx = findStageLyricIndexAtTime(t);
+  } catch (e) { idx = -1; }
+  var trText = '';
+  for (var k = 0; k < 2 && idx - k >= 0; k++) {
+    var line = lines[idx - k];
+    var tr = line ? String(line.translation || '').trim() : '';
+    if (temperaSubtitleReadable(tr)) { trText = tr; break; }
+  }
+  var previewText = '';
+  if (!trText) {
+    for (var j = idx + 1; j <= idx + 3 && j < lines.length; j++) {
+      var nl = lines[j];
+      var nt = nl ? String(nl.text || '').trim() : '';
+      if (temperaSubtitleReadable(nt)) { previewText = nt; break; }
+    }
+  }
+  var main = el.querySelector('.tempera-sub-main');
+  var up = el.querySelector('.tempera-sub-up');
+  if (!main || !up) return;
+  if (trText) {
+    main.textContent = trText;
+    main.style.display = '';
+    up.style.display = 'none';
+    el.classList.add('has-line');
+  } else if (previewText) {
+    main.style.display = 'none';
+    up.textContent = previewText;
+    up.style.display = '';
+    el.classList.add('has-line');
+  } else {
+    main.style.display = '';
+    main.textContent = '';
+    up.style.display = '';
+    up.textContent = '';
+    el.classList.remove('has-line');
+  }
+}
+
+function temperaSubtitleClear() {
+  var el = document.getElementById('tempera-subtitle');
+  if (!el) return;
+  el.classList.remove('has-line');
+  var main = el.querySelector('.tempera-sub-main');
+  var up = el.querySelector('.tempera-sub-up');
+  if (main) main.textContent = '';
+  if (up) up.textContent = '';
+}
+
 /* ---------- 生命周期 ---------- */
 
 function startTempera() {
@@ -350,7 +425,12 @@ function startTempera() {
     if (temperaUsePixi) {
       (function ploop() {
         if (!temperaMode || !temperaUsePixi) return;
+        temperaSyncTheme();   /* 字体变量 --tp-font 跟随（Pixi 底部字幕轨道用它） */
         var paused = !((typeof playing !== 'undefined') && playing);
+        temperaSubtitleUpdate();
+        /* 换歌/主题（含 fx.lyricFont 字体）/字号变化 → swapSong 热切换
+           （字体跟随链路：27a temperaPixiSync 比对 themeKey） */
+        if (typeof temperaPixiSync === 'function') temperaPixiSync();
         temperaPixiSetPaused(paused);
         temperaTimer = setTimeout(ploop, 700);
       })();
@@ -378,6 +458,7 @@ function stopTempera() {
   if (temperaTimer) { clearTimeout(temperaTimer); temperaTimer = 0; }
   temperaUsePixi = false;
   if (typeof temperaPixiStop === 'function') temperaPixiStop();
+  temperaSubtitleClear();
   var ov = document.getElementById('tempera-overlay');
   if (ov) ov.classList.remove('pixi-on');
 }

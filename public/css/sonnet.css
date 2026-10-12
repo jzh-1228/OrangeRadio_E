@@ -21,7 +21,6 @@
 }
 
 body.sonnet #sonnet-overlay { display: block; animation: sonnetIn 0.7s ease; }
-body.sonnet #empty-home { display: none; }
 @keyframes sonnetIn { from { opacity: 0; } to { opacity: 1; } }
 
 /* 光台入场：聚光亮起 */
@@ -209,6 +208,39 @@ body.sonnet #empty-home { display: none; }
 #sonnet-overlay.pixi-on .sonnet-rays,
 #sonnet-overlay.pixi-on .sonnet-beam,
 #sonnet-overlay.pixi-on .sonnet-vignette { display: none; }   /* DOM 版元素让位 */
+
+/* ---------- 底部字幕层（pixi 模式：原版 VisualizerSubtitleOverlay 宿主接管）----------
+   翻译轨道主行 + 下一行预览（blur，原版 upcoming 语义）。容器 .pixi-host 类由
+   index.css 10571/10578 提供定位与 pixi-on 显隐；这里只管内部排版。 */
+.sonnet-subtitle-host {
+  z-index: 4;                 /* 引擎画布(z3)之上，dock 之下 */
+  font-family: var(--sn-font);
+}
+.sonnet-sub-inner {
+  position: absolute;
+  left: 50%;
+  bottom: 118px;
+  transform: translateX(-50%);
+  max-width: min(760px, 82vw);
+  text-align: center;
+  line-height: 1.5;
+}
+.sonnet-sub-main {
+  font-size: calc(15px * var(--mfs, 1));
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  color: rgba(246, 239, 226, 0.62);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+}
+.sonnet-sub-up {
+  display: none;
+  font-size: calc(14px * var(--mfs, 1));
+  letter-spacing: 0.04em;
+  color: rgba(246, 239, 226, 0.4);
+  filter: blur(1px);          /* 原版 upcoming blur */
+}
+.sonnet-subtitle-host:not(.has-line) .sonnet-sub-inner { opacity: 0; }
+.sonnet-sub-inner { transition: opacity 0.5s ease; }
 
 /* ---------- 镜边装饰线稿（原版 9 族 ShotMg 的简化版）----------
    按歌曲种子选一族（star 星轨 / flora 植物枝 / wave 波纹 / staff 谱线），

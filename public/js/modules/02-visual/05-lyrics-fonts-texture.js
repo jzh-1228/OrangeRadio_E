@@ -111,6 +111,28 @@ function lyricFontStackForKey(key) {
   if (key === 'display') return '"Alibaba PuHuiTi","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif';
   return 'Inter,"Noto Sans SC","PingFang SC","Microsoft YaHei",Arial,sans-serif';
 }
+/* CSS font-stack 字符串 → 字体族名数组（视觉模式桥专用）。
+   Folia Theme.fontFamilyStack 语义是 string[]（每项一个族名）；各引擎
+   buildCustomFontFamilyStack 对它做逐项展开（`...(theme.fontFamilyStack ?? [])`）：
+   整串传入会被逐字符拆碎成 "I","n","t"... 垃圾字体栈；`[整串]` 单元素数组则被
+   当成一个带内嵌引号的族名 → 永不匹配 → 回退内建栈（字体跟随断链）。
+   本解析器按引号外交逗拆族名，26a/27a 桥各有一份同款本地实现。 */
+function lyricFontStackFamilies(stack) {
+  if (Array.isArray(stack)) return stack.slice();
+  if (typeof stack !== 'string' || !stack) return [];
+  var out = [];
+  var cur = '';
+  var quote = '';
+  for (var i = 0; i < stack.length; i++) {
+    var ch = stack.charAt(i);
+    if (quote) { if (ch === quote) quote = ''; else cur += ch; continue; }
+    if (ch === '"' || ch === "'") { quote = ch; continue; }
+    if (ch === ',') { out.push(cur.trim()); cur = ''; continue; }
+    cur += ch;
+  }
+  out.push(cur.trim());
+  return out.filter(function (s) { return !!s; });
+}
 function lyricFontWeightValue() {
   var key = normalizeLyricFontKey(fx && fx.lyricFont);
   if (key === 'stone-song') return 900;

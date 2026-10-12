@@ -41,6 +41,32 @@ const routeModules = [
 
 const server = http.createServer(async (req, res) => {
   refreshConfiguredCookieStores(false);
+
+  // ---- 入口防护（仅回环对端；LAN/远程部署不受影响）----
+  // 威胁模型：用户浏览器里的恶意网页操控本机 127.0.0.1:PORT。
+  // ① Host 校验切断 DNS rebinding（rebinding 页面的 Host 是攻击者域名）；
+  // ② Sec-Fetch-Site 校验切断 no-cors CSRF（跨站 <img>/fetch 会带 cross-site，
+  //    同源 fetch/导航是 same-origin/none；该头是浏览器禁改的 forbidden header）；
+  // ③ Origin 显式存在且非本服务时拒绝（text/plain 简单请求注入登录态等）。
+  // 三者对 curl/老客户端（无这些头）保持放行，向后兼容。
+  try {
+    const peer = req.socket.remoteAddress || '';
+    const isLoopbackPeer = peer === '127.0.0.1' || peer === '::1' || peer === '::ffff:127.0.0.1';
+    const guardPath = req.url === '/' || req.url.indexOf('/api/') === 0 || req.url.indexOf('/?') === 0;
+    if (isLoopbackPeer && guardPath) {
+      const hostHeader = String(req.headers.host || '');
+      const hostOk = hostHeader === '127.0.0.1:' + PORT || hostHeader === 'localhost:' + PORT;
+      const fetchSite = String(req.headers['sec-fetch-site'] || '').toLowerCase();
+      const origin = req.headers.origin ? String(req.headers.origin) : '';
+      const originOk = !origin || origin === 'http://127.0.0.1:' + PORT || origin === 'http://localhost:' + PORT;
+      if (!hostOk || (fetchSite && fetchSite !== 'same-origin' && fetchSite !== 'none') || !originOk) {
+        res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'FORBIDDEN_ORIGIN' }));
+        return;
+      }
+    }
+  } catch (_) { }
+
   const url = new URL(req.url, 'http://localhost:' + PORT);
   const pn = url.pathname;
 

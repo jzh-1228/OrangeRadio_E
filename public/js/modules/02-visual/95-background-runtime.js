@@ -19,8 +19,10 @@
 // 与前景正交：不进 VISUALIZER_OVERLAY_MODES（互斥/保温门控不涉及），
 // 不动歌词模式/覆盖层/数值预设；也不做覆盖层式的「进入切 eco」——
 // 背景垫底、主场景仍在正常渲染，没有帧预算可让。
-// 旧登记项 star-river / album-blur 的实现未接入（选择器 UI 为预留：
-// 点击提示后续版本接入，不切换）。
+// star-river / album-blur 实现已接入（94a-background-star-river.js /
+// 94b-background-album-blur.js，加载时覆盖 92 的预登记为 implReady:true）。
+// 下方对 implReady:false 的拦截是纯防御：只有实现文件未加载（脚本
+// 缺失/被拦）才会命中——保持预留提示而不是"点了没反应"。
 // ============================================================
 
 var VISUALIZER_BG_LAYER_ID = 'visualizer-bg-layer';
@@ -171,8 +173,8 @@ function startVisualizerBgLoops(impl) {
 function applyVisualizerBackgroundMode(id, opts) {
   opts = opts || {};
   var rawId = String(id || '').trim();
-  // 预留登记项（star-river/album-blur，implReady:false）：在 normalize 之前
-  // 拦下（normalize 会把无实现的 id 吞成 ambient），提示但不切换。
+  // 防御：实现文件未加载的登记项（implReady:false）在 normalize 之前
+  // 拦下（normalize 会把无实现的 id 静默吞成 ambient），提示但不切换。
   var rawEntry = (typeof getVisualizerBackgroundEntry === 'function') ? getVisualizerBackgroundEntry(rawId) : null;
   if (rawEntry && rawEntry.implReady === false) {
     if (opts.toast !== false && typeof showToast === 'function') showToast('「' + rawEntry.label + '」背景为预留登记，后续版本接入');

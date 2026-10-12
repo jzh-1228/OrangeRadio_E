@@ -1,36 +1,26 @@
 /* =========================================================================
-   OrangeSea · 群唱（Cappella · 聊天气泡歌词）
+   OrangeSea · 群唱（Cappella · Folia cappella 移植 · 引擎宿主壳）
    Portions Copyright (c) 2025 chthollyphile and Folia contributors
-   — adapted from folia-major (AGPL-3.0): src/components/visualizer/cappella/
-   VisualizerCappella.tsx（气泡 rounded-3xl+尾角 / 圆形图片头像 / 流光 /
-   时间戳 / 表情 wiggle / 逐字 fade / 三档 motion CSS 变量直译）
-   body.cappella 命名空间。聊天流底部对齐，最新消息贴底。
+   — adapted from folia-major (AGPL-3.0)。
+   =========================================================================
+   本文件只承载【容器壳】职责；聊天气泡流、逐字浮现、流光、表情贴纸等
+   全部渲染与动效由原版渲染核心引擎
+   （js/modules/10-shell-cappella-engine/cappella-engine.js，23-cappella.js
+   桥创建）的 inline style + mini-motion 驱动——CSS 不再持任何气泡/行/
+   字符级动画类（旧 CSS 简化路径已随引擎接管整体作废删除，勿在此恢复）。
+
+   宿主壳保留：
+   · 全屏覆盖层 + 封面模糊夜色底（MineRadio 覆盖层惯例氛围底，非 Folia
+     渲染核心职责；Folia 侧为 VisualizerShell 可配置背景系统）；
+   · body.cappella 显示切换 / 预设卡片联动 / 入场交叉淡化。
    ========================================================================= */
 
 #cappella-overlay {
-  --cp-active-scale: 1.12;
-  --cp-passed-scale: 0.92;
-  --cp-passed-opacity: 0.82;
-  --cp-active-font: 24.1px;        /* 18 × activeFontMultiplier 1.34 */
-  --cp-inactive-font: 16.9px;      /* 18 × inactiveFontMultiplier 0.94 */
-  --cp-active-pad-x: 20px;
-  --cp-active-pad-y: 16px;
-  --cp-inactive-pad-x: 16px;
-  --cp-inactive-pad-y: 12px;
-  --cp-active-min-h: 64px;
-  --cp-inactive-min-h: 44px;
-  --cp-glow-opacity: 0.4;
-  --cp-glow-alpha: 0.34;
-  --cp-emo-active: 160px;
-  --cp-emo-inactive: 110px;
-  --cp-enter-y: 22px;
   position: fixed;
   inset: 0;
   z-index: 5;
   display: none;
   overflow: hidden;
-  /* 封面模糊氛围背景：.cappella-bg-photo（大 blur 压暗）垫底 + ::before
-     深色渐变遮罩压边角（文字可读性），底色仅作图片未就绪兜底 */
   background-color: var(--cp-bg, #101014);
 }
 
@@ -40,6 +30,7 @@
   inset: -10%;
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;
   filter: blur(76px) saturate(0.75) brightness(0.5);
   transform: scale(1.12);
   z-index: 0;
@@ -60,206 +51,13 @@
 }
 
 body.cappella #cappella-overlay { display: block; animation: cappellaIn 0.5s ease; }
-body.cappella #empty-home { display: none; }
 @keyframes cappellaIn { from { opacity: 0; } to { opacity: 1; } }
 
-/* 聊天面板：Folia px-4/8/14 · pb-36/40 · pt-12/16/20 · max-w-4xl 居中 */
-.cappella-scroller {
+/* ---------- 引擎宿主（渲染核心 shell 的挂载点，随引擎自绘） ---------- */
+#cappella-engine-host {
   position: absolute;
   inset: 0;
-  z-index: 1;                       /* 抬到模糊层/遮罩（z0）之上 */
-  padding: 80px clamp(24px, 6vw, 72px) 150px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  scrollbar-width: none;
-  scroll-behavior: smooth;
-}
-.cappella-scroller::-webkit-scrollbar { display: none; }
-
-.cappella-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;                        /* Folia gap-3 */
-  width: 100%;
-  max-width: min(1100px, 82vw);     /* 宽屏自适应加宽：面板两侧到屏幕边缘的空白不再巨大 */
-  margin: 0 auto;
-  position: relative;
   z-index: 1;
-}
-
-/* ---------- 行（Folia: flex w-full items-end gap-3 · 行内气泡组 max-w 78%）
-     可见窗口：默认隐藏，到达（t>=start）后由 tick 打 is-visible 才显示——
-     未唱到的消息不渲染，屏幕永远是「唱过的消息流」 ---------- */
-.cappella-row {
-  display: none;
-  align-items: flex-end;
-  gap: 12px;
-  width: 100%;
-  opacity: 0;
-  transform: translateY(var(--cp-enter-y)) scale(0.98);
-  animation: cappellaRowIn 0.32s ease-out forwards;
-}
-.cappella-row.is-visible { display: flex; }
-@keyframes cappellaRowIn { to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) {
-  .cappella-row.is-visible { animation: none; opacity: 1; transform: none; }
-}
-
-.cappella-row.is-right { margin-left: auto; flex-direction: row-reverse; }
-.cappella-row.is-emo-row { padding-top: 24px; }   /* Folia: emo 行 pt-12 */
-
-/* ---------- 头像（Folia: h-10 w-10 圆形 + 白描边 + 图片） ---------- */
-.cappella-avatar {
-  flex: 0 0 40px;                   /* h-10 w-10 */
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-color: var(--theme-secondary, #e6c9a6);
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
-}
-/* 当前行头像「跟音乐呼吸」：纯缩放的柔和起伏（无旋转/位移的廉价感），
-   光晕随呼吸同频明灭 */
-.cappella-row.is-active .cappella-avatar {
-  animation: cappellaAvatarBreath 1.5s ease-in-out infinite alternate;
-}
-.cappella-row.is-active .cappella-avatar::after {
-  content: '';
-  position: absolute;
-  inset: -3px;
-  border-radius: 50%;
-  box-shadow: 0 0 14px 2px var(--theme-accent, #ff9c6e);
-  animation: cappellaAvatarHalo 1.5s ease-in-out infinite alternate;
   pointer-events: none;
 }
-@keyframes cappellaAvatarBreath {
-  from { transform: scale(1); }
-  to   { transform: scale(1.06); }
-}
-@keyframes cappellaAvatarHalo {
-  from { opacity: 0.25; }
-  to   { opacity: 0.7; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .cappella-row.is-active .cappella-avatar { animation: none; transform: scale(1.06); }
-  .cappella-row.is-active .cappella-avatar::after { animation: none; opacity: 0.4; }
-}
-.cappella-row.is-passed .cappella-avatar { opacity: 0.85; }
-
-/* ---------- 气泡（Folia: rounded-3xl + 尾角 rounded-br/bl-md） ---------- */
-.cappella-bubble {
-  position: relative;
-  border-radius: 24px;              /* rounded-3xl = 1.5rem */
-  border: 1px solid;
-  min-height: var(--cp-inactive-min-h);
-  min-width: 0;
-  max-width: 68%;                   /* Folia: 气泡组 max-w-[78%] sm:max-w-[68%] */
-  padding: var(--cp-inactive-pad-y) var(--cp-inactive-pad-x);
-  font-size: var(--cp-inactive-font);
-  font-weight: 400;
-  line-height: 1.45;
-  /* 激活/沉淀状态切换的弹性过渡：放大回缩带一点回弹，不再生硬跳变 */
-  transition:
-    transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1),
-    padding 0.28s ease,
-    font-size 0.28s ease,
-    min-height 0.28s ease,
-    box-shadow 0.28s ease;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
-  transform-origin: 0% 100%;
-  transition: transform 0.32s cubic-bezier(0.34, 1.4, 0.5, 1),
-              opacity 0.28s ease, filter 0.28s ease, font-size 0.28s ease,
-              padding 0.28s ease, min-height 0.28s ease, box-shadow 0.2s ease;
-}
-.cappella-row.is-right .cappella-bubble {
-  border-bottom-right-radius: 6px;  /* rounded-br-md 尾角 */
-  transform-origin: 100% 100%;
-}
-.cappella-row:not(.is-right) .cappella-bubble {
-  border-bottom-left-radius: 6px;   /* rounded-bl-md 尾角 */
-}
-
-/* 激活：放大 · 满字号 · 阴影（Folia: activeScale/activeFontMultiplier/boxShadow） */
-.cappella-row.is-active .cappella-bubble {
-  transform: scale(var(--cp-active-scale));
-  font-size: var(--cp-active-font);
-  padding: var(--cp-active-pad-y) var(--cp-active-pad-x);
-  min-height: var(--cp-active-min-h);
-  /* 内缘细白高光 + 中性投影（替代流光扫动与彩色大光晕——干净、聚焦文字） */
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
-    0 14px 36px rgba(0, 0, 0, 0.32);
-}
-.cappella-row.is-passed .cappella-bubble {
-  transform: scale(var(--cp-passed-scale));
-  opacity: var(--cp-passed-opacity);
-  filter: saturate(0.88);
-}
-
-/* 标题卡（歌名消息） */
-.cappella-bubble.is-title-text { font-weight: 600; }
-
-/* 流光扫动已移除（嘈杂）——active 气泡以内缘细高光 + 柔和外投影表达（见 .is-active 段） */
-
-/* ---------- 文本与逐字高亮（卡拉OK式）
-     字符恒占位（气泡宽度一次到位不跳动），未唱字符 0.22 低透明可见、
-     唱过逐字点亮——比「打字机」流畅，比「全占位隐形」信息量足 ---------- */
-.cappella-text { position: relative; z-index: 1; }
-.cappella-char { opacity: 0.22; transition: opacity 0.4s ease; }
-.cappella-char.is-lit { opacity: 1; transition: opacity 0.3s ease; }
-@media (prefers-reduced-motion: reduce) {
-  .cappella-char { transition: none; }
-}
-
-/* ---------- 时间戳（Folia: 11px tabular-nums · 气泡外侧 8px · passed 浮现） ---------- */
-.cappella-timestamp {
-  position: absolute;
-  bottom: 4px;
-  right: calc(100% + 8px);
-  font-size: 11px;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  color: inherit;
-  opacity: 0;
-  transform: translateY(4px);
-  transition: opacity 0.18s ease-out, transform 0.18s ease-out;
-  pointer-events: none;
-  white-space: nowrap;
-}
-.cappella-row:not(.is-right) .cappella-timestamp { right: auto; left: calc(100% + 8px); }
-.cappella-row.is-passed .cappella-timestamp,
-.cappella-row.is-passed .cappella-emo .cappella-timestamp { opacity: 0.62; transform: translateY(0); }
-
-/* ---------- 表情贴纸（Folia: img rounded-2xl + wiggle + active 更大） ---------- */
-.cappella-emo {
-  position: relative;
-  flex: 0 0 auto;
-  width: var(--cp-emo-inactive);
-  height: var(--cp-emo-inactive);
-  transition: width 0.25s ease-out, height 0.25s ease-out;
-}
-.cappella-row.is-active .cappella-emo {
-  width: var(--cp-emo-active);
-  height: var(--cp-emo-active);
-}
-.cappella-emo img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  border-radius: 16px;              /* rounded-2xl */
-  display: block;
-  animation: cappellaEmoWiggle 1.9s ease-in-out infinite;
-}
-@keyframes cappellaEmoWiggle {
-  0%, 100% { transform: rotate(-1.6deg); }
-  50% { transform: rotate(1.6deg); }
-}
-@media (prefers-reduced-motion: reduce) { .cappella-emo img { animation: none; } }
+#cappella-engine-host > * { pointer-events: none; }

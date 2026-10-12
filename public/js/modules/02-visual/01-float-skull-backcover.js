@@ -777,7 +777,7 @@ function destroyBackCoverLayer() {
 
 function refreshBackCoverColorsFromCanvas(coverCanvas) {
   if (!backCoverGroup || !coverCanvas || !backCoverColorArr) return;
-  var ctx = coverCanvas.getContext('2d');
+  var ctx = coverCanvas.getContext('2d', { willReadFrequently: true });
   var img = ctx.getImageData(0, 0, coverCanvas.width, coverCanvas.height).data;
   var w = coverCanvas.width, h = coverCanvas.height;
   var attr = backCoverGroup.geometry.attributes;
@@ -798,7 +798,7 @@ function updateFloatLayer(dt) {
 }
 function refreshFloatColorsFromCover(coverCanvas) {
   if (!floatGroup || !coverCanvas) return;
-  var ctx = coverCanvas.getContext('2d');
+  var ctx = coverCanvas.getContext('2d', { willReadFrequently: true });
   var img = ctx.getImageData(0, 0, coverCanvas.width, coverCanvas.height).data;
   var w = coverCanvas.width, h = coverCanvas.height;
   for (var i = 0; i < FLOAT_COUNT; i++) {

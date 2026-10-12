@@ -38,6 +38,13 @@ var SONNET_PIXI_TUNING = {
   postProcessLensDispersion: 0.6
 };
 
+/* 调参覆盖合并（07-fx/11-vis-mode-data-plane，orangesea-vis-tuning-v1）：
+   本引擎无 setTuning（仅 swapSong），控制台改动下次进入模式生效 */
+function sonnetResolvedTuning() {
+  if (typeof visModeTuningOverrides !== 'function') return SONNET_PIXI_TUNING;
+  return Object.assign({}, SONNET_PIXI_TUNING, visModeTuningOverrides('sonnet'));
+}
+
 var sonnetPixiRuntime = null;      /* SonnetPixiRuntime 实例（null = 未启用/降级） */
 var sonnetPixiFailed = false;      /* 创建失败一次后不再尝试（本会话降级 DOM 版） */
 var sonnetPixiLinesKey = '';
@@ -88,23 +95,52 @@ function sonnetPixiMV(getter) {
 
 /* ---------- 主题桥（夜侧 → Folia Theme） ---------- */
 
+/* CSS font-stack 字符串 → 字体族名数组。
+   原版 Theme.fontFamilyStack 是 string[]（folia types.ts:97，每项一个族名）；
+   引擎 buildCustomFontFamilyStack 对它做逐项展开（sonnet-engine.js:1295
+   `...(theme.fontFamilyStack ?? [])`）——整串传入会被逐字符拆碎成
+   "I","n","t"... 垃圾字体栈 → canvas font 无效 → 光栅化回退默认 10px，
+   全部歌词大字缩成 ~14px（2026-10-11 真机大字变小字事故根因）。 */
+function sonnetPixiFontStackToArray(stack) {
+  if (Array.isArray(stack)) return stack.slice();
+  if (typeof stack !== 'string' || !stack) return [];
+  var out = [];
+  var cur = '';
+  var quote = '';
+  for (var i = 0; i < stack.length; i++) {
+    var ch = stack.charAt(i);
+    if (quote) { if (ch === quote) quote = ''; else cur += ch; continue; }
+    if (ch === '"' || ch === "'") { quote = ch; continue; }
+    if (ch === ',') { out.push(cur.trim()); cur = ''; continue; }
+    cur += ch;
+  }
+  out.push(cur.trim());
+  return out.filter(function (s) { return !!s; });
+}
+
 function sonnetPixiTheme() {
   var t = null;
   try { t = (typeof themeOverlayDarkTheme === 'function') ? themeOverlayDarkTheme() : null; } catch (e) { }
-  if (!t) t = { backgroundColor: '#0c0907', primaryColor: '#f6efe2', accentColor: '#ffcf9e', secondaryColor: '#e6c9a6' };
+  if (!t) t = { backgroundColor: '#09090b', primaryColor: '#f4f4f5', accentColor: '#f4f4f5', secondaryColor: '#71717a' }; /* 原版 Midnight Default（folia baseThemes.ts:9-17，zinc 冷黑） */
   var fontStack = '"PingFang SC", "HarmonyOS Sans SC", "MiSans", "Microsoft YaHei UI", "Source Han Sans SC", system-ui, sans-serif';
   try {
     var fontKey = (typeof fx !== 'undefined' && fx && fx.lyricFont) ? fx.lyricFont : '';
     if (fontKey && typeof lyricFontStackForKey === 'function') fontStack = lyricFontStackForKey(fontKey);
   } catch (e) { }
   return {
+    name: 'OrangeSea Night',
+    description: 'cover-derived night theme',
     backgroundColor: t.backgroundColor,
     primaryColor: t.primaryColor,
     secondaryColor: t.secondaryColor || t.primaryColor,
     accentColor: t.accentColor,
     fontStyle: 'sans',
-    fontWeight: 700,
-    fontFamilyStack: fontStack,
+    /* 字重随用户歌词字重设置（buildVisualizerTheme.ts:43 语义，lyricFontWeightValue
+   含书法体 400/石腕体 900 特例） */
+fontWeight: (typeof lyricFontWeightValue === 'function') ? lyricFontWeightValue() : 700,
+    animationIntensity: (typeof visAnimationIntensityCurrent === 'function') ? visAnimationIntensityCurrent() : 'normal',
+    wordColors: (typeof visWordColorsList === 'function') ? visWordColorsList() : [],
+    fontFamilyStack: sonnetPixiFontStackToArray(fontStack),
     lyricsIcons: []
   };
 }
@@ -145,7 +181,7 @@ async function sonnetPixiStart() {
       songSeed: seed,
       program: program,
       theme: sonnetPixiTheme(),
-      tuning: SONNET_PIXI_TUNING,
+      tuning: sonnetResolvedTuning(),
       currentTime: sonnetPixiMV(function () {
         try { return getAdjustedLyricPlaybackTime((typeof audio !== 'undefined' && audio) ? (audio.currentTime || 0) : 0); }
         catch (e) { return 0; }

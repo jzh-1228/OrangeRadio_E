@@ -2113,11 +2113,12 @@ body.empty-home-active #empty-home {
   transform: translateX(-50%) translateY(0) scale(1)
 }
 
-/* 胶片电台/涂鸦墙等全屏覆盖层（z-index:5）激活时，
-   主页要浮在覆盖层之上显示（不退出模式，关掉主页后模式仍在）。
+/* 全屏覆盖层（z-index:5）激活时，主页要浮在覆盖层之上显示
+   （不退出模式，关掉主页后模式仍在）。覆盖层激活态由 91-overlay-transition
+   协调器统一维护 body.overlay-mode-active——新增注册模式自动覆盖，
+   不再逐模式硬编码（film-radio/graffiti 两条旧规则已并入）。
    6 高于覆盖层 5，低于 fx-fab(19)；与 bottom-bar(6) 同层时 DOM 顺序保证控制栏在上。 */
-body.film-radio #empty-home,
-body.graffiti #empty-home {
+body.overlay-mode-active #empty-home {
   z-index: 6;
 }
 
@@ -18146,3 +18147,46 @@ body.desktop-shell #desktop-titlebar #feedback-entry:hover .feedback-bubble {
 .theme-lib-btn.is-del { background: rgba(242, 230, 212, 0.08); padding: 4px 7px; }
 .theme-lib-btn.is-del:hover { background: rgba(255, 99, 71, 0.35); }
 .theme-lib-empty { font-size: 11.5px; color: var(--fx-subtle, rgba(240, 236, 230, 0.5)); line-height: 1.6; }
+
+/* Folia 移植模式宿主数据面：主题词色表 / 模式调参（11-vis-mode-data-plane.js） */
+.vis-word-colors { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.vis-wc-note, .vis-mt-note {
+  font-size: 11.5px; color: var(--fx-subtle, rgba(240, 236, 230, 0.5)); line-height: 1.6;
+}
+.vis-wc-add-row { display: flex; gap: 8px; align-items: center; }
+.vis-wc-color {
+  flex: 0 0 34px; width: 34px; height: 30px; padding: 2px; cursor: pointer;
+  background: rgba(24, 17, 12, 0.7); border: 1px solid rgba(255, 156, 110, 0.22);
+  border-radius: 9px;
+}
+.vis-wc-count { font-size: 11px; color: var(--fx-subtle, rgba(240, 236, 230, 0.5)); }
+.vis-wc-list { display: flex; flex-direction: column; gap: 5px; max-height: 168px; overflow-y: auto; }
+.vis-wc-row {
+  display: flex; align-items: center; gap: 9px; padding: 5px 9px;
+  border-radius: 9px; border: 1px solid rgba(242, 230, 212, 0.1);
+  background: rgba(24, 17, 12, 0.45);
+}
+.vis-wc-swatch {
+  flex: 0 0 20px; width: 20px; height: 20px; border-radius: 6px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12) inset;
+}
+.vis-wc-word {
+  flex: 1; min-width: 0; font-size: 12px; color: var(--fx-ink, #f0ece6);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.vis-mode-tuning { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.vis-mode-tuning .fx-seg { flex-wrap: wrap; row-gap: 4px; }
+.vis-mt-controls { display: flex; flex-direction: column; gap: 8px; }
+.vis-mt-head {
+  display: flex; align-items: center; gap: 10px; padding: 7px 9px;
+  border-radius: 9px; border: 1px solid rgba(242, 230, 212, 0.1);
+  background: rgba(24, 17, 12, 0.45);
+}
+.vis-mt-head strong {
+  flex: 1; min-width: 0; font-size: 12.5px; color: var(--fx-ink, #f0ece6);
+}
+.vis-mt-live { font-size: 11px; color: var(--fx-subtle, rgba(240, 236, 230, 0.5)); }
+.vis-mt-live.is-live { color: #ffb38a; }
+.vis-mt-slider { grid-template-columns: minmax(78px, 92px) minmax(0, 1fr) 58px 28px; min-height: 38px; margin: 0; }
+.vis-mt-choice { flex-wrap: wrap; row-gap: 4px; }
+

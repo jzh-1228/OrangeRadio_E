@@ -29,6 +29,7 @@ var FX_CONSOLE_LAYOUT = [
         fxConsoleItem('theme-mode-seg', '主题', '主题模式 跟随昼夜 白天 黑夜 封面派生双主题'),
         fxConsoleItem('theme-preset-seg', '主题来源', '封面派生 墨染素白 基础预设'),
         fxConsoleItem('theme-library', '我的主题库', '保存主题 应用主题 删除主题 昼夜双主题'),
+        fxConsoleItem('vis-word-colors', '主题词色', '词色 关键词着色 主题词 wordColors 着色词表', false),
         fxConsoleItem('theme-info-line', '主题名', '当前主题名与描述 封面取色生成'),
         fxConsoleItem('background-mode-seg', '背景', '背景模式 氛围底 流体封面 纯色渐变 几何律动 星河 封面模糊 底图')
       ] },
@@ -139,6 +140,10 @@ var FX_CONSOLE_LAYOUT = [
         fxConsoleItem('fx-coverres', '封面清晰度', '粒子数量 分辨率'),
         fxConsoleItem('fx-cineshake', '电影镜头', '镜头晃动 强度'),
         fxConsoleItem('t-cinema', '电影镜头开关', '动态镜头')
+      ] },
+      { key: 'mode-tuning', title: '模式调参', hint: 'Folia 移植模式每模式调参（引擎默认 + 本地覆盖）与动画强度档', items: [
+        fxConsoleItem('vis-intensity-seg', '动画强度', '动画强度 平静 标准 狂热 calm normal chaotic 强度档', false),
+        fxConsoleItem('vis-mode-tuning', '模式调参', '调参 滑杆 商籁 凝彩 绘光 钟摆 莫奈 烟雾 克尔之结 云阶 经典 华彩 卡佩拉 镜台 sonnet tempera lumiere pendolo monet fume claddagh partita classic cadenza cappella diorama', false)
       ] },
       { key: 'rainy-cab', title: '雨夜车窗', hint: '雨势、雾气、车流与车速（激活雨夜车窗时显示）', items: [
         fxConsoleItem('fx-rainintensity', '雨的大小', '雨势 雨量 雨夜车窗'),

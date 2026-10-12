@@ -11,7 +11,7 @@ const {
   dj_detail,
   dj_program,
 } = require('NeteaseCloudMusicApi');
-const { sendJSON } = require('../utils');
+const { sendJSON, proxyTargetIsBlocked } = require('../utils');
 const { UA, getUserCookie } = require('../context');
 const { getLoginInfo } = require('../handlers/netease-login-cache');
 const {
@@ -143,6 +143,11 @@ async function handle(req, res, url) {
       const durationSec = Math.max(0, Number(url.searchParams.get('duration') || 0) || 0);
       if (!audioUrl || !/^https?:\/\//i.test(audioUrl)) {
         sendJSON(res, { error: 'Invalid audio url' }, 400);
+        return true;
+      }
+      /* SSRF 防护：与 /api/cover、/api/audio 同款私网/保留地址段拒绝 */
+      if (await proxyTargetIsBlocked(audioUrl)) {
+        sendJSON(res, { error: 'Audio url blocked' }, 400);
         return true;
       }
       console.log('[PodcastDjBeatmap] start', Math.round(durationSec || 0) + 's');

@@ -107,7 +107,7 @@ function buildEdgeAndDepth(srcCanvas) {
   var normalized = document.createElement('canvas');
   normalized.width = W;
   normalized.height = H;
-  var sctx = normalized.getContext('2d');
+  var sctx = normalized.getContext('2d', { willReadFrequently: true });
   sctx.drawImage(srcCanvas, 0, 0, W, H);
   var src = sctx.getImageData(0, 0, W, H).data;
   var lum = new Float32Array(N), blur = new Float32Array(N), tmp = new Float32Array(N);
@@ -171,7 +171,7 @@ function buildEdgeAndDepth(srcCanvas) {
 
   // 输出 256×256 RGBA
   var out = document.createElement('canvas'); out.width = W; out.height = H;
-  var octx = out.getContext('2d'), imgOut = octx.createImageData(W, H);
+  var octx = out.getContext('2d', { willReadFrequently: true }), imgOut = octx.createImageData(W, H);
   for (var i = 0; i < N; i++) {
     var di = i * 4;
     imgOut.data[di] = Math.round(depth[i] * 255);
@@ -209,7 +209,7 @@ function makeAIDepthInputCanvas(srcCanvas) {
   var size = 160;
   var cv = document.createElement('canvas');
   cv.width = cv.height = size;
-  var ctx = cv.getContext('2d');
+  var ctx = cv.getContext('2d', { willReadFrequently: true });
   try {
     ctx.drawImage(srcCanvas, 0, 0, size, size);
     return cv;
@@ -250,11 +250,11 @@ async function estimateAIDepth(srcCanvas, token) {
 function mergeAIDepthIntoEdgeTexture(heuristicCanvas, aiCanvas) {
   // 把 AI 深度 (灰度) 写入 R 通道, 保留启发式的 G/B/A
   var W = heuristicCanvas.width || 256, H = heuristicCanvas.height || 256;
-  var hctx = heuristicCanvas.getContext('2d');
+  var hctx = heuristicCanvas.getContext('2d', { willReadFrequently: true });
   var hImg = hctx.getImageData(0, 0, W, H);
 
   var aiTmp = document.createElement('canvas'); aiTmp.width = W; aiTmp.height = H;
-  var actx = aiTmp.getContext('2d');
+  var actx = aiTmp.getContext('2d', { willReadFrequently: true });
   actx.drawImage(aiCanvas, 0, 0, W, H);
   var aData = actx.getImageData(0, 0, W, H).data;
 
@@ -470,7 +470,7 @@ function neutralCoverEdgeCanvas(size) {
   if (neutralCoverEdgeCanvasCache && neutralCoverEdgeCanvasCache.width === size) return neutralCoverEdgeCanvasCache;
   var cv = document.createElement('canvas');
   cv.width = cv.height = size;
-  var cx = cv.getContext('2d');
+  var cx = cv.getContext('2d');   /* 该画布作纹理源（coverTex.image），禁 willReadFrequently */
   cx.fillStyle = 'rgba(128,0,0,255)';
   cx.fillRect(0, 0, size, size);
   neutralCoverEdgeCanvasCache = cv;
@@ -575,7 +575,7 @@ function applyCoverCanvas(cv, thumbSrc, opts) {
     prevCv.width = Math.max(1, Math.round(prevW * prevScale));
     prevCv.height = Math.max(1, Math.round(prevH * prevScale));
     try {
-      prevCv.getContext('2d').drawImage(coverTex.image, 0, 0, prevCv.width, prevCv.height);
+      prevCv.getContext('2d').drawImage(coverTex.image, 0, 0, prevCv.width, prevCv.height);   /* 纹理源，禁 willReadFrequently */
       prevCoverTex.image = prevCv;
       prevCoverTex.needsUpdate = true;
     } catch (e) { }

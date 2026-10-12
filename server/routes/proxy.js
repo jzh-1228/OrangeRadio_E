@@ -6,14 +6,12 @@
 'use strict';
 
 const { UA } = require('../context');
-const {
-  sendAudioBuffer,
+const { sendAudioBuffer,
   fetchWithTimeout,
   audioProxyHeadersFor,
   audioContentTypeForUrl,
   getQishuiDecryptedAudio,
-  proxyTargetIsBlocked,
-} = require('../utils');
+  proxyTargetIsBlocked, fetchWithProxyGuard } = require('../utils');
 
 // 封面代理安全上限：5s 超时 + 8MB 响应上限，防挂起连接与内存滥用
 const COVER_PROXY_TIMEOUT_MS = 5000;
@@ -37,7 +35,7 @@ async function handle(req, res, url) {
         res.end('Cover url blocked');
         return true;
       }
-      const resp = await fetchWithTimeout(coverUrl, { headers: { 'User-Agent': UA, 'Referer': 'https://music.163.com/' } }, COVER_PROXY_TIMEOUT_MS);
+      const resp = await fetchWithProxyGuard(coverUrl, { headers: { 'User-Agent': UA, 'Referer': 'https://music.163.com/' } }, COVER_PROXY_TIMEOUT_MS);
       const ct  = resp.headers.get('content-type') || 'image/jpeg';
       const cl  = resp.headers.get('content-length');
       const hdr = {
@@ -92,7 +90,7 @@ async function handle(req, res, url) {
         }
       }
       const hdr = audioProxyHeadersFor(audioUrl, range);
-      const up = await fetchWithTimeout(audioUrl, { headers: hdr }, 9000);
+      const up = await fetchWithProxyGuard(audioUrl, { headers: hdr }, 9000);
       const out = {
         'Content-Type': audioContentTypeForUrl(audioUrl, up.headers.get('content-type')),
         'Access-Control-Allow-Origin': '*',

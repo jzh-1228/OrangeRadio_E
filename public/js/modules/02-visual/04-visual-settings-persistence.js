@@ -441,7 +441,8 @@ function readSavedLyricLayout() {
       cam: /^(off|gesture)$/.test(String(raw.cam || '')) ? raw.cam : fxDefaults.cam,
       backgroundMode: (typeof raw.backgroundMode === 'string' && raw.backgroundMode) ? raw.backgroundMode : fxDefaults.backgroundMode,
       themeMode: /^(auto|light|dark)$/.test(String(raw.themeMode || '')) ? raw.themeMode : fxDefaults.themeMode,
-      themePreset: (typeof raw.themePreset === 'string' && /^(cover|base|custom:)/.test(raw.themePreset)) ? raw.themePreset : fxDefaults.themePreset
+      themePreset: (typeof raw.themePreset === 'string' && /^(cover|base|custom:)/.test(raw.themePreset)) ? raw.themePreset : fxDefaults.themePreset,
+      visAnimationIntensity: normalizeVisAnimationIntensity(raw.visAnimationIntensity)
     };
   } catch (e) {
     return readSavedLyricLayoutCriticalFallback(raw, e);
@@ -708,7 +709,8 @@ function currentFxAutosaveCriticalPatch() {
     shelfAngleYManual: fx.shelfAngleYManual === true,
     shelfOpacity: clampRange(fx.shelfOpacity == null ? fxDefaults.shelfOpacity : Number(fx.shelfOpacity), 0.25, 1),
     shelfBgOpacity: clampRange(fx.shelfBgOpacity == null ? fxDefaults.shelfBgOpacity : Number(fx.shelfBgOpacity), 0.25, 0.98),
-    shelfAccentColor: normalizeHexColor(fx.shelfAccentColor || fxDefaults.shelfAccentColor, fxDefaults.shelfAccentColor)
+    shelfAccentColor: normalizeHexColor(fx.shelfAccentColor || fxDefaults.shelfAccentColor, fxDefaults.shelfAccentColor),
+    visAnimationIntensity: normalizeVisAnimationIntensity(fx.visAnimationIntensity)
   };
 }
 function saveLyricLayout(opts) {
@@ -938,7 +940,8 @@ function saveLyricLayout(opts) {
       cam: /^(off|gesture)$/.test(String(fx.cam || '')) ? fx.cam : fxDefaults.cam,
       backgroundMode: (typeof fx.backgroundMode === 'string' && fx.backgroundMode) ? fx.backgroundMode : fxDefaults.backgroundMode,
       themeMode: /^(auto|light|dark)$/.test(String(fx.themeMode || '')) ? fx.themeMode : fxDefaults.themeMode,
-      themePreset: (typeof fx.themePreset === 'string' && /^(cover|base|custom:)/.test(fx.themePreset)) ? fx.themePreset : fxDefaults.themePreset
+      themePreset: (typeof fx.themePreset === 'string' && /^(cover|base|custom:)/.test(fx.themePreset)) ? fx.themePreset : fxDefaults.themePreset,
+      visAnimationIntensity: normalizeVisAnimationIntensity(fx.visAnimationIntensity)
     };
     autosavePayload = scopeCurrentFxAutosavePayload(autosavePayload, opts);
     if (shouldSkipCurrentFxAutosaveWrite(autosavePayload, opts)) return;
@@ -998,6 +1001,10 @@ function normalizeDesktopLyricsFps(value) {
 }
 function normalizeShelfCameraMode(value) {
   return String(value || '') === 'static' ? 'static' : 'dynamic';
+}
+function normalizeVisAnimationIntensity(value) {
+  var v = String(value || '').trim().toLowerCase();
+  return (v === 'calm' || v === 'chaotic') ? v : (fxDefaults.visAnimationIntensity || 'normal');
 }
 function shelfDefaultAngleForCameraMode(mode) {
   return normalizeShelfCameraMode(mode) === 'static' ? -15 : 0;

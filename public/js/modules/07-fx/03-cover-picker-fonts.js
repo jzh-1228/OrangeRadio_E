@@ -103,7 +103,7 @@ function pickCoverColorFromArt(e) {
   var sx = Math.max(0, Math.min(cv.width - 1, Math.floor(x * cv.width)));
   var sy = Math.max(0, Math.min(cv.height - 1, Math.floor(y * cv.height)));
   try {
-    var data = cv.getContext('2d').getImageData(sx, sy, 1, 1).data;
+    var data = cv.getContext('2d', { willReadFrequently: true }).getImageData(sx, sy, 1, 1).data;
     applyCoverPickerColor(rgbToHexColor(data[0], data[1], data[2]));
   } catch (err) {
     showToast('封面取色不可用，已保留自动取色');

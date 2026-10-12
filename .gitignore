@@ -86,3 +86,6 @@ android/
 .tmp-our-modes/
 .tmp-folia-*.png
 .tmp-audit/
+
+# 子代理工作账本（会话工具产物）
+.agents-ledger/

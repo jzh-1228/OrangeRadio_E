@@ -40,11 +40,6 @@ body.aurora #aurora-overlay {
   animation: auroraOverlayIn 0.7s ease;
 }
 
-body.aurora #empty-home,
-body.rainy #empty-home {
-  display: none;
-}
-
 @keyframes auroraOverlayIn {
   from { opacity: 0; }
   to { opacity: 1; }

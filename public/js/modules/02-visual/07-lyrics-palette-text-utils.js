@@ -397,7 +397,7 @@ function lyricCurrentCoverPaletteKey() {
 function updateLyricPaletteFromCover(coverCanvas) {
   if (!coverCanvas) return;
   try {
-    var ctx = coverCanvas.getContext('2d');
+    var ctx = coverCanvas.getContext('2d', { willReadFrequently: true });
     var img = ctx.getImageData(0, 0, coverCanvas.width, coverCanvas.height).data;
     var w = coverCanvas.width, h = coverCanvas.height;
     var sumR = 0, sumG = 0, sumB = 0, count = 0;

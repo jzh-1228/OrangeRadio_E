@@ -12,10 +12,13 @@ const base = path.join(__dirname, '..', 'public', 'js', 'modules');
 function makeCtx2d() {
   return {
     canvas: null, lineJoin: '', lineWidth: 1, fillStyle: '', strokeStyle: '',
+    globalAlpha: 1, globalCompositeOperation: 'source-over',
     clearRect() {}, setTransform() {}, save() {}, restore() {},
     translate() {}, rotate() {}, scale() {}, beginPath() {},
     arc() {}, rect() {}, moveTo() {}, lineTo() {}, closePath() {},
     fill() {}, stroke() {}, fillRect() {}, drawImage() {},
+    createLinearGradient() { return { addColorStop() {} }; },
+    createRadialGradient() { return { addColorStop() {} }; },
   };
 }
 function makeEl(tag) {
@@ -52,7 +55,7 @@ const sandbox = {
   console: { log() {}, warn() {}, error() {} },
   setTimeout() { return 0; }, clearTimeout() {}, setInterval() { return 0; }, clearInterval() {},
   requestAnimationFrame() { return 0; }, cancelAnimationFrame() {},
-  Promise, Map, Set, Math, JSON, Object, Array, Uint8Array, Number, String, isFinite, Date,
+  Promise, Map, Set, Math, JSON, Object, Array, Uint8Array, Float32Array, Number, String, isFinite, Date,
 };
 sandbox.window = sandbox;
 sandbox.getComputedStyle = function () { return { backgroundImage: 'none' }; };
@@ -96,7 +99,7 @@ sandbox.Image = function () {
 };
 
 vm.createContext(sandbox);
-for (const file of ['02-visual/92-background-registry.js', '02-visual/94-background-presets.js', '02-visual/95-background-runtime.js']) {
+for (const file of ['02-visual/92-background-registry.js', '02-visual/94-background-presets.js', '02-visual/94a-background-star-river.js', '02-visual/94b-background-album-blur.js', '02-visual/95-background-runtime.js']) {
   vm.runInContext(fs.readFileSync(path.join(base, file), 'utf8'), sandbox, { filename: file });
 }
 
@@ -112,7 +115,8 @@ for (const file of ['02-visual/92-background-registry.js', '02-visual/94-backgro
   }
   for (const id of ['star-river', 'album-blur']) {
     const e = list.find((x) => x.id === id);
-    assert.ok(e && e.implReady === false, id + ' marked as reserved');
+    assert.ok(e && e.implReady === true, id + ' selectable (impl ready, was reserved)');
+    assert.ok(sandbox.VISUALIZER_BG_IMPLS[id], id + ' impl exists');
   }
   assert.equal(sandbox.getVisualizerBackgroundEntry('geometric').label, '几何律动');
 }
@@ -120,7 +124,8 @@ for (const file of ['02-visual/92-background-registry.js', '02-visual/94-backgro
 /* ---------- normalize ---------- */
 assert.equal(sandbox.normalizeVisualizerBackgroundMode('geometric'), 'geometric');
 assert.equal(sandbox.normalizeVisualizerBackgroundMode('cover-fluid'), 'cover-fluid');
-assert.equal(sandbox.normalizeVisualizerBackgroundMode('star-river'), 'ambient', 'reserved id normalizes to ambient');
+assert.equal(sandbox.normalizeVisualizerBackgroundMode('star-river'), 'star-river', 'star-river now selectable');
+assert.equal(sandbox.normalizeVisualizerBackgroundMode('album-blur'), 'album-blur', 'album-blur now selectable');
 assert.equal(sandbox.normalizeVisualizerBackgroundMode('nope'), 'ambient');
 assert.equal(sandbox.normalizeVisualizerBackgroundMode(''), 'ambient');
 
@@ -146,8 +151,24 @@ assert.equal(sandbox.normalizeVisualizerBackgroundMode(''), 'ambient');
 
 /* ---------- 切换主流程 ---------- */
 lastToast = '';
-assert.equal(sandbox.applyVisualizerBackgroundMode('star-river', { toast: true }), false, 'reserved rejected');
-assert.ok(lastToast.indexOf('预留') >= 0, 'reserved rejection toasts');
+assert.equal(sandbox.applyVisualizerBackgroundMode('star-river', { save: true }), true, 'star-river mounts (was reserved-rejected)');
+assert.equal(sandbox.__host.className.indexOf('mode-star-river') >= 0, true, 'host carries mode class');
+assert.equal(sandbox.__host._classes.has('vbg-sr'), true, 'star-river impl class applied');
+assert.ok(lastSave && lastSave.reason === 'visualizerBackgroundMode', 'switch persists via saveLyricLayout');
+assert.equal(sandbox.fx.backgroundMode, 'star-river', 'fx.backgroundMode written');
+assert.equal(sandbox.document.body._classes.has('visualizer-bg-active'), true, 'body active class set');
+
+/* star-river 绘制帧：粒子 scratch 表挂载后引用稳定（零分配）且 tick 不抛 */
+{
+  const impl = sandbox.VISUALIZER_BG_IMPLS['star-river'];
+  assert.equal(impl.needsRaf, true);
+  impl.tickSlow(sandbox.visualizerBackgroundContext());
+  impl.tick(sandbox.visualizerBackgroundContext(), 1 / 30, 1000);
+  impl.tick(sandbox.visualizerBackgroundContext(), 1 / 30, 1034);
+  impl.onResize();
+  assert.ok(true, 'star-river tick/onResize run clean');
+}
+
 assert.equal(sandbox.applyVisualizerBackgroundMode('geometric', { save: true }), true, 'geometric mounts');
 assert.equal(sandbox.__host.className.indexOf('mode-geometric') >= 0, true, 'host carries mode class');
 assert.equal(sandbox.__host._classes.has('vbg-geo'), true, 'geometric impl class applied');
@@ -186,6 +207,18 @@ assert.equal(sandbox.document.body._classes.has('visualizer-bg-active'), true, '
   impl.tickSlow(sandbox.visualizerBackgroundContext());
   impl.onResize();
   assert.ok(true, 'solid-gradient tickSlow/onResize run clean');
+}
+
+/* album-blur：封面模糊压暗底（低速轮询安全路径：封面构建失败 → 原样 push，桩环境不抛） */
+{
+  assert.equal(sandbox.applyVisualizerBackgroundMode('album-blur', { save: false }), true, 'album-blur mounts (was reserved-rejected)');
+  assert.equal(sandbox.__host.className.indexOf('mode-album-blur') >= 0, true, 'album-blur host carries mode class');
+  assert.equal(sandbox.__host._classes.has('vbg-abl'), true, 'album-blur impl class applied');
+  const impl = sandbox.VISUALIZER_BG_IMPLS['album-blur'];
+  assert.equal(impl.needsRaf, false);
+  impl.tickSlow(sandbox.visualizerBackgroundContext());
+  impl.onResize();
+  assert.ok(true, 'album-blur tickSlow/onResize run clean');
 }
 
 /* ambient：撤下背景层 */

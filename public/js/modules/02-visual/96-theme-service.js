@@ -15,7 +15,7 @@
 //
 // 消费端：
 //   1) 背景 context（95-background-runtime currentCoverPalette 委派至此）
-//   2) 烟纸 fumeTheme 颜色同步（20-fume fumeSyncTheme）
+//   2) 烟纸覆盖层底色（20b-fume-engine-bridge 经 themeOverlayDarkTheme 取用）
 //   3) CSS 变量 --theme-*（UI 徽章等取用）
 //   4) DIY 控制台「外观」：主题模式 seg（跟随昼夜/白天/黑夜）+ 主题名/描述
 // ============================================================

@@ -21,6 +21,7 @@ var lumiereStrands = [];
 var lumiereMotes = [];
 var lumiereFalls = [];
 var lumiereLastThemeKey = '';
+var lumiereLastFontKey = '';
 var lumiereLastLinesKey = '';
 var lumiereLastActiveIdx = -99;
 var lumiereLinesCache = [];
@@ -28,6 +29,15 @@ var lumiereTheme = { primary: '#f4efe4', accent: '#ffc998', secondary: '#8fb3d9'
 
 /* ---------- 主题 ---------- */
 function lumiereSyncTheme() {
+  /* 字体跟随（DOM 降级路径）：fx.lyricFont → --lu-font（Pixi 路径走 28a 桥主题） */
+  var fontKey = (typeof fx !== 'undefined' && fx && fx.lyricFont) ? fx.lyricFont : '';
+  if (fontKey !== lumiereLastFontKey) {
+    lumiereLastFontKey = fontKey;
+    if (fontKey && typeof lyricFontStackForKey === 'function') {
+      var fontOverlay = document.getElementById('lumiere-overlay');
+      if (fontOverlay) fontOverlay.style.setProperty('--lu-font', lyricFontStackForKey(fontKey));
+    }
+  }
   if (typeof themeOverlayDarkTheme !== 'function') return;
   var t = null;
   try { t = themeOverlayDarkTheme(); } catch (e) { return; }
@@ -253,10 +263,79 @@ function lumiereTickWords() {
   }
 }
 
+/* ---------- 底部字幕层（pixi 引擎模式：原版 VisualizerSubtitleOverlay 宿主职责接管）
+   当前行（或刚完成行）的可读翻译轨道 → 无翻译时显示下一行预览（blur，原版
+   upcoming 语义）。可读性判定同原版 hasReadableText（须含字母/数字，过滤
+   "//"、"●●●" 等纯占位行）。容器带 pixi-host 豁免类：pixi-on 全局强隐规则
+   只豁免 .pixi-host，非 pixi 模式自动隐藏（DOM 行栈版自带 #lumiere-line-tr
+   内嵌翻译，不需要此层）。 ---------- */
+function lumiereSubtitleReadable(text) {
+  return !!text && /[\p{L}\p{N}]/u.test(text);
+}
+
+function lumiereSubtitleUpdate() {
+  var el = document.getElementById('lumiere-subtitle');
+  if (!el) return;
+  var lines = (lumiereLinesCache && lumiereLinesCache.length) ? lumiereLinesCache
+    : ((typeof lyricsLines !== 'undefined' && lyricsLines) ? lyricsLines : []);
+  var t = lumiereNowTime();
+  var idx = -1;
+  try {
+    if (typeof findStageLyricIndexAtTime === 'function') idx = findStageLyricIndexAtTime(t);
+  } catch (e) { idx = -1; }
+  var trText = '';
+  for (var k = 0; k < 2 && idx - k >= 0; k++) {
+    var line = lines[idx - k];
+    var tr = line ? String(line.translation || '').trim() : '';
+    if (lumiereSubtitleReadable(tr)) { trText = tr; break; }
+  }
+  var previewText = '';
+  if (!trText) {
+    for (var j = idx + 1; j <= idx + 3 && j < lines.length; j++) {
+      var nl = lines[j];
+      var nt = nl ? String(nl.text || '').trim() : '';
+      if (lumiereSubtitleReadable(nt)) { previewText = nt; break; }
+    }
+  }
+  var main = el.querySelector('.lumiere-sub-main');
+  var up = el.querySelector('.lumiere-sub-up');
+  if (!main || !up) return;
+  if (trText) {
+    main.textContent = trText;
+    main.style.display = '';
+    up.style.display = 'none';
+    el.classList.add('has-line');
+  } else if (previewText) {
+    main.style.display = 'none';
+    up.textContent = previewText;
+    up.style.display = '';
+    el.classList.add('has-line');
+  } else {
+    main.style.display = '';
+    main.textContent = '';
+    up.style.display = '';
+    up.textContent = '';
+    el.classList.remove('has-line');
+  }
+}
+
+function lumiereSubtitleClear() {
+  var el = document.getElementById('lumiere-subtitle');
+  if (!el) return;
+  el.classList.remove('has-line');
+  var main = el.querySelector('.lumiere-sub-main');
+  var up = el.querySelector('.lumiere-sub-up');
+  if (main) main.textContent = '';
+  if (up) up.textContent = '';
+}
+
 /* ---------- 主循环 ---------- */
 
 var lumiereLastPoll = 0;
 var lumiereIsChorus = false;
+/* DOM 降级版运行时的引擎自愈重试节流（每 8s 一次，桥内另有指数退避判定） */
+var LUMIERE_DOM_RETRY_MS = 8000;
+var lumiereLastPixiRetry = 0;
 function lumiereFrame(now) {
   if (!lumiereMode) return;
   var tSec = now / 1000;
@@ -278,6 +357,19 @@ function lumiereFrame(now) {
     var overlay = document.getElementById('lumiere-overlay');
     if (overlay) overlay.classList.toggle('is-chorus', lumiereIsChorus);
   }
+  /* 引擎自愈：DOM 降级不是终点——暂时性创建失败（如 WebGL 上下文被占）退避
+     窗口过后重试，成功则停 DOM 循环、切回原版引擎（原版接管是唯一主路径） */
+  if (now - lumiereLastPixiRetry > LUMIERE_DOM_RETRY_MS) {
+    lumiereLastPixiRetry = now;
+    if (typeof lumierePixiStart === 'function') {
+      lumierePixiStart().then(function (ok) {
+        if (ok && lumiereMode && !lumiereUsePixi) {
+          lumiereDomStop();
+          lumiereAdoptPixi();
+        }
+      });
+    }
+  }
   lumiereRafId = requestAnimationFrame(lumiereFrame);
 }
 
@@ -285,24 +377,38 @@ function lumiereFrame(now) {
 
 var lumiereUsePixi = false;   /* 原版 Pixi 引擎接管（false = canvas 版降级） */
 
+/* Pixi 引擎接管：pixi-on 打开（DOM 版元素经全局强隐规则让位）、启动轻量同步
+   循环——换歌/主题/元数据 swapSong + setSongMetadata（原版热切换语义）+
+   暂停跟随 + 底部字幕翻译轨道。 */
+function lumiereAdoptPixi() {
+  lumiereUsePixi = true;
+  var ov = document.getElementById('lumiere-overlay');
+  if (ov) ov.classList.add('pixi-on');
+  lumiereSubtitleUpdate();
+  (function ploop() {
+    if (!lumiereMode || !lumiereUsePixi) return;
+    lumiereSyncTheme();   /* 字体变量 --lu-font 跟随（Pixi 底部字幕轨道用它） */
+    if (typeof lumierePixiSync === 'function') lumierePixiSync();
+    lumiereSubtitleUpdate();
+    lumierePixiSetPaused(!((typeof playing !== 'undefined') && playing));
+    setTimeout(ploop, 700);
+  })();
+}
+
+/* DOM 降级版循环停止（自愈切换到引擎时用；引擎侧清理由 lumierePixiStop 负责） */
+function lumiereDomStop() {
+  if (lumiereRafId) { cancelAnimationFrame(lumiereRafId); lumiereRafId = 0; }
+}
+
 function startLumiere() {
   /* 字号跟随「歌词大小」设置（--mfs，CSS 主行 clamp 乘算） */
   if (typeof applyOverlayModeFontScale === "function") applyOverlayModeFontScale(document.getElementById("lumiere-overlay"));
-  /* 原版 Pixi 引擎优先；失败自动降级 canvas 版 */
+  /* 原版 Pixi 引擎优先；失败（退避窗口内）自动降级 canvas 版并周期自愈重试 */
   var boot = (typeof lumierePixiStart === 'function') ? lumierePixiStart() : Promise.resolve(false);
   boot.then(function (ok) {
     if (!lumiereMode) { if (ok) lumierePixiStop(); return; }
-    lumiereUsePixi = !!ok;
-    var ov = document.getElementById('lumiere-overlay');
-    if (ov) ov.classList.toggle('pixi-on', lumiereUsePixi);
-    if (lumiereUsePixi) {
-      (function ploop() {
-        if (!lumiereMode || !lumiereUsePixi) return;
-        lumierePixiSetPaused(!((typeof playing !== 'undefined') && playing));
-        setTimeout(ploop, 700);
-      })();
-      return;
-    }
+    if (ok) { lumiereAdoptPixi(); return; }
+    lumiereLastPixiRetry = performance.now();
     lumiereDomStart();
   });
 }
@@ -319,10 +425,11 @@ function lumiereDomStart() {
 }
 
 function stopLumiere() {
-  if (lumiereRafId) { cancelAnimationFrame(lumiereRafId); lumiereRafId = 0; }
+  lumiereDomStop();
   if (lumiereTimer) { clearTimeout(lumiereTimer); lumiereTimer = 0; }
   lumiereUsePixi = false;
   if (typeof lumierePixiStop === 'function') lumierePixiStop();
+  lumiereSubtitleClear();
   var ov = document.getElementById('lumiere-overlay');
   if (ov) ov.classList.remove('pixi-on');
 }

@@ -18,6 +18,7 @@ var sonnetRows = [];                 /* DOM 行栈（复用，最多 7） */
 var sonnetLastLinesKey = '';
 var sonnetLastActiveIdx = -99;
 var sonnetLastThemeKey = '';
+var sonnetLastFontKey = '';
 var sonnetLinesCache = [];
 var SONNET_STACK_DEPTH = 7;
 var sonnetUsePixi = false;   /* 原版 Pixi 引擎接管渲染（false = DOM 版降级） */
@@ -27,6 +28,15 @@ var sonnetLastChorus = false;
 var sonnetTheme = { primary: '#f6efe2', accent: '#ffcf9e', bg: '#0c0907' };
 
 function sonnetSyncTheme() {
+  /* 字体跟随（DOM 降级路径）：fx.lyricFont → --sn-font（Pixi 路径走 26a 桥主题） */
+  var fontKey = (typeof fx !== 'undefined' && fx && fx.lyricFont) ? fx.lyricFont : '';
+  if (fontKey !== sonnetLastFontKey) {
+    sonnetLastFontKey = fontKey;
+    if (fontKey && typeof lyricFontStackForKey === 'function') {
+      var fontOverlay = document.getElementById('sonnet-overlay');
+      if (fontOverlay) fontOverlay.style.setProperty('--sn-font', lyricFontStackForKey(fontKey));
+    }
+  }
   if (typeof themeOverlayDarkTheme !== 'function') return;
   var t = null;
   try { t = themeOverlayDarkTheme(); } catch (e) { return; }
@@ -42,6 +52,71 @@ function sonnetSyncTheme() {
     overlay.style.setProperty('--sn-ink', sonnetTheme.primary);
     overlay.style.setProperty('--sn-gold', sonnetTheme.accent);
   }
+}
+
+/* ---------- 底部字幕层（pixi 引擎模式：原版 VisualizerSubtitleOverlay 宿主职责接管）
+   当前行（或刚完成行）的可读翻译轨道 → 无翻译时显示下一行预览（blur，原版
+   upcoming 语义）。可读性判定同原版 hasReadableText（须含字母/数字，过滤
+   "//"、"●●●" 等纯占位行）。容器带 pixi-host 豁免类：pixi-on 全局强隐规则
+   （index.css 10579）只豁免 .pixi-host，非 pixi 模式自动隐藏（DOM 行栈版自带
+   内嵌翻译，不需要此层）。 ---------- */
+function sonnetSubtitleReadable(text) {
+  return !!text && /[\p{L}\p{N}]/u.test(text);
+}
+
+function sonnetSubtitleUpdate() {
+  var el = document.getElementById('sonnet-subtitle');
+  if (!el) return;
+  var lines = (typeof lyricsLines !== 'undefined' && lyricsLines) ? lyricsLines : [];
+  var t = sonnetNowTime();
+  var idx = -1;
+  try {
+    if (typeof findStageLyricIndexAtTime === 'function') idx = findStageLyricIndexAtTime(t);
+  } catch (e) { idx = -1; }
+  var trText = '';
+  for (var k = 0; k < 2 && idx - k >= 0; k++) {
+    var line = lines[idx - k];
+    var tr = line ? String(line.translation || '').trim() : '';
+    if (sonnetSubtitleReadable(tr)) { trText = tr; break; }
+  }
+  var previewText = '';
+  if (!trText) {
+    for (var j = idx + 1; j <= idx + 3 && j < lines.length; j++) {
+      var nl = lines[j];
+      var nt = nl ? String(nl.text || '').trim() : '';
+      if (sonnetSubtitleReadable(nt)) { previewText = nt; break; }
+    }
+  }
+  var main = el.querySelector('.sonnet-sub-main');
+  var up = el.querySelector('.sonnet-sub-up');
+  if (!main || !up) return;
+  if (trText) {
+    main.textContent = trText;
+    main.style.display = '';
+    up.style.display = 'none';
+    el.classList.add('has-line');
+  } else if (previewText) {
+    main.style.display = 'none';
+    up.textContent = previewText;
+    up.style.display = '';
+    el.classList.add('has-line');
+  } else {
+    main.style.display = '';
+    main.textContent = '';
+    up.style.display = '';
+    up.textContent = '';
+    el.classList.remove('has-line');
+  }
+}
+
+function sonnetSubtitleClear() {
+  var el = document.getElementById('sonnet-subtitle');
+  if (!el) return;
+  el.classList.remove('has-line');
+  var main = el.querySelector('.sonnet-sub-main');
+  var up = el.querySelector('.sonnet-sub-up');
+  if (main) main.textContent = '';
+  if (up) up.textContent = '';
 }
 
 /* ---------- 行栈几何（手稿堆：随机旋转/错位按行种子） ---------- */
@@ -393,10 +468,12 @@ function startSonnet() {
         sonnetTimer = setTimeout(loop, 220);
       })();
     } else {
-      /* Pixi 版：轻量同步循环（换歌/主题/字号 swapSong + 暂停跟随） */
+      /* Pixi 版：轻量同步循环（换歌/主题/字号 swapSong + 暂停跟随 + 底部字幕） */
       (function loop() {
         if (!sonnetMode || !sonnetUsePixi) return;
+        sonnetSyncTheme();   /* 字体变量 --sn-font 跟随（Pixi 底部字幕轨道用它） */
         if (typeof sonnetPixiSync === 'function') sonnetPixiSync();
+        sonnetSubtitleUpdate();
         var paused = !((typeof playing !== 'undefined') && playing);
         if (typeof sonnetPixiSetPaused === 'function') sonnetPixiSetPaused(paused);
         sonnetTimer = setTimeout(loop, 700);
@@ -409,6 +486,7 @@ function stopSonnet() {
   if (sonnetTimer) { clearTimeout(sonnetTimer); sonnetTimer = 0; }
   sonnetUsePixi = false;
   if (typeof sonnetPixiStop === 'function') sonnetPixiStop();
+  sonnetSubtitleClear();
   var ov0 = document.getElementById('sonnet-overlay');
   if (ov0) ov0.classList.remove('pixi-on');
   sonnetCameraStop();

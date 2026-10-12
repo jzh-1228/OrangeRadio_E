@@ -29,10 +29,6 @@ body.lattice #lattice-overlay {
   animation: latticeOverlayIn 0.6s ease;
 }
 
-body.lattice #empty-home {
-  display: none;
-}
-
 @keyframes latticeOverlayIn {
   from { opacity: 0; }
   to { opacity: 1; }
